@@ -2,126 +2,202 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BUSNEX - Bus Management</title>
-<style>
-
-  { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #eef4f5;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-}
-.login {
-  background: white;
-  padding: 35px;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 370px;
-  box-shadow: 0 8px 30px #0001;
-}
-h1 { color: #0f766e; text-align: center; margin-bottom: 5px; }
-.subtitle { text-align: center; color: #64748b; }
-input, button {
-  width: 100%;
-  padding: 14px;
-  margin-top: 16px;
-  border-radius: 8px;
-  font-size: 15px;
-}
-input { border: 1px solid #cbd5e1; }
-button {
-  border: none;
-  background: #0f766e;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-button:disabled { opacity: .6; cursor: wait; }
-#message { text-align: center; font-size: 14px; margin-top: 15px; }
-.footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BUSNEX | Counter Login</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #071b35, #123d64);
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 35px 28px;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 20px 60px #0005;
+    }
+    .logo {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: #e8f3ff;
+      color: #0875cf;
+      font-size: 30px;
+      font-weight: bold;
+    }
+    h1 {
+      text-align: center;
+      margin: 0;
+      color: #102b48;
+      font-size: 30px;
+      letter-spacing: 2px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #718096;
+      margin: 9px 0 30px;
+      font-size: 14px;
+    }
+    label {
+      display: block;
+      margin: 17px 0 8px;
+      color: #263b50;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #d5dfeb;
+      border-radius: 10px;
+      outline: none;
+      font-size: 15px;
+    }
+    input:focus {
+      border-color: #0875cf;
+      box-shadow: 0 0 0 3px #0875cf18;
+    }
+    button {
+      width: 100%;
+      margin-top: 24px;
+      padding: 15px;
+      border: 0;
+      border-radius: 10px;
+      background: #0875cf;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+    #message {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 28px;
+      text-align: center;
+      color: #8291a3;
+      font-size: 12px;
+    }
+  </style>
 </head>
 <body>
+  <main class="login-card">
+    <div class="logo">B</div>
+    <h1>BUSNEX</h1>
+    <p class="subtitle">BUS MANAGEMENT SYSTEM<br>Counter Login Portal</p>
 
-<div class="login">
-  <h1>BUSNEX</h1>
-  <p class="subtitle">Bus Management System</p>
+    <form id="loginForm">
+      <label for="loginId">User ID</label>
+      <input id="loginId" type="text"
+        placeholder="Enter your User ID"
+        autocomplete="username" required>
 
-  <form id="loginForm">
-    <input id="loginId" placeholder="User ID" autocomplete="username" required>
-    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
-    <button id="loginButton" type="submit">LOGIN</button>
-  </form>
+      <label for="password">Password</label>
+      <input id="password" type="password"
+        placeholder="Enter your password"
+        autocomplete="current-password" required>
 
-  <p id="message" role="status"></p>
-  <div class="footer">Authorized Users Only</div>
-</div>
+      <button id="loginButton" type="submit">LOGIN</button>
+      <div id="message" role="status"></div>
+    </form>
 
-<script type="module">
-import { createClient } from
-  "https://esm.sh/@supabase/supabase-js@2";
+    <div class="footer">© 2026 BUSNEX · All Rights Reserved</div>
+  </main>
 
-const SUPABASE_URL = "https://ikjjmiddgpruufxtyqmd.supabase.co";
+  <script type="module">
+    import { createClient } from
+      "https://esm.sh/@supabase/supabase-js@2";
 
-// এখানে তোমার কপি করা Publishable Key বসাবে।
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8F63OX2XxhCXgGFUCEzWQA_0oXG61Uo";
+    const SUPABASE_URL =
+      "https://ikjjmiddgpruufxtyqmd.supabase.co";
 
-const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+    const SUPABASE_PUBLISHABLE_KEY =
+      "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
 
-const form = document.getElementById("loginForm");
-const button = document.getElementById("loginButton");
-const message = document.getElementById("message");
+    const FUNCTION_NAME = "clever-service";
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const login_id = document.getElementById("loginId").value.trim();
-  const password = document.getElementById("password").value;
-
-  button.disabled = true;
-  button.textContent = "PLEASE WAIT...";
-  message.textContent = "লগইন যাচাই হচ্ছে...";
-
-  try {
-    const { data, error } = await supabase.functions.invoke(
-      "clever-service",
-      { body: { login_id, password } }
+    const supabase = createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
     );
 
-    if (error) throw error;
-    if (!data?.success || !data?.session) {
-      throw new Error(data?.error || "লগইন সফল হয়নি");
-    }
+    const form = document.getElementById("loginForm");
+    const button = document.getElementById("loginButton");
+    const message = document.getElementById("message");
 
-    const { error: sessionError } = await supabase.auth.setSession({
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const login_id = document.getElementById("loginId")
+        .value.trim().toUpperCase();
+
+      const password = document.getElementById("password").value;
+
+      if (SUPABASE_PUBLISHABLE_KEY ===
+          "PASTE_YOUR_PUBLISHABLE_KEY_HERE") {
+        message.textContent = "Publishable Key বসানো হয়নি।";
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "PLEASE WAIT...";
+      message.style.color = "#0875cf";
+      message.textContent = "লগইন যাচাই করা হচ্ছে...";
+
+      try {
+        const { data, error } =
+          await supabase.functions.invoke(FUNCTION_NAME, {
+            body: { login_id, password }
+          });
+
+        if (error) throw error;
+
+        if (!data?.access_token || !data?.refresh_token) {
+          throw new Error(
+            data?.error || "লগইন তথ্য যাচাই করা যায়নি।"
+          );
+        }
+
+        const { error: sessionError } =
+          await supabase.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token
+          });
+
+        if (sessionError) throw sessionError;
+
+        message.style.color = "green";
+        message.textContent = "লগইন সফল হয়েছে!";
+
+      } catch (error) {
+        console.error("BUSNEX login error:", error);
+        message.style.color = "#d62828";
+        message.textContent =
+          "লগইন হয়নি। User ID, Password অথবা সার্ভার পরীক্ষা করুন।";
+      } finally {
+        button.disabled = false;
+        button.textContent = "LOGIN";
+      }
     });
-
-    if (sessionError) throw sessionError;
-
-    message.textContent =
-      "স্বাগতম, " + (data.profile?.full_name || "BUSNEX User");
-
-  } catch (error) {
-    console.error("Login failed:", error);
-    message.textContent =
-      "লগইন হয়নি। User ID ও Password যাচাই করো।";
-  } finally {
-    button.disabled = false;
-    button.textContent = "LOGIN";
-  }
-});
-</script>
-
+  </script>
 </body>
 </html>
