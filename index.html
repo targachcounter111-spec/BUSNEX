@@ -1,52 +1,126 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BUSNEX - Bus Management</title>
 <style>
+* { box-sizing: border-box; }
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #f1f5f9;
+  background: #eef4f5;
+  min-height: 100vh;
   display: grid;
   place-items: center;
-  min-height: 100vh;
+  padding: 20px;
 }
 .login {
   background: white;
   padding: 35px;
-  border-radius: 15px;
-  width: 310px;
-  box-shadow: 0 5px 25px #0001;
-}
-h1 { color: #0f766e; text-align: center; }
-p { text-align: center; color: #64748b; }
-input, button {
-  box-sizing: border-box;
+  border-radius: 16px;
   width: 100%;
-  padding: 13px;
-  margin-top: 15px;
-  border-radius: 7px;
+  max-width: 370px;
+  box-shadow: 0 8px 30px #0001;
+}
+h1 { color: #0f766e; text-align: center; margin-bottom: 5px; }
+.subtitle { text-align: center; color: #64748b; }
+input, button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 16px;
+  border-radius: 8px;
+  font-size: 15px;
 }
 input { border: 1px solid #cbd5e1; }
 button {
-  border: 0;
+  border: none;
   background: #0f766e;
   color: white;
   font-weight: bold;
   cursor: pointer;
 }
+button:disabled { opacity: .6; cursor: wait; }
+#message { text-align: center; font-size: 14px; margin-top: 15px; }
+.footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px; }
 </style>
 </head>
 <body>
+
 <div class="login">
   <h1>BUSNEX</h1>
-  <p>Bus Management System</p>
-  <input placeholder="User ID">
-  <input type="password" placeholder="Password">
-  <button>LOGIN</button>
-  <p>Authorized Users Only</p>
+  <p class="subtitle">Bus Management System</p>
+
+  <form id="loginForm">
+    <input id="loginId" placeholder="User ID" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button id="loginButton" type="submit">LOGIN</button>
+  </form>
+
+  <p id="message" role="status"></p>
+  <div class="footer">Authorized Users Only</div>
 </div>
+
+<script type="module">
+import { createClient } from
+  "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = "https://ikjjmiddgpruufxtyqmd.supabase.co";
+
+// এখানে তোমার কপি করা Publishable Key বসাবে।
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8F63OX2XxhCXgGFUCEzWQA_0oXG61Uo";
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+const form = document.getElementById("loginForm");
+const button = document.getElementById("loginButton");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const login_id = document.getElementById("loginId").value.trim();
+  const password = document.getElementById("password").value;
+
+  button.disabled = true;
+  button.textContent = "PLEASE WAIT...";
+  message.textContent = "লগইন যাচাই হচ্ছে...";
+
+  try {
+    const { data, error } = await supabase.functions.invoke(
+      "clever-service",
+      { body: { login_id, password } }
+    );
+
+    if (error) throw error;
+    if (!data?.success || !data?.session) {
+      throw new Error(data?.error || "লগইন সফল হয়নি");
+    }
+
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token
+    });
+
+    if (sessionError) throw sessionError;
+
+    message.textContent =
+      "স্বাগতম, " + (data.profile?.full_name || "BUSNEX User");
+
+  } catch (error) {
+    console.error("Login failed:", error);
+    message.textContent =
+      "লগইন হয়নি। User ID ও Password যাচাই করো।";
+  } finally {
+    button.disabled = false;
+    button.textContent = "LOGIN";
+  }
+});
+</script>
+
 </body>
 </html>
