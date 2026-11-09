@@ -183,7 +183,23 @@ th{color:#52647b;background:#f8fafc}
       <div id="loginMessage" class="message"></div>
       <button id="loginButton" class="primary" type="submit" style="width:100%">লগইন করুন</button>
     </form>
-    <p class="small muted" style="text-align:center;margin:18px 0 0">
+
+    <div id="setPasswordPanel" class="hidden">
+      <h1 style="margin-top:18px">নতুন Password সেট করুন</h1>
+      <div class="muted small">আপনার BUSNEX Account-এর জন্য নতুন Password তৈরি করুন।</div>
+      <div class="field">
+        <label for="newPassword">নতুন Password</label>
+        <input id="newPassword" type="password" autocomplete="new-password" placeholder="কমপক্ষে ৮ অক্ষর">
+      </div>
+      <div class="field">
+        <label for="confirmPassword">আবার Password লিখুন</label>
+        <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="একই Password আবার লিখুন">
+      </div>
+      <div id="passwordSetupMessage" class="message"></div>
+      <button id="saveNewPassword" class="primary" type="button" style="width:100%">Password সেট করুন</button>
+    </div>
+
+    <p id="loginFooter" class="small muted" style="text-align:center;margin:18px 0 0">
       BUSNEX • Secure Counter Access
     </p>
   </div>
@@ -386,7 +402,14 @@ if (!supabaseLib || !supabaseLib.createClient) {
 
 const supabase = supabaseLib.createClient(
   SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
 );
 
 let currentProfile = null;
@@ -444,7 +467,118 @@ function showLogin() {
   currentProfile = null;
   editingTripId = null;
   document.title = "BUSNEX | Login";
+}function getAuthLinkType() {
+  const hashText = window.location.hash.startsWith("#")
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  const hashParams = new URLSearchParams(hashText);
+  const queryParams = new URLSearchParams(window.location.search);
+  return hashParams.get("type") || queryParams.get("type") || "";
 }
+
+function showPasswordSetup(message = "") {
+  $("appScreen").classList.add("hidden");
+  $("loginScreen").classList.remove("hidden");
+  $("loginForm").classList.add("hidden");
+  $("setPasswordPanel").classList.remove("hidden");
+  $("loginFooter").classList.add("hidden");
+  $("passwordSetupMessage").textContent = message;
+  $("passwordSetupMessage").className = message ? "message ok" : "message";
+  document.title = "BUSNEX | Set Password";
+}
+
+function showNormalLogin() {
+  $("loginForm").classList.remove("hidden");
+  $("setPasswordPanel").classList.add("hidden");
+  $("loginFooter").classList.remove("hidden");
+  document.title = "BUSNEX | Login";
+}
+
+function showPasswordSetupError(message) {
+  showPasswordSetup();
+  $("passwordSetupMessage").textContent = message;
+  $("passwordSetupMessage").className = "message error";
+}
+
+// Supabase invitation/recovery link থেকে আসা session শনাক্ত করা।
+const authLinkType = getAuthLinkType();
+const hasPkceAuthCode = new URLSearchParams(window.location.search).has("code");
+const isPasswordSetupLink =
+  ["invite", "recovery"].includes(authLinkType) || hasPkceAuthCode;
+
+if (isPasswordSetupLink) {
+  showPasswordSetup("লিংক যাচাই করা হচ্ছে, একটু অপেক্ষা করুন...");
+}
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (isPasswordSetupLink && session && ["SIGNED_IN", "INITIAL_SESSION", "PASSWORD_RECOVERY"].includes(event)) {
+    showPasswordSetup("নতুন Password লিখে সংরক্ষণ করুন।");
+  }
+});
+
+(async () => {
+  if (!isPasswordSetupLink) return;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (data?.session) {
+      showPasswordSetup("নতুন Password লিখে সংরক্ষণ করুন।");
+    } else {
+      showPasswordSetupError("এই Password সেট করার লিংকটি কাজ করছে না বা মেয়াদ শেষ হয়েছে। Supabase থেকে নতুন Password Recovery Email পাঠাতে হবে।");
+    }
+  } catch (error) {
+    console.error("Password setup link check:", error);
+    showPasswordSetupError("লিংক যাচাই করা যায়নি: " + (error.message || "অজানা সমস্যা"));
+  }
+})();
+
+$("saveNewPassword").addEventListener("click", async () => {
+  const newPassword = $("newPassword").value;
+  const confirmPassword = $("confirmPassword").value;
+  const button = $("saveNewPassword");
+
+  if (newPassword.length < 8) {
+    $("passwordSetupMessage").textContent = "Password কমপক্ষে ৮ অক্ষরের হতে হবে।";
+    $("passwordSetupMessage").className = "message error";
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    $("passwordSetupMessage").textContent = "দুইটি Password এক হয়নি। আবার লিখুন।";
+    $("passwordSetupMessage").className = "message error";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Password সংরক্ষণ হচ্ছে...";
+  $("passwordSetupMessage").className = "message";
+  $("passwordSetupMessage").textContent = "";
+
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!sessionData?.session) {
+      throw new Error("Password সেট করার লিংকটি মেয়াদোত্তীর্ণ। নতুন Recovery Email পাঠান।");
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+
+    await supabase.auth.signOut();
+    window.history.replaceState(null, document.title, window.location.pathname);
+    $("newPassword").value = "";
+    $("confirmPassword").value = "";
+    showNormalLogin();
+    showMessage("নতুন Password সফলভাবে সেট হয়েছে। এখন আপনার User ID ও নতুন Password দিয়ে Login করুন।", "ok");
+
+  } catch (error) {
+    console.error("Set password error:", error);
+    $("passwordSetupMessage").textContent = error.message || "Password সেট করা যায়নি।";
+    $("passwordSetupMessage").className = "message error";
+  } finally {
+    button.disabled = false;
+    button.textContent = "Password সেট করুন";
+  }
+});
 
 $("loginForm").addEventListener("submit",async event => {
   event.preventDefault();
@@ -710,20 +844,14 @@ async function getOrCreateRoute(companyId,from,to) {
 
 function localDateValue(dateValue) {
   const date = new Date(dateValue);
-
   const year = date.getFullYear();
   const month = String(date.getMonth()+1).padStart(2,"0");
   const day = String(date.getDate()).padStart(2,"0");
-
   return `${year}-${month}-${day}`;
-}
-
-function localTimeValue(dateValue) {
+}function localTimeValue(dateValue) {
   const date = new Date(dateValue);
-
   const hours = String(date.getHours()).padStart(2,"0");
   const minutes = String(date.getMinutes()).padStart(2,"0");
-
   return `${hours}:${minutes}`;
 }
 
@@ -741,12 +869,10 @@ function clearTripFormFields() {
 
 function stopEditing() {
   editingTripId = null;
-
   $("tripFormTitle").textContent = "নতুন Trip-এর তথ্য";
   $("tripSaveButton").textContent = "Trip তথ্য সংরক্ষণ";
   $("editingBanner").classList.add("hidden");
   $("tripEditCancelButton").classList.add("hidden");
-
   clearTripFormFields();
   tripMessage("Edit বাতিল করা হয়েছে।","ok");
 }
@@ -781,17 +907,9 @@ $("tripSaveButton").addEventListener("click",async() => {
   const button = $("tripSaveButton");
   const isEditing = Boolean(editingTripId);
 
-  if (!companyId) {
-    return tripMessage("Company নির্বাচন করুন।","error");
-  }
-
-  if (!busId) {
-    return tripMessage("Bus নির্বাচন করুন।","error");
-  }
-
-  if (!from || !to) {
-    return tripMessage("FROM ও TO লিখুন।","error");
-  }
+  if (!companyId) return tripMessage("Company নির্বাচন করুন।","error");
+  if (!busId) return tripMessage("Bus নির্বাচন করুন।","error");
+  if (!from || !to) return tripMessage("FROM ও TO লিখুন।","error");
 
   if (from.toLowerCase() === to.toLowerCase()) {
     return tripMessage("FROM ও TO একই হতে পারবে না।","error");
@@ -826,7 +944,6 @@ $("tripSaveButton").addEventListener("click",async() => {
     }
 
     const routeId = await getOrCreateRoute(companyId,from,to);
-
     const departureDateTime = new Date(date + "T" + time + ":00");
 
     if (Number.isNaN(departureDateTime.getTime())) {
@@ -856,21 +973,16 @@ $("tripSaveButton").addEventListener("click",async() => {
     } else {
       const {data:trip,error:tripError} = await supabase
         .from("trips")
-        .insert({
-          ...tripPayload,
-          status:"scheduled"
-        })
+        .insert({...tripPayload,status:"scheduled"})
         .select("id")
         .single();
 
       if (tripError) throw tripError;
-
       tripId = trip.id;
     }
 
     let boardingWarning = "";
 
-    // Edit করলে আগের Boarding Points সরিয়ে নতুনগুলো বসানো হবে।
     if (isEditing) {
       const {error:deleteBoardingError} = await supabase
         .from("trip_boarding_points")
@@ -903,21 +1015,12 @@ $("tripSaveButton").addEventListener("click",async() => {
       }
     }
 
-    if (isEditing) {
-      tripMessage(
-        boardingWarning
-          ? "Trip পরিবর্তন হয়েছে।" + boardingWarning
-          : "Trip এবং Boarding Points সফলভাবে পরিবর্তন হয়েছে!",
-        boardingWarning ? "error" : "ok"
-      );
-    } else {
-      tripMessage(
-        boardingWarning
-          ? "Trip তৈরি হয়েছে।" + boardingWarning
-          : "Trip এবং Boarding Points সফলভাবে Supabase-এ সংরক্ষণ হয়েছে!",
-        boardingWarning ? "error" : "ok"
-      );
-    }
+    tripMessage(
+      boardingWarning
+        ? "Trip তৈরি/পরিবর্তন হয়েছে।" + boardingWarning
+        : "Trip এবং Boarding Points সফলভাবে সংরক্ষণ হয়েছে!",
+      boardingWarning ? "error" : "ok"
+    );
 
     editingTripId = null;
     $("tripFormTitle").textContent = "নতুন Trip-এর তথ্য";
@@ -926,7 +1029,6 @@ $("tripSaveButton").addEventListener("click",async() => {
     $("tripEditCancelButton").classList.add("hidden");
 
     clearTripFormFields();
-
     await loadTrips();
 
   } catch(error) {
@@ -939,12 +1041,9 @@ $("tripSaveButton").addEventListener("click",async() => {
 
   } finally {
     button.disabled = false;
-
-    if (!editingTripId) {
-      button.textContent = "Trip তথ্য সংরক্ষণ";
-    } else {
-      button.textContent = "পরিবর্তন সংরক্ষণ";
-    }
+    button.textContent = editingTripId
+      ? "পরিবর্তন সংরক্ষণ"
+      : "Trip তথ্য সংরক্ষণ";
   }
 });
 
@@ -994,7 +1093,6 @@ async function loadTrips() {
       .sort((a,b) => a.point_order - b.point_order);
 
     const departure = new Date(trip.departure_time);
-
     const dateText = departure.toLocaleDateString("en-GB");
 
     const timeText = departure.toLocaleTimeString("en-US",{
@@ -1054,21 +1152,15 @@ async function loadTrips() {
   });
 
   document.querySelectorAll(".edit-trip").forEach(button => {
-    button.addEventListener("click",() => {
-      editTrip(button.dataset.id);
-    });
+    button.addEventListener("click",() => editTrip(button.dataset.id));
   });
 
   document.querySelectorAll(".cancel-trip").forEach(button => {
-    button.addEventListener("click",() => {
-      cancelTrip(button.dataset.id,button);
-    });
+    button.addEventListener("click",() => cancelTrip(button.dataset.id,button));
   });
 
   document.querySelectorAll(".delete-trip").forEach(button => {
-    button.addEventListener("click",() => {
-      deleteTrip(button.dataset.id,button);
-    });
+    button.addEventListener("click",() => deleteTrip(button.dataset.id,button));
   });
 }
 
@@ -1105,14 +1197,11 @@ async function editTrip(id) {
     }
 
     $("tripBus").value = trip.bus_id;
-
     $("tripFrom").value = trip.routes?.starting_point || "";
     $("tripTo").value = trip.routes?.ending_point || "";
-
     $("coachNumber").value = trip.coach_number || "";
     $("tripDate").value = localDateValue(trip.departure_time);
     $("tripTime").value = localTimeValue(trip.departure_time);
-
     $("tripPrice").value = trip.ticket_price ?? "";
     $("tripSupervisor").value = trip.supervisor || "";
 
@@ -1146,7 +1235,6 @@ async function editTrip(id) {
 
 async function cancelTrip(id,button) {
   if (!isAdmin()) return;
-
   if (!confirm("এই Trip বাতিল করতে চাও?")) return;
 
   button.disabled = true;
@@ -1188,22 +1276,14 @@ async function deleteTrip(id,button) {
 
     if (error) throw error;
 
-    if (editingTripId === id) {
-      stopEditing();
-    }
+    if (editingTripId === id) stopEditing();
 
     tripMessage("Trip স্থায়ীভাবে Delete করা হয়েছে।","ok");
-
     await loadTrips();
 
   } catch(error) {
     console.error("DELETE TRIP ERROR:",error);
-
-    tripMessage(
-      "Trip Delete হয়নি: " + error.message,
-      "error"
-    );
-
+    tripMessage("Trip Delete হয়নি: " + error.message,"error");
     button.disabled = false;
     button.textContent = "Delete Trip";
   }
@@ -1257,14 +1337,10 @@ for (let n=1;n<=5;n++) {
 
 for (const seat of seats) {
   const div = document.createElement("div");
-
-  div.className =
-    "seat" + (seat.name === "K-3" ? " middle" : "");
-
+  div.className = "seat" + (seat.name === "K-3" ? " middle" : "");
   div.textContent = seat.name;
   div.style.gridRow = seat.row;
   div.style.gridColumn = seat.col;
-
   $("seatLayout").appendChild(div);
 }
 
@@ -1308,29 +1384,32 @@ $("searchTripButton").addEventListener("click",() => {
   }
 });
 
-// Restore existing login session
-(async() => {
-  try {
-    const {data:{session}} = await supabase.auth.getSession();
+// আগের Login Session ফিরিয়ে আনা।
+// Password Recovery লিংকে এলে Dashboard খুলবে না।
+if (!isPasswordSetupLink) {
+  (async() => {
+    try {
+      const {data:{session}} = await supabase.auth.getSession();
 
-    if (session) {
-      const {data:userData} = await supabase.auth.getUser();
+      if (session) {
+        const {data:userData} = await supabase.auth.getUser();
 
-      if (userData?.user) {
-        const {data:profile,error} = await supabase
-          .from("profiles")
-          .select("id,login_id,full_name,role,company_id,counter_id")
-          .eq("id",userData.user.id)
-          .maybeSingle();
+        if (userData?.user) {
+          const {data:profile,error} = await supabase
+            .from("profiles")
+            .select("id,login_id,full_name,role,company_id,counter_id")
+            .eq("id",userData.user.id)
+            .maybeSingle();
 
-        if (error) throw error;
-        if (profile) showDashboard(profile);
+          if (error) throw error;
+          if (profile) showDashboard(profile);
+        }
       }
+    } catch(error) {
+      console.warn("Session restore:",error);
     }
-  } catch(error) {
-    console.warn("Session restore:",error);
-  }
-})();
+  })();
+}
 
 })();
 </script>
