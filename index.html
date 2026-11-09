@@ -2,224 +2,267 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BUSNEX | Counter Login</title>
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #071b35, #123d64);
-    }
-
-    .login-card {
-      width: 100%;
-      max-width: 420px;
-      padding: 35px 28px;
-      border-radius: 20px;
-      background: #fff;
-      box-shadow: 0 20px 60px #0005;
-    }
-
-    .logo {
-      width: 68px;
-      height: 68px;
-      margin: 0 auto 14px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-      background: #e8f3ff;
-      color: #0875cf;
-      font-size: 30px;
-      font-weight: bold;
-    }
-
-    h1 {
-      text-align: center;
-      margin: 0;
-      color: #102b48;
-      font-size: 30px;
-      letter-spacing: 2px;
-    }
-
-    .subtitle {
-      text-align: center;
-      color: #718096;
-      margin: 9px 0 30px;
-      font-size: 14px;
-    }
-
-    label {
-      display: block;
-      margin: 17px 0 8px;
-      color: #263b50;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    input {
-      width: 100%;
-      padding: 14px;
-      border: 1px solid #d5dfeb;
-      border-radius: 10px;
-      outline: none;
-      font-size: 15px;
-    }
-
-    input:focus {
-      border-color: #0875cf;
-      box-shadow: 0 0 0 3px #0875cf18;
-    }
-
-    button {
-      width: 100%;
-      margin-top: 24px;
-      padding: 15px;
-      border: 0;
-      border-radius: 10px;
-      background: #0875cf;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: .65;
-      cursor: wait;
-    }
-
-    #message {
-      margin-top: 16px;
-      text-align: center;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .footer {
-      margin-top: 28px;
-      text-align: center;
-      color: #8291a3;
-      font-size: 12px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUSNEX | Bus Management System</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#172b4d}
+button,input,select{font:inherit}
+.login-card{max-width:420px;margin:8vh auto;background:white;padding:30px;border-radius:18px;box-shadow:0 10px 35px #0001}
+.login-card h1{text-align:center;color:#0875cf}
+.login-card input{width:100%;padding:13px;margin:8px 0 16px;border:1px solid #d5dfeb;border-radius:9px}
+.primary{background:#0875cf;color:white;border:0;padding:13px 18px;border-radius:9px;cursor:pointer;font-weight:bold}
+.primary:disabled{opacity:.6}
+#message{text-align:center;margin-top:15px;color:#d62828}
+.app{display:none;min-height:100vh}
+.sidebar{width:245px;background:#102b48;color:white;position:fixed;inset:0 auto 0 0;padding:25px 16px}
+.brand{font-size:25px;font-weight:bold;padding:8px 12px 28px}
+.brand span{color:#49b5ff}
+.nav button{display:block;width:100%;text-align:left;background:transparent;border:0;color:#d9e8f7;padding:13px;border-radius:8px;margin:4px 0;cursor:pointer}
+.nav button.active,.nav button:hover{background:#214b70;color:white}
+.main{margin-left:245px;padding:25px;max-width:1500px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:25px}
+.topbar h2{margin:0}
+.user{background:white;padding:10px 15px;border-radius:10px;font-size:13px}
+.welcome{background:linear-gradient(120deg,#0875cf,#123d64);color:white;padding:25px;border-radius:16px;margin-bottom:22px}
+.welcome h2{margin:0 0 8px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:15px;margin-bottom:22px}
+.card{background:white;padding:20px;border-radius:13px;box-shadow:0 3px 12px #00000008}
+.card small{color:#718096}
+.card strong{display:block;font-size:25px;margin-top:12px}
+.section{background:white;padding:20px;border-radius:14px;margin-bottom:20px}
+.section h3{margin-top:0}
+.search-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.search-grid label{font-size:13px;font-weight:bold}
+.search-grid input,.search-grid select{width:100%;padding:12px;border:1px solid #d5dfeb;border-radius:8px;margin-top:7px}
+.seats{display:grid;grid-template-columns:repeat(5,minmax(45px,1fr));gap:8px;max-width:430px}
+.seat{padding:10px 3px;text-align:center;border-radius:7px;background:#e8f1fb;font-size:12px;font-weight:bold}
+.seat.middle{background:#dbeafe;color:#0759a5;border:1px solid #60a5fa}
+.seat-note{font-size:12px;color:#718096;margin-top:12px}
+.notice{background:#fff7df;color:#795400;padding:13px;border-radius:9px;font-size:13px;line-height:1.6}
+.logout{background:#b42318!important;margin-top:25px!important}
+.page{display:none}.page.active{display:block}
+@media(max-width:850px){
+.sidebar{width:100%;position:relative;padding:12px}
+.brand{padding:8px 10px}
+.nav{display:flex;overflow:auto;gap:5px}
+.nav button{white-space:nowrap;width:auto}
+.main{margin:0;padding:14px}
+.cards{grid-template-columns:repeat(2,1fr)}
+.search-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:420px){.search-grid{grid-template-columns:1fr}.cards{gap:9px}.card{padding:14px}}
+</style>
 </head>
-
 <body>
-  <main class="login-card">
-    <div class="logo">B</div>
-    <h1>BUSNEX</h1>
-    <p class="subtitle">
-      BUS MANAGEMENT SYSTEM<br>
-      Counter Login Portal
-    </p>
 
-    <form id="loginForm">
-      <label for="loginId">User ID</label>
-      <input
-        id="loginId"
-        type="text"
-        placeholder="Enter your User ID"
-        autocomplete="username"
-        required
-      >
+<div id="loginScreen" class="login-card">
+  <h1>BUSNEX</h1>
+  <p style="text-align:center;color:#718096">BUS MANAGEMENT SYSTEM</p>
+  <form id="loginForm">
+    <label>User ID</label>
+    <input id="loginId" required placeholder="Enter User ID" autocomplete="username">
+    <label>Password</label>
+    <input id="password" type="password" required placeholder="Enter Password" autocomplete="current-password">
+    <button class="primary" id="loginButton" style="width:100%">LOGIN</button>
+  </form>
+  <div id="message" role="status"></div>
+</div>
 
-      <label for="password">Password</label>
-      <input
-        id="password"
-        type="password"
-        placeholder="Enter your password"
-        autocomplete="current-password"
-        required
-      >
-
-      <button id="loginButton" type="submit">LOGIN</button>
-      <div id="message" role="status"></div>
-    </form>
-
-    <div class="footer">
-      © 2026 BUSNEX · All Rights Reserved
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand">BUS<span>NEX</span></div>
+    <div class="nav">
+      <button class="active" data-page="dashboard">▦ Dashboard</button>
+      <button data-page="tickets">▣ Ticket Booking</button>
+      <button data-page="trips">◷ Trip Management</button>
+      <button data-page="seats">▤ Seat Layout</button>
+      <button data-page="tripsheet">☷ Trip Sheet</button>
     </div>
+    <button class="nav logout" id="logoutButton">↪ Logout</button>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2 id="pageTitle">Dashboard</h2>
+      <div class="user">
+        <strong id="userName">BUSNEX User</strong><br>
+        <span id="userRole">Loading...</span>
+      </div>
+    </div>
+
+    <section class="page active" id="dashboard">
+      <div class="welcome">
+        <h2>Welcome to BUSNEX 🚍</h2>
+        <div id="welcomeText">আপনার বাস কাউন্টার ম্যানেজমেন্ট সিস্টেমে স্বাগতম।</div>
+      </div>
+      <div class="cards">
+        <div class="card"><small>আজকের টিকিট</small><strong>—</strong></div>
+        <div class="card"><small>আজকের বিক্রি</small><strong>৳ —</strong></div>
+        <div class="card"><small>মোট ট্রিপ</small><strong>—</strong></div>
+        <div class="card"><small>খালি সিট</small><strong>—</strong></div>
+      </div>
+      <div class="section">
+        <h3>বাস খুঁজুন — FROM / TO</h3>
+        <div class="search-grid">
+          <label>FROM
+            <select id="fromPoint"><option value="">যাত্রা শুরুর স্থান</option></select>
+          </label>
+          <label>TO
+            <select id="toPoint"><option value="">গন্তব্য নির্বাচন</option></select>
+          </label>
+          <label>Journey Date
+            <input type="date" id="journeyDate">
+          </label>
+          <label>বাস খোঁজার জন্য
+            <button class="primary" style="width:100%;margin-top:7px" disabled>SEARCH (পরবর্তী ধাপে চালু হবে)</button>
+          </label>
+        </div>
+      </div>
+      <div class="section">
+        <h3>BUSNEX Management</h3>
+        <div class="notice">এটি Dashboard-এর প্রথম সংস্করণ। এখনো আসল ট্রিপ, টিকিট বিক্রি, ভাড়া ও সিটের তথ্য ডেটাবেসের সঙ্গে যুক্ত করা হয়নি। পরবর্তী ধাপে এগুলো সংযুক্ত করা হবে।</div>
+      </div>
+    </section>
+
+    <section class="page" id="tickets">
+      <div class="section"><h3>Ticket Booking</h3><p>FROM, TO, তারিখ, ট্রিপ ও যাত্রীর তথ্য দিয়ে টিকিট কাটার ব্যবস্থা পরবর্তী ধাপে যুক্ত হবে।</p></div>
+    </section>
+
+    <section class="page" id="trips">
+      <div class="section"><h3>Trip Management</h3><p>রুট, সময়, ভাড়া, Coach Number ও Boarding Point পরিচালনার ব্যবস্থা তৈরি হবে।</p></div>
+    </section>
+
+    <section class="page" id="seats">
+      <div class="section">
+        <h3>৪৫ সিটের বাস Layout</h3>
+        <p>BUS FRONT ↑</p>
+        <div class="seats" id="seatLayout"></div>
+        <div class="seat-note">নীল K-5 হলো মাঝের সিট। এখন এটি শুধু নমুনা নকশা; আসল সিটের অবস্থা পরে ডেটাবেস থেকে আসবে।</div>
+      </div>
+    </section>
+
+    <section class="page" id="tripsheet">
+      <div class="section"><h3>Trip Sheet</h3><p>ট্রিপ অনুযায়ী বিক্রি হওয়া সিট, যাত্রীর নাম ও Boarding Point-এর তালিকা পরবর্তী ধাপে যুক্ত হবে।</p></div>
+    </section>
   </main>
+</div>
 
-  <script type="module">
-    import { createClient } from
-      "https://esm.sh/@supabase/supabase-js@2";
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const SUPABASE_URL =
-      "https://ikjjmiddgpruufxtyqmd.supabase.co";
+const SUPABASE_URL = "https://ikjjmiddgpruufxtyqmd.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8F63OX2XxhCXgGFUCEzWQA_0o";
+const FUNCTION_NAME = "clever-service";
 
-    const SUPABASE_PUBLISHABLE_KEY =
-      "sb_publishable_8F63OX2XxhCXgGFUCEzWQA_0oXG61Uo";
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-    const FUNCTION_NAME = "clever-service";
+const $ = id => document.getElementById(id);
 
-    const supabase = createClient(
-      SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY
-    );
+function showDashboard(profile) {
+  $("loginScreen").style.display = "none";
+  $("app").style.display = "block";
+  $("userName").textContent = profile?.full_name || "BUSNEX User";
+  $("userRole").textContent = profile?.role || "User";
+  $("welcomeText").textContent =
+    (profile?.full_name || "আপনাকে") + " — BUSNEX Dashboard-এ স্বাগতম।";
+}
 
-    const form = document.getElementById("loginForm");
-    const button = document.getElementById("loginButton");
-    const message = document.getElementById("message");
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = $("loginButton");
+  const message = $("message");
+  button.disabled = true;
+  button.textContent = "PLEASE WAIT...";
+  message.textContent = "লগইন যাচাই করা হচ্ছে...";
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
+  try {
+    const login_id = $("loginId").value.trim().toUpperCase();
+    const password = $("password").value;
 
-      const login_id = document
-        .getElementById("loginId")
-        .value.trim().toUpperCase();
-
-      const password = document
-        .getElementById("password").value;
-
-      button.disabled = true;
-      button.textContent = "PLEASE WAIT...";
-      message.style.color = "#0875cf";
-      message.textContent = "লগইন যাচাই করা হচ্ছে...";
-
-      try {
-        const { data, error } =
-          await supabase.functions.invoke(FUNCTION_NAME, {
-            body: { login_id, password }
-          });
-
-        if (error) throw error;
-
-        if (!data?.access_token || !data?.refresh_token) {
-          throw new Error(
-            data?.error || "লগইন তথ্য যাচাই করা যায়নি।"
-          );
-        }
-
-        const { error: sessionError } =
-          await supabase.auth.setSession({
-            access_token: data.access_token,
-            refresh_token: data.refresh_token
-          });
-
-        if (sessionError) throw sessionError;
-
-        message.style.color = "green";
-        message.textContent = "লগইন সফল হয়েছে!";
-
-      } catch (error) {
-        console.error("BUSNEX login error:", error);
-        message.style.color = "#d62828";
-        message.textContent =
-          "লগইন হয়নি। User ID, Password অথবা সার্ভার পরীক্ষা করুন।";
-      } finally {
-        button.disabled = false;
-        button.textContent = "LOGIN";
-      }
+    const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
+      body: { login_id, password }
     });
-  </script>
+
+    if (error) throw error;
+    if (!data?.access_token || !data?.refresh_token) {
+      throw new Error(data?.error || "Login failed");
+    }
+
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token
+    });
+    if (sessionError) throw sessionError;
+
+    showDashboard(data.profile);
+  } catch (error) {
+    console.error("BUSNEX login error:", error);
+    message.textContent = "লগইন হয়নি। আবার চেষ্টা করুন।";
+  } finally {
+    button.disabled = false;
+    button.textContent = "LOGIN";
+  }
+});
+
+$("logoutButton").addEventListener("click", async () => {
+  await supabase.auth.signOut();
+  $("app").style.display = "none";
+  $("loginScreen").style.display = "block";
+  $("password").value = "";
+  $("message").textContent = "আপনি Logout করেছেন।";
+});
+
+document.querySelectorAll(".nav button[data-page]").forEach(button => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    button.classList.add("active");
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    $(button.dataset.page).classList.add("active");
+    $("pageTitle").textContent = button.textContent.trim();
+  });
+});
+
+const points = [
+  "NARAYANGANJ","GAZIPUR","CHANDRA","BOGURA","RANGPUR",
+  "PAGLAPIR","TARAGONJ","TEXERHAT","LALDIGHI","SAIDPUR",
+  "RANIRBONDOR","DOSHMAIL","BIRGONJ","KAHAROLE","KAUNIA",
+  "TISTA","LALMONIRHAT","HATIBANDHA","BOROKHATA"
+];
+
+for (const id of ["fromPoint","toPoint"]) {
+  for (const point of points) {
+    const option = document.createElement("option");
+    option.value = point;
+    option.textContent = point;
+    $(id).appendChild(option);
+  }
+}
+
+const seats = [];
+for (const row of "ABCDEFGHIJ") {
+  for (let n=1;n<=4;n++) seats.push(row+"-"+n);
+}
+seats.push("K-1","K-2","K-5","K-3","K-4");
+for (const seat of seats) {
+  const div = document.createElement("div");
+  div.className = "seat" + (seat === "K-5" ? " middle" : "");
+  div.textContent = seat;
+  $("seatLayout").appendChild(div);
+}
+
+$("journeyDate").min = new Date().toISOString().slice(0,10);
+
+const { data: { session } } = await supabase.auth.getSession();
+if (session) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name,role")
+    .eq("id",session.user.id)
+    .maybeSingle();
+  if (profile) showDashboard(profile);
+}
+</script>
 </body>
 </html>
