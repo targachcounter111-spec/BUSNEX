@@ -7,6 +7,7 @@
   <title>BUSNEX | Counter Login</title>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -17,6 +18,7 @@
       font-family: Arial, sans-serif;
       background: linear-gradient(135deg, #071b35, #123d64);
     }
+
     .login-card {
       width: 100%;
       max-width: 420px;
@@ -25,6 +27,7 @@
       background: #fff;
       box-shadow: 0 20px 60px #0005;
     }
+
     .logo {
       width: 68px;
       height: 68px;
@@ -37,6 +40,7 @@
       font-size: 30px;
       font-weight: bold;
     }
+
     h1 {
       text-align: center;
       margin: 0;
@@ -44,12 +48,14 @@
       font-size: 30px;
       letter-spacing: 2px;
     }
+
     .subtitle {
       text-align: center;
       color: #718096;
       margin: 9px 0 30px;
       font-size: 14px;
     }
+
     label {
       display: block;
       margin: 17px 0 8px;
@@ -57,6 +63,7 @@
       font-size: 14px;
       font-weight: bold;
     }
+
     input {
       width: 100%;
       padding: 14px;
@@ -65,10 +72,12 @@
       outline: none;
       font-size: 15px;
     }
+
     input:focus {
       border-color: #0875cf;
       box-shadow: 0 0 0 3px #0875cf18;
     }
+
     button {
       width: 100%;
       margin-top: 24px;
@@ -81,16 +90,19 @@
       font-weight: bold;
       cursor: pointer;
     }
+
     button:disabled {
       opacity: .65;
       cursor: wait;
     }
+
     #message {
       margin-top: 16px;
       text-align: center;
       font-size: 14px;
       line-height: 1.5;
     }
+
     .footer {
       margin-top: 28px;
       text-align: center;
@@ -99,28 +111,42 @@
     }
   </style>
 </head>
+
 <body>
   <main class="login-card">
     <div class="logo">B</div>
     <h1>BUSNEX</h1>
-    <p class="subtitle">BUS MANAGEMENT SYSTEM<br>Counter Login Portal</p>
+    <p class="subtitle">
+      BUS MANAGEMENT SYSTEM<br>
+      Counter Login Portal
+    </p>
 
     <form id="loginForm">
       <label for="loginId">User ID</label>
-      <input id="loginId" type="text"
+      <input
+        id="loginId"
+        type="text"
         placeholder="Enter your User ID"
-        autocomplete="username" required>
+        autocomplete="username"
+        required
+      >
 
       <label for="password">Password</label>
-      <input id="password" type="password"
+      <input
+        id="password"
+        type="password"
         placeholder="Enter your password"
-        autocomplete="current-password" required>
+        autocomplete="current-password"
+        required
+      >
 
       <button id="loginButton" type="submit">LOGIN</button>
       <div id="message" role="status"></div>
     </form>
 
-    <div class="footer">© 2026 BUSNEX · All Rights Reserved</div>
+    <div class="footer">
+      © 2026 BUSNEX · All Rights Reserved
+    </div>
   </main>
 
   <script type="module">
@@ -147,16 +173,12 @@
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      const login_id = document.getElementById("loginId")
+      const login_id = document
+        .getElementById("loginId")
         .value.trim().toUpperCase();
 
-      const password = document.getElementById("password").value;
-
-      if (SUPABASE_PUBLISHABLE_KEY ===
-          "sb_publishable_8F63OX2XxhCXgGFUCEzWQA_0oXG61Uo") {
-        message.textContent = "Publishable Key বসানো হয়নি।";
-        return;
-      }
+      const password = document
+        .getElementById("password").value;
 
       button.disabled = true;
       button.textContent = "PLEASE WAIT...";
