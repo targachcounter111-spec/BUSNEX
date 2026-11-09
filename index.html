@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -7,59 +6,336 @@
 <title>BUSNEX | Bus Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--navy:#10243d;--blue:#1769aa;--bg:#f3f6fb;--line:#e2e8f0;--muted:#6b7a90}
+:root{
+  --navy:#10243d;
+  --blue:#1769aa;
+  --cyan:#20a4c7;
+  --bg:#f3f6fb;
+  --card:#fff;
+  --text:#182638;
+  --muted:#6b7a90;
+  --line:#e2e8f0;
+  --green:#138a55;
+  --red:#c0392b;
+  --orange:#d97706
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:#182638;font-family:Arial,sans-serif}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,"Noto Sans Bengali",sans-serif
+}
 button,input,select{font:inherit}
-button{cursor:pointer;border:0;border-radius:9px;padding:11px 15px;font-weight:700}
+button{
+  cursor:pointer;
+  border:0;
+  border-radius:9px;
+  padding:11px 15px;
+  font-weight:700
+}
 .hidden{display:none!important}
 .muted{color:var(--muted)}
 .small{font-size:12px}
-.brand{font-weight:900;letter-spacing:1px;color:#fff;font-size:24px}
+.brand{
+  font-weight:900;
+  letter-spacing:1px;
+  color:#fff;
+  font-size:24px
+}
 .brand span{color:#57d3ed}
-.login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#0d2138,#1769aa)}
-.login-card{background:#fff;width:min(100%,420px);padding:30px;border-radius:18px;box-shadow:0 20px 55px #00152d55}
-.login-logo{background:var(--navy);border-radius:12px;padding:18px;text-align:center;margin-bottom:22px}
+.login-wrap{
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:linear-gradient(135deg,#0d2138,#1769aa)
+}
+.login-card{
+  background:#fff;
+  width:min(100%,420px);
+  padding:30px;
+  border-radius:18px;
+  box-shadow:0 20px 55px #00152d55
+}
+.login-logo{
+  background:var(--navy);
+  border-radius:12px;
+  padding:18px;
+  text-align:center;
+  margin-bottom:22px
+}
 .login-card h1{font-size:22px;margin:0 0 6px}
-.field{display:flex;flex-direction:column;gap:7px;margin:14px 0}
-.field label{font-size:13px;font-weight:700;color:#34445a}
-.field input,.field select{width:100%;padding:12px;border:1px solid #ccd6e2;border-radius:9px;background:#fff}
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  margin:14px 0
+}
+.field label{
+  font-size:13px;
+  font-weight:700;
+  color:#34445a
+}
+.field input,.field select{
+  width:100%;
+  padding:12px;
+  border:1px solid #ccd6e2;
+  border-radius:9px;
+  background:#fff;
+  outline:none
+}
+.field input:focus,.field select:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px #1769aa18
+}
 .primary{background:var(--blue);color:#fff}
 .secondary{background:#eaf2fa;color:var(--blue)}
-.message{padding:11px;border-radius:9px;margin:12px 0;font-size:13px;display:none}
-.message.error{display:block;background:#fff0ef;color:#a32b20}
+.danger{background:#fff0ef;color:var(--red)}
+.message{
+  padding:11px;
+  border-radius:9px;
+  margin:12px 0;
+  font-size:13px;
+  display:none
+}
+.message.error{
+  display:block;
+  background:#fff0ef;
+  color:#a32b20
+}
+.message.ok{
+  display:block;
+  background:#e9f8ef;
+  color:#12643d
+}
 .app{min-height:100vh}
-.topbar{height:66px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:5}
-.top-actions{display:flex;align-items:center;gap:12px}
-.user-chip{font-size:12px;background:#ffffff18;padding:8px 11px;border-radius:20px}
-.layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 66px)}
-.sidebar{background:#fff;border-right:1px solid var(--line);padding:18px 12px}
-.nav-btn{display:block;width:100%;text-align:left;background:transparent;color:#40516a;padding:12px;margin:3px 0}
-.nav-btn.active,.nav-btn:hover{background:#eaf3fc;color:var(--blue)}
-.main{padding:25px;max-width:1500px;width:100%;margin:auto}
-.page-head{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}
-.page-head h1{font-size:23px;margin:0 0 5px}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
-.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px;box-shadow:0 3px 12px #132b4507}
+.topbar{
+  height:66px;
+  background:var(--navy);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 22px;
+  position:sticky;
+  top:0;
+  z-index:5
+}
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:12px
+}
+.user-chip{
+  font-size:12px;
+  background:#ffffff18;
+  padding:8px 11px;
+  border-radius:20px
+}
+.layout{
+  display:grid;
+  grid-template-columns:230px 1fr;
+  min-height:calc(100vh - 66px)
+}
+.sidebar{
+  background:#fff;
+  border-right:1px solid var(--line);
+  padding:18px 12px
+}
+.nav-btn{
+  display:flex;
+  width:100%;
+  text-align:left;
+  background:transparent;
+  color:#40516a;
+  padding:12px;
+  margin:3px 0;
+  gap:10px
+}
+.nav-btn.active,.nav-btn:hover{
+  background:#eaf3fc;
+  color:var(--blue)
+}
+.main{
+  padding:25px;
+  max-width:1500px;
+  width:100%;
+  margin:auto
+}
+.page-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  margin-bottom:20px
+}
+.page-head h1{
+  font-size:23px;
+  margin:0 0 5px
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:15px
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:18px;
+  box-shadow:0 3px 12px #132b4507
+}
 .stat-label{font-size:13px;color:var(--muted)}
-.stat-value{font-size:27px;font-weight:800;margin-top:9px}
+.stat-value{
+  font-size:27px;
+  font-weight:800;
+  margin-top:9px
+}
 .section{margin-top:18px}
 .section h2{font-size:17px;margin:0 0 13px}
-.form-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.panel-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px
+}
+.form-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px
+}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
 .table-wrap{overflow:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line)}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px
+}
+th,td{
+  text-align:left;
+  padding:12px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap
+}
 th{color:#52647b;background:#f8fafc}
-.seats{display:grid;grid-template-columns:repeat(5,minmax(45px,1fr));gap:8px;max-width:480px;margin:15px auto}
-.seat{min-height:43px;border:1px solid #cbd9e8;background:#e8f1fb;color:#17578c;border-radius:8px;font-weight:800;font-size:12px}
-.seat.middle{background:#dbeafe;color:#0759a5;border:2px solid #60a5fa}
-.legend{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;font-size:12px}
-.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
-.notice{background:#fff8e8;border:1px solid #f2dfb4;padding:12px;border-radius:9px;color:#79551a;font-size:13px;line-height:1.5}
-.empty{padding:25px;text-align:center;color:var(--muted);border:1px dashed #cbd5e1;border-radius:10px}
-.footer{padding:20px;text-align:center;color:#8290a2;font-size:12px}
-@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:190px 1fr}.main{padding:18px}}
-@media(max-width:650px){.topbar{padding:0 13px}.brand{font-size:20px}.layout{display:block}.sidebar{display:flex;overflow:auto;padding:8px}.nav-btn{white-space:nowrap;width:auto;margin:0;padding:10px}.main{padding:14px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.card{padding:13px}.form-row{grid-template-columns:1fr}.page-head{align-items:flex-start;flex-direction:column}.user-chip{display:none}.seats{gap:5px}.seat{min-height:39px;padding:6px 1px;font-size:11px}}
+
+/* 45 SEAT LAYOUT */
+.seats{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(48px,1fr));
+  gap:8px;
+  max-width:480px;
+  margin:15px auto
+}
+
+/* সিট নম্বর বাম পাশে এবং ওপর-নিচের মাঝখানে */
+.seat{
+  min-height:43px;
+  border:1px solid #cbd9e8;
+  background:#e8f1fb;
+  color:#17578c;
+  border-radius:8px;
+  font-weight:800;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  padding-left:8px;
+  text-align:left
+}
+.seat.middle{
+  background:#dbeafe;
+  color:#0759a5;
+  border:2px solid #60a5fa
+}
+.seat.selected{
+  background:#d8f7e5;
+  border:2px solid #15945c;
+  color:#11643e
+}
+.seat.sold{
+  background:#fee2e2;
+  border-color:#f4a5a5;
+  color:#a52d2d;
+  cursor:not-allowed
+}
+.legend{
+  display:flex;
+  gap:15px;
+  justify-content:center;
+  flex-wrap:wrap;
+  font-size:12px
+}
+.dot{
+  display:inline-block;
+  width:10px;
+  height:10px;
+  border-radius:3px;
+  margin-right:5px
+}
+.notice{
+  background:#fff8e8;
+  border:1px solid #f2dfb4;
+  padding:12px;
+  border-radius:9px;
+  color:#79551a;
+  font-size:13px;
+  line-height:1.5
+}
+.empty{
+  padding:25px;
+  text-align:center;
+  color:var(--muted);
+  border:1px dashed #cbd5e1;
+  border-radius:10px
+}
+.footer{
+  padding:20px;
+  text-align:center;
+  color:#8290a2;
+  font-size:12px
+}
+@media(max-width:900px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .layout{grid-template-columns:190px 1fr}
+  .main{padding:18px}
+}
+@media(max-width:650px){
+  .topbar{padding:0 13px}
+  .brand{font-size:20px}
+  .layout{display:block}
+  .sidebar{
+    display:flex;
+    overflow:auto;
+    padding:8px;
+    border-right:0;
+    border-bottom:1px solid var(--line)
+  }
+  .nav-btn{
+    white-space:nowrap;
+    width:auto;
+    margin:0;
+    padding:10px
+  }
+  .main{padding:14px}
+  .grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px
+  }
+  .card{padding:13px}
+  .panel-grid,.form-row{grid-template-columns:1fr}
+  .page-head{
+    align-items:flex-start;
+    flex-direction:column
+  }
+  .user-chip{display:none}
+  .seats{gap:5px}
+  .seat{
+    min-height:39px;
+    padding-left:6px;
+    font-size:11px
+  }
+}
 </style>
 </head>
 <body>
@@ -68,23 +344,31 @@ th{color:#52647b;background:#f8fafc}
   <div class="login-card">
     <div class="login-logo">
       <div class="brand">BUS<span>NEX</span></div>
-      <div style="color:#d9e7f4;font-size:12px;margin-top:5px">BUS COUNTER MANAGEMENT SYSTEM</div>
+      <div style="color:#d9e7f4;font-size:12px;margin-top:5px">
+        BUS COUNTER MANAGEMENT SYSTEM
+      </div>
     </div>
     <h1>কাউন্টার লগইন</h1>
-    <div class="muted small">User ID ও Password দিয়ে প্রবেশ করুন</div>
+    <div class="muted small">আপনার User ID ও Password দিয়ে প্রবেশ করুন</div>
     <form id="loginForm">
       <div class="field">
         <label for="loginId">User ID</label>
-        <input id="loginId" autocomplete="username" placeholder="আপনার User ID" required>
+        <input id="loginId" autocomplete="username"
+          placeholder="আপনার User ID লিখুন" required>
       </div>
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="Password" required>
+        <input id="password" type="password"
+          autocomplete="current-password"
+          placeholder="Password লিখুন" required>
       </div>
       <div id="loginMessage" class="message"></div>
-      <button id="loginButton" class="primary" type="submit" style="width:100%">লগইন করুন</button>
+      <button id="loginButton" class="primary" type="submit"
+        style="width:100%">লগইন করুন</button>
     </form>
-    <p class="small muted" style="text-align:center;margin-top:18px">BUSNEX • Secure Counter Access</p>
+    <p class="small muted" style="text-align:center;margin:18px 0 0">
+      BUSNEX • Secure Counter Access
+    </p>
   </div>
 </div>
 
@@ -107,71 +391,196 @@ th{color:#52647b;background:#f8fafc}
     </aside>
 
     <main class="main">
+
       <section id="page-dashboard" class="page">
         <div class="page-head">
-          <div><h1>Dashboard</h1><div class="muted small">কোম্পানির বাস কাউন্টার ব্যবস্থাপনা</div></div>
-          <span id="roleLabel" class="user-chip" style="background:#eaf2fa;color:#1769aa">Role</span>
+          <div>
+            <h1>Dashboard</h1>
+            <div class="muted small">কোম্পানির বাস কাউন্টার ব্যবস্থাপনা</div>
+          </div>
+          <span id="roleLabel" class="user-chip"
+            style="background:#eaf2fa;color:#1769aa">Role</span>
         </div>
+
         <div class="grid">
-          <div class="card"><div class="stat-label">আজকের ট্রিপ</div><div class="stat-value">—</div><div class="small muted">ডাটাবেস সংযোগ বাকি</div></div>
-          <div class="card"><div class="stat-label">বিক্রিত টিকিট</div><div class="stat-value">—</div><div class="small muted">ডাটাবেস সংযোগ বাকি</div></div>
-          <div class="card"><div class="stat-label">খালি সিট</div><div class="stat-value">—</div><div class="small muted">ডাটাবেস সংযোগ বাকি</div></div>
-          <div class="card"><div class="stat-label">মোট কাউন্টার</div><div class="stat-value">—</div><div class="small muted">ডাটাবেস সংযোগ বাকি</div></div>
+          <div class="card">
+            <div class="stat-label">আজকের ট্রিপ</div>
+            <div class="stat-value">—</div>
+            <div class="small muted">ডাটাবেস সংযোগ বাকি</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">বিক্রিত টিকিট</div>
+            <div class="stat-value">—</div>
+            <div class="small muted">ডাটাবেস সংযোগ বাকি</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">খালি সিট</div>
+            <div class="stat-value">—</div>
+            <div class="small muted">ডাটাবেস সংযোগ বাকি</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">মোট কাউন্টার</div>
+            <div class="stat-value">—</div>
+            <div class="small muted">ডাটাবেস সংযোগ বাকি</div>
+          </div>
         </div>
+
         <div class="section card">
           <h2>স্বাগতম BUSNEX-এ</h2>
-          <p class="muted">টিকিট বুকিং, ট্রিপ, সিট লেআউট এবং ট্রিপ শিটের বিভাগে যেতে পারবেন।</p>
-          <div class="notice">লগইন Supabase-এর সঙ্গে যুক্ত। Dashboard-এর হিসাব, টিকিট বিক্রি এবং সব কাউন্টারের লাইভ সিট শেয়ারিং পরবর্তী ধাপে ডাটাবেস/API দিয়ে যুক্ত করতে হবে।</div>
+          <p class="muted">
+            এখান থেকে টিকিট বুকিং, ট্রিপ, সিট লেআউট এবং ট্রিপ শিটের বিভাগে যেতে পারবেন।
+          </p>
+          <div class="notice">
+            গুরুত্বপূর্ণ: লগইন Supabase-এর সঙ্গে যুক্ত। Dashboard-এর হিসাব,
+            টিকিট বিক্রি এবং সব কাউন্টারের লাইভ সিট শেয়ারিং এখনো
+            ডাটাবেস/API দিয়ে যুক্ত করা হয়নি। বাস্তব টিকিট বিক্রির আগে
+            এই সংযোগ সম্পন্ন করতে হবে।
+          </div>
         </div>
       </section>
 
       <section id="page-booking" class="page hidden">
-        <div class="page-head"><div><h1>Ticket Booking</h1><div class="muted small">রুট ও যাত্রার তারিখ দিয়ে ট্রিপ খুঁজুন</div></div></div>
+        <div class="page-head">
+          <div>
+            <h1>Ticket Booking</h1>
+            <div class="muted small">রুট ও যাত্রার তারিখ দিয়ে ট্রিপ খুঁজুন</div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="form-row">
-            <div class="field"><label>FROM / যাত্রা শুরু</label><select id="fromStop"><option value="">শুরুর স্থান নির্বাচন</option></select></div>
-            <div class="field"><label>TO / গন্তব্য</label><select id="toStop"><option value="">গন্তব্য নির্বাচন</option></select></div>
-            <div class="field"><label>যাত্রার তারিখ</label><input id="journeyDate" type="date"></div>
-            <div class="field"><label>যাত্রীর নাম (ঐচ্ছিক)</label><input id="passengerName" placeholder="যাত্রীর নাম"></div>
+            <div class="field">
+              <label>FROM / যাত্রা শুরু</label>
+              <select id="fromStop">
+                <option value="">শুরুর স্থান নির্বাচন</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>TO / গন্তব্য</label>
+              <select id="toStop">
+                <option value="">গন্তব্য নির্বাচন</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>যাত্রার তারিখ</label>
+              <input id="journeyDate" type="date">
+            </div>
+            <div class="field">
+              <label>যাত্রীর নাম (ঐচ্ছিক)</label>
+              <input id="passengerName" placeholder="যাত্রীর নাম">
+            </div>
           </div>
           <button id="searchTripButton" class="primary">ট্রিপ খুঁজুন</button>
-          <div id="tripSearchResult" class="section empty">ট্রিপ খুঁজলে ফলাফল এখানে দেখা যাবে।</div>
+          <div id="tripSearchResult" class="section empty">
+            ট্রিপ খুঁজলে ফলাফল এখানে দেখা যাবে।
+          </div>
         </div>
-        <div class="section notice">এই সার্চ ফর্মে এখনো বাস্তব Trip database query যুক্ত হয়নি।</div>
+
+        <div class="section notice">
+          এই সার্চ ফর্মের সঙ্গে এখনো বাস্তব Trip database query যুক্ত হয়নি।
+          Trip ও route-এর তথ্য Supabase-এ যুক্ত করার পর এখানে প্রকৃত ট্রিপ দেখানো হবে।
+        </div>
       </section>
 
       <section id="page-trips" class="page hidden">
-        <div class="page-head"><div><h1>Trip Management</h1><div class="muted small">রুট, সময়সূচি, বাস ও ভাড়া ব্যবস্থাপনা</div></div></div>
+        <div class="page-head">
+          <div>
+            <h1>Trip Management</h1>
+            <div class="muted small">রুট, সময়সূচি, বাস ও ভাড়া ব্যবস্থাপনা</div>
+          </div>
+        </div>
+
         <div class="card">
           <h2>নতুন Trip-এর তথ্য</h2>
           <div class="form-row">
-            <div class="field"><label>FROM</label><input placeholder="যাত্রা শুরুর স্থান"></div>
-            <div class="field"><label>TO</label><input placeholder="গন্তব্য"></div>
-            <div class="field"><label>Coach Number</label><input placeholder="কোচ নম্বর"></div>
-            <div class="field"><label>Departure Time</label><input type="time"></div>
-            <div class="field"><label>Ticket Price (৳)</label><input type="number" min="0" placeholder="ভাড়া"></div>
-            <div class="field"><label>Supervisor</label><input placeholder="সুপারভাইজারের নাম"></div>
+            <div class="field">
+              <label>FROM</label>
+              <input placeholder="যাত্রা শুরুর স্থান">
+            </div>
+            <div class="field">
+              <label>TO</label>
+              <input placeholder="গন্তব্য">
+            </div>
+            <div class="field">
+              <label>Coach Number</label>
+              <input placeholder="যেমন: ঢাকা-মেট্রো-...">
+            </div>
+            <div class="field">
+              <label>Departure Time</label>
+              <input type="time">
+            </div>
+            <div class="field">
+              <label>Ticket Price (৳)</label>
+              <input type="number" min="0" placeholder="ভাড়া">
+            </div>
+            <div class="field">
+              <label>Supervisor</label>
+              <input placeholder="সুপারভাইজারের নাম">
+            </div>
           </div>
-          <button class="primary" type="button" id="tripSaveButton">Trip তথ্য সংরক্ষণ</button>
-          <p id="tripSaveMessage" class="small muted">Supabase-এ সংরক্ষণ এখনো চালু হয়নি।</p>
+          <button class="primary" type="button" id="tripSaveButton">
+            Trip তথ্য সংরক্ষণ
+          </button>
+          <p id="tripSaveMessage" class="small muted">
+            এটি আপাতত UI নমুনা; Supabase-এ সংরক্ষণ চালু হয়নি।
+          </p>
         </div>
-        <div class="section card"><h2>Boarding Points / সময়সূচি</h2><div class="empty">রুটের প্রতিটি Boarding Point ও সময়সূচি এখানে দেখানো হবে।</div></div>
+
+        <div class="section card">
+          <h2>Boarding Points / সময়সূচি</h2>
+          <div class="empty">
+            রুটের প্রতিটি Boarding Point ও সময় এখানে দেখানো হবে।
+            বাস্তব সময়সূচি ডাটাবেসে যোগ করতে হবে।
+          </div>
+        </div>
       </section>
 
       <section id="page-seats" class="page hidden">
-        <div class="page-head"><div><h1>Seat Layout</h1><div class="muted small">৪৫ আসনের কোচ বিন্যাস</div></div></div>
+        <div class="page-head">
+          <div>
+            <h1>Seat Layout</h1>
+            <div class="muted small">৪৫ আসনের কোচ বিন্যাস</div>
+          </div>
+        </div>
+
         <div class="card">
-          <div class="legend"><span><i class="dot" style="background:#e8f1fb"></i>খালি (নমুনা)</span><span><i class="dot" style="background:#dbeafe"></i>মাঝের সিট K-3</span></div>
-          <div style="text-align:center;font-size:12px;color:#64748b;margin-top:18px">সামনের দিক / DRIVER</div>
+          <div class="legend">
+            <span><i class="dot" style="background:#e8f1fb"></i>খালি (নমুনা)</span>
+            <span><i class="dot" style="background:#dbeafe"></i>মাঝের সিট K-3</span>
+          </div>
+
+          <div style="text-align:center;font-size:12px;color:#64748b;margin-top:18px">
+            সামনের দিক / DRIVER
+          </div>
+
           <div id="seatLayout" class="seats"></div>
-          <div class="notice">সিটের সঠিক নকশা দেখানো হয়েছে। সিট বিক্রি ও লাইভ inventory সংযোগ পরবর্তী ধাপে হবে।</div>
+
+          <div class="notice">
+            এখানে সিটের সঠিক নকশা দেখানো হয়েছে। সিট নির্বাচন বা বিক্রি
+            এখনো লাইভ inventory-তে সংরক্ষিত হয় না। একই কোম্পানির সব
+            কাউন্টারে সিট শেয়ার করতে Supabase trip_seats এবং নিরাপদ
+            booking function যুক্ত করতে হবে।
+          </div>
         </div>
       </section>
 
       <section id="page-sheet" class="page hidden">
-        <div class="page-head"><div><h1>Trip Sheet</h1><div class="muted small">বিক্রিত আসন ও যাত্রীর তালিকা</div></div></div>
-        <div class="card"><div class="empty">Trip নির্বাচন করলে বিক্রিত Seat Number, Passenger Name, Boarding Point ও Ticket তথ্য এখানে দেখানো হবে।</div></div>
+        <div class="page-head">
+          <div>
+            <h1>Trip Sheet</h1>
+            <div class="muted small">বিক্রিত আসন ও যাত্রীর তালিকা</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="empty">
+            Trip নির্বাচন করলে বিক্রিত Seat Number, Passenger Name,
+            Boarding Point ও Ticket তথ্য এখানে দেখানো হবে।
+            Trip Sheet database connection এখনো বাকি।
+          </div>
+        </div>
       </section>
+
       <div class="footer">BUSNEX • Bus Counter Management System</div>
     </main>
   </div>
@@ -182,19 +591,30 @@ th{color:#52647b;background:#f8fafc}
   "use strict";
 
   const SUPABASE_URL = "https://ikjjmiddgpruufxtyqmd.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8F63OX2XxhCXgGFUCEzWQA_0oXG61Uo";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8F63OX2XxhCXgGFUCEzWQA_0o";
   const FUNCTION_NAME = "clever-service";
 
-  const $ = id => document.getElementById(id);
+  const $ = (id) => document.getElementById(id);
   const supabaseLib = window.supabase;
 
   if (!supabaseLib || !supabaseLib.createClient) {
-    $("loginMessage").textContent = "Supabase লাইব্রেরি লোড হয়নি। ইন্টারনেট পরীক্ষা করে রিফ্রেশ করুন।";
+    $("loginMessage").textContent =
+      "Supabase লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করে পেজ রিফ্রেশ করুন।";
     $("loginMessage").className = "message error";
     return;
   }
 
-  const supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const supabase = supabaseLib.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  let currentProfile = null;
+
+  function showMessage(message, type) {
+    $("loginMessage").textContent = message;
+    $("loginMessage").className = "message " + type;
+  }
 
   function roleText(role) {
     return ({
@@ -205,101 +625,122 @@ th{color:#52647b;background:#f8fafc}
   }
 
   function showDashboard(profile) {
+    currentProfile = profile || {};
     $("loginScreen").classList.add("hidden");
     $("appScreen").classList.remove("hidden");
+
+    const person =
+      currentProfile.full_name ||
+      currentProfile.login_id ||
+      "BUSNEX User";
+
     $("userChip").textContent =
-      (profile.full_name || profile.login_id || "BUSNEX User") +
-      " • " + roleText(profile.role);
-    $("roleLabel").textContent = roleText(profile.role);
+      person + " • " + roleText(currentProfile.role);
+
+    $("roleLabel").textContent = roleText(currentProfile.role);
     document.title = "BUSNEX | Dashboard";
   }
 
   function showLogin() {
     $("appScreen").classList.add("hidden");
     $("loginScreen").classList.remove("hidden");
+    currentProfile = null;
     document.title = "BUSNEX | Login";
   }
 
-  function showMessage(message) {
-    $("loginMessage").textContent = message;
-    $("loginMessage").className = "message error";
-  }
-
-  $("loginForm").addEventListener("submit", async event => {
+  $("loginForm").addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const login_id = $("loginId").value.trim();
     const password = $("password").value;
 
     if (!login_id || !password) {
-      showMessage("User ID এবং Password লিখুন।");
-      return;
+      return showMessage("User ID এবং Password লিখুন।", "error");
     }
 
     const button = $("loginButton");
     button.disabled = true;
     button.textContent = "লগইন হচ্ছে...";
+    showMessage("", "");
 
     try {
-      const {data,error} = await supabase.functions.invoke(FUNCTION_NAME,{
-        body:{login_id,password}
-      });
+      const { data, error } = await supabase.functions.invoke(
+        FUNCTION_NAME,
+        {
+          body: { login_id, password }
+        }
+      );
 
-      if(error) throw error;
-      if(!data) throw new Error("সার্ভার থেকে উত্তর পাওয়া যায়নি।");
+      if (error) throw error;
+      if (!data) {
+        throw new Error("সার্ভার থেকে কোনো উত্তর পাওয়া যায়নি।");
+      }
 
       let session = data.session || null;
 
-      if(!session && data.access_token && data.refresh_token) {
+      if (!session && data.access_token && data.refresh_token) {
         session = {
-          access_token:data.access_token,
-          refresh_token:data.refresh_token
+          access_token: data.access_token,
+          refresh_token: data.refresh_token
         };
       }
 
-      if(session) {
-        const {error:sessionError} = await supabase.auth.setSession(session);
-        if(sessionError) throw sessionError;
-      } else if(data.success !== true) {
-        throw new Error(data.error || data.message || "লগইন সফল হয়নি।");
+      if (session) {
+        const { error: sessionError } =
+          await supabase.auth.setSession(session);
+
+        if (sessionError) throw sessionError;
+
+      } else if (data.success !== true) {
+        throw new Error(
+          data.error ||
+          data.message ||
+          "লগইন সফল হয়নি। User ID অথবা Password পরীক্ষা করুন।"
+        );
       }
 
       let profile = data.profile || null;
 
-      if(!profile) {
-        const {data:userData} = await supabase.auth.getUser();
+      if (!profile) {
+        const { data: userData } = await supabase.auth.getUser();
 
-        if(userData && userData.user) {
-          const {data:profileData,error:profileError} = await supabase
-            .from("profiles")
-            .select("id,login_id,full_name,role,company_id,counter_id")
-            .eq("id",userData.user.id)
-            .maybeSingle();
+        if (userData && userData.user) {
+          const { data: profileData, error: profileError } =
+            await supabase
+              .from("profiles")
+              .select("id,login_id,full_name,role,company_id,counter_id")
+              .eq("id", userData.user.id)
+              .maybeSingle();
 
-          if(profileError) throw profileError;
+          if (profileError) throw profileError;
           profile = profileData;
         }
       }
 
-      if(!profile) {
-        throw new Error("লগইন হয়েছে, কিন্তু Profile পাওয়া যায়নি।");
+      if (!profile) {
+        throw new Error(
+          "লগইন হয়েছে, কিন্তু Profile পাওয়া যায়নি। Supabase profiles পরীক্ষা করুন।"
+        );
       }
 
       showDashboard(profile);
 
-    } catch(error) {
-      console.error("BUSNEX login error:",error);
-      let message = error.message || "লগইন হয়নি। আবার চেষ্টা করুন।";
+    } catch (error) {
+      console.error("BUSNEX login error:", error);
 
-      if(message.includes("Invalid login credentials")) {
+      let message =
+        error.message || "লগইন হয়নি। আবার চেষ্টা করুন।";
+
+      if (message.includes("Invalid login credentials")) {
         message = "Password ভুল হয়েছে। আবার পরীক্ষা করুন।";
       }
 
-      if(message.includes("Failed to fetch")) {
-        message = "সার্ভারের সঙ্গে সংযোগ হচ্ছে না। ইন্টারনেট পরীক্ষা করুন।";
+      if (message.includes("Failed to fetch")) {
+        message =
+          "সার্ভারের সঙ্গে সংযোগ হচ্ছে না। ইন্টারনেট ও Function পরীক্ষা করুন।";
       }
 
-      showMessage(message);
+      showMessage(message, "error");
 
     } finally {
       button.disabled = false;
@@ -307,105 +748,149 @@ th{color:#52647b;background:#f8fafc}
     }
   });
 
-  $("logoutButton").addEventListener("click",async()=>{
+  $("logoutButton").addEventListener("click", async () => {
     await supabase.auth.signOut();
     showLogin();
   });
 
-  document.querySelectorAll(".nav-btn").forEach(button=>{
-    button.addEventListener("click",()=>{
-      document.querySelectorAll(".nav-btn").forEach(item=>item.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(item => {
+        item.classList.remove("active");
+      });
+
       button.classList.add("active");
-      document.querySelectorAll(".page").forEach(page=>page.classList.add("hidden"));
-      $("page-"+button.dataset.page).classList.remove("hidden");
+
+      document.querySelectorAll(".page").forEach(page => {
+        page.classList.add("hidden");
+      });
+
+      $("page-" + button.dataset.page).classList.remove("hidden");
     });
   });
 
-  // 45-seat layout: A-J have 4 seats with aisle; K has 5 seats; K-3 is middle.
-  const seats=[];
-  let rowNumber=1;
+  // 45-seat coach: A-J have 2 seats, aisle, 2 seats.
+  // K row has five seats with K-3 in the middle.
 
-  for(const row of "ABCDEFGHIJ") {
-    for(const [n,col] of [[1,1],[2,2],[3,4],[4,5]]) {
-      seats.push({name:`${row}-${n}`,row:rowNumber,col});
+  const seats = [];
+  let rowNumber = 1;
+
+  for (const row of "ABCDEFGHIJ") {
+    for (const [n, col] of [[1,1],[2,2],[3,4],[4,5]]) {
+      seats.push({
+        name:`${row}-${n}`,
+        row:rowNumber,
+        col
+      });
     }
     rowNumber++;
   }
 
-  for(let n=1;n<=5;n++) {
-    seats.push({name:`K-${n}`,row:11,col:n});
+  for (let n = 1; n <= 5; n++) {
+    seats.push({
+      name:`K-${n}`,
+      row:11,
+      col:n
+    });
   }
 
-  for(const seat of seats) {
-    const div=document.createElement("div");
-    div.className="seat"+(seat.name==="K-3"?" middle":"");
-    div.textContent=seat.name;
-    div.style.gridRow=seat.row;
-    div.style.gridColumn=seat.col;
+  for (const seat of seats) {
+    const div = document.createElement("div");
+
+    div.className =
+      "seat" + (seat.name === "K-3" ? " middle" : "");
+
+    div.textContent = seat.name;
+    div.style.gridRow = seat.row;
+    div.style.gridColumn = seat.col;
+
     $("seatLayout").appendChild(div);
   }
 
-  const stops=[
-    "Narayanganj","Gazipur","Chandra","Bogura","Rangpur",
-    "Paglapir","Taragonj","Texerhat","Lal Dighi","Saidpur",
-    "Ranirbondor","Doshmail","Birgonj","Kaharole","Kaunia",
-    "Tista","Lalmonirhat","Hatibandha","Borokhata"
+  const stops = [
+    "Narayanganj",
+    "Gazipur",
+    "Chandra",
+    "Bogura",
+    "Rangpur",
+    "Paglapir",
+    "Taragonj",
+    "Texerhat",
+    "Lal Dighi",
+    "Saidpur",
+    "Ranirbondor",
+    "Doshmail",
+    "Birgonj",
+    "Kaharole",
+    "Kaunia",
+    "Tista",
+    "Lalmonirhat",
+    "Hatibandha",
+    "Borokhata"
   ];
 
-  for(const stop of stops) {
-    const fromOption=document.createElement("option");
-    fromOption.value=stop;
-    fromOption.textContent=stop;
+  for (const stop of stops) {
+    const fromOption = document.createElement("option");
+    fromOption.value = stop;
+    fromOption.textContent = stop;
     $("fromStop").appendChild(fromOption);
 
-    const toOption=document.createElement("option");
-    toOption.value=stop;
-    toOption.textContent=stop;
+    const toOption = document.createElement("option");
+    toOption.value = stop;
+    toOption.textContent = stop;
     $("toStop").appendChild(toOption);
   }
 
-  $("journeyDate").value=new Date().toISOString().slice(0,10);
+  $("journeyDate").value = new Date().toISOString().slice(0,10);
 
-  $("searchTripButton").addEventListener("click",()=>{
-    const from=$("fromStop").value;
-    const to=$("toStop").value;
-    const date=$("journeyDate").value;
+  $("searchTripButton").addEventListener("click", () => {
+    const from = $("fromStop").value;
+    const to = $("toStop").value;
+    const date = $("journeyDate").value;
 
-    if(!from || !to || !date) {
-      $("tripSearchResult").textContent="FROM, TO এবং যাত্রার তারিখ নির্বাচন করুন।";
-    } else if(from===to) {
-      $("tripSearchResult").textContent="FROM এবং TO একই হতে পারবে না।";
+    if (!from || !to || !date) {
+      $("tripSearchResult").textContent =
+        "FROM, TO এবং যাত্রার তারিখ নির্বাচন করুন।";
+
+    } else if (from === to) {
+      $("tripSearchResult").textContent =
+        "FROM এবং TO একই হতে পারবে না।";
+
     } else {
-      $("tripSearchResult").textContent=
-        from+" → "+to+" | "+date+
-        "। বাস্তব Trip database connection এখনো চালু হয়নি।";
+      $("tripSearchResult").textContent =
+        "আপনার সার্চ: " + from + " → " + to +
+        " | " + date +
+        "। বাস্তব Trip database সংযোগ এখনো চালু হয়নি।";
     }
   });
 
-  $("tripSaveButton").addEventListener("click",()=>{
-    $("tripSaveMessage").textContent=
+  $("tripSaveButton").addEventListener("click", () => {
+    $("tripSaveMessage").textContent =
       "এখনো Supabase-এ সংরক্ষণ করা হয়নি। পরের ধাপে নিরাপদ Trip Management সংযোগ করব।";
   });
 
-  (async()=>{
+  (async () => {
     try {
-      const {data:{session}}=await supabase.auth.getSession();
+      const { data: { session } } =
+        await supabase.auth.getSession();
 
-      if(session) {
-        const {data:userData}=await supabase.auth.getUser();
+      if (session) {
+        const { data: userData } =
+          await supabase.auth.getUser();
 
-        if(userData && userData.user) {
-          const {data:profile}=await supabase
-            .from("profiles")
-            .select("id,login_id,full_name,role,company_id,counter_id")
-            .eq("id",userData.user.id)
-            .maybeSingle();
+        if (userData && userData.user) {
+          const { data: profile } =
+            await supabase
+              .from("profiles")
+              .select("id,login_id,full_name,role,company_id,counter_id")
+              .eq("id", userData.user.id)
+              .maybeSingle();
 
-          if(profile) showDashboard(profile);
+          if (profile) showDashboard(profile);
         }
       }
-    } catch(error) {
-      console.warn("Session restore:",error);
+    } catch (error) {
+      console.warn("Session restore:", error);
     }
   })();
 
