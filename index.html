@@ -110,6 +110,11 @@ th{color:#52647b;background:#f8fafc}
   padding-left:8px;text-align:left
 }
 .seat.middle{background:#dbeafe;color:#0759a5;border:2px solid #60a5fa}
+.seat.available{background:#e8f1fb;color:#17578c;border-color:#cbd9e8}
+.seat.sold{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.seat.reserved{background:#fef3c7;color:#92400e;border-color:#fcd34d}
+.seat.blocked{background:#e5e7eb;color:#374151;border-color:#9ca3af}
+.seat.unknown{background:#f3f4f6;color:#6b7280;border:1px dashed #9ca3af}
 .legend{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;font-size:12px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
 .notice{
@@ -356,16 +361,26 @@ th{color:#52647b;background:#f8fafc}
 
       <section id="page-seats" class="page hidden">
         <div class="page-head">
-          <div><h1>Seat Layout</h1><div class="muted small">৪৫ আসনের কোচ বিন্যাস</div></div>
+          <div><h1>Seat Layout</h1><div class="muted small">Database-এর বাস্তব বাস ও ট্রিপ অনুযায়ী আসন</div></div>
         </div>
         <div class="card">
-          <div class="legend">
-            <span><i class="dot" style="background:#e8f1fb"></i>খালি (নমুনা)</span>
-            <span><i class="dot" style="background:#dbeafe"></i>মাঝের সিট K-3</span>
+          <div class="field">
+            <label for="seatTripSelect">Trip নির্বাচন করুন</label>
+            <select id="seatTripSelect">
+              <option value="">Trip লোড হচ্ছে...</option>
+            </select>
+          </div>
+          <div id="seatMessage" class="message"></div>
+          <div id="seatSummary" class="small muted">প্রথমে একটি Trip নির্বাচন করুন।</div>
+          <div class="legend" style="margin-top:14px">
+            <span><i class="dot" style="background:#e8f1fb"></i>খালি</span>
+            <span><i class="dot" style="background:#fee2e2"></i>বিক্রিত</span>
+            <span><i class="dot" style="background:#fef3c7"></i>সংরক্ষিত</span>
+            <span><i class="dot" style="background:#e5e7eb"></i>ব্লক</span>
+            <span><i class="dot" style="background:#f3f4f6"></i>তথ্য নেই</span>
           </div>
           <div style="text-align:center;font-size:12px;color:#64748b;margin-top:18px">সামনের দিক / DRIVER</div>
           <div id="seatLayout" class="seats"></div>
-          <div class="notice">সিটের নকশা প্রস্তুত। Live Seat Inventory সংযোগ এখনো বাকি।</div>
         </div>
       </section>
 
@@ -1317,32 +1332,191 @@ document.querySelectorAll(".nav-btn").forEach(button => {
     if (button.dataset.page === "trips") {
       await prepareTripManagement();
     }
+
+    if (button.dataset.page === "seats") {
+      await loadSeatTrips();
+    }
   });
 });
 
-// 45-seat layout
-const seats = [];
-let rowNumber = 1;
+// Live Seat Layout: Trip, bus layout এবং seat inventory Database থেকে পড়া হবে।
+function seatMessage(message,type) {
+  $("seatMessage").textContent = message;
+  $("seatMessage").className = message ? "message " + type : "message";
+}
 
-for (const row of "ABCDEFGHIJ") {
-  for (const [n,col] of [[1,1],[2,2],[3,4],[4,5]]) {
-    seats.push({name:`${row}-${n}`,row:rowNumber,col});
+function formatTripOption(trip) {
+  const route = trip.routes || {};
+  const bus = trip.buses || {};
+  const departure = new Date(trip.departure_time);
+  const dateText = Number.isNaN(departure.getTime())
+    ? "তারিখ নেই"
+    : departure.toLocaleString("en-GB",{
+        day:"2-digit",month:"short",year:"numeric",
+        hour:"2-digit",minute:"2-digit"
+      });
+  return (route.starting_point || "—") + " → " +
+    (route.ending_point || "—") + " | " +
+    (bus.bus_name || "Bus") + " | " + dateText +
+    " | " + (trip.status || "status নেই");
+}
+
+async function loadSeatTrips() {
+  const select = $("seatTripSelect");
+  select.disabled = true;
+  select.innerHTML = '<option value="">Trip লোড হচ্ছে...</option>';
+  $("seatLayout").innerHTML = "";
+  $("seatSummary").textContent = "Trip তালিকা লোড হচ্ছে...";
+  seatMessage("","");
+
+  try {
+    const {data,error} = await supabase
+      .from("trips")
+      .select("id,bus_id,departure_time,status,buses(bus_name),routes(starting_point,ending_point)")
+      .order("departure_time",{ascending:true})
+      .limit(100);
+
+    if (error) throw error;
+
+    select.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = data && data.length
+      ? "একটি Trip নির্বাচন করুন"
+      : "কোনো Trip পাওয়া যায়নি";
+    select.appendChild(first);
+
+    (data || []).forEach(trip => {
+      const option = document.createElement("option");
+      option.value = trip.id;
+      option.textContent = formatTripOption(trip);
+      select.appendChild(option);
+    });
+
+    select.disabled = !(data && data.length);
+    $("seatSummary").textContent = data && data.length
+      ? "মোট " + data.length + "টি Trip পাওয়া গেছে।"
+      : "এই Account-এর জন্য কোনো Trip পাওয়া যায়নি।";
+
+  } catch(error) {
+    console.error("SEAT TRIP LOAD ERROR:",error);
+    select.innerHTML = '<option value="">Trip লোড হয়নি</option>';
+    $("seatSummary").textContent = "Trip তালিকা লোড করা যায়নি।";
+    seatMessage("Trip লোড হয়নি: " + error.message,"error");
   }
-  rowNumber++;
 }
 
-for (let n=1;n<=5;n++) {
-  seats.push({name:`K-${n}`,row:11,col:n});
+async function loadSeatInventory(tripId) {
+  $("seatLayout").innerHTML = "";
+  $("seatSummary").textContent = "Seat Inventory লোড হচ্ছে...";
+  seatMessage("","");
+
+  if (!tripId) {
+    $("seatSummary").textContent = "একটি Trip নির্বাচন করুন।";
+    return;
+  }
+
+  try {
+    const {data:trip,error:tripError} = await supabase
+      .from("trips")
+      .select("id,bus_id")
+      .eq("id",tripId)
+      .single();
+
+    if (tripError) throw tripError;
+    if (!trip || !trip.bus_id) {
+      throw new Error("এই Trip-এর Bus তথ্য পাওয়া যায়নি।");
+    }
+
+    const [layoutResult,inventoryResult] = await Promise.all([
+      supabase
+        .from("bus_seat_layouts")
+        .select("seat_number,row_label,seat_position,seat_order")
+        .eq("bus_id",trip.bus_id)
+        .order("seat_order",{ascending:true}),
+      supabase
+        .from("trip_seats")
+        .select("seat_number,status,hold_until")
+        .eq("trip_id",tripId)
+    ]);
+
+    if (layoutResult.error) throw layoutResult.error;
+    if (inventoryResult.error) throw inventoryResult.error;
+
+    const layout = layoutResult.data || [];
+    const inventory = inventoryResult.data || [];
+
+    if (!layout.length) {
+      $("seatSummary").textContent = "এই Bus-এর Seat Layout Database-এ পাওয়া যায়নি।";
+      seatMessage("Bus-এর আসন বিন্যাস তৈরি না থাকায় Seat Layout দেখানো যাচ্ছে না।","error");
+      return;
+    }
+
+    const inventoryBySeat = new Map(
+      inventory.map(item => [item.seat_number,item])
+    );
+
+    let available = 0;
+    let sold = 0;
+    let reserved = 0;
+    let blocked = 0;
+    let unknown = 0;
+
+    layout.forEach(seat => {
+      const record = inventoryBySeat.get(seat.seat_number);
+      const rawStatus = String(record?.status || "").toLowerCase();
+      let state = "unknown";
+
+      if (rawStatus === "available") state = "available";
+      else if (rawStatus === "sold") state = "sold";
+      else if (rawStatus === "reserved") state = "reserved";
+      else if (rawStatus === "blocked") state = "blocked";
+
+      if (state === "available") available++;
+      else if (state === "sold") sold++;
+      else if (state === "reserved") reserved++;
+      else if (state === "blocked") blocked++;
+      else unknown++;
+
+      const div = document.createElement("div");
+      div.className = "seat " + state;
+      div.textContent = seat.seat_number;
+      div.title = state === "unknown"
+        ? "এই Trip-এর জন্য Seat Status পাওয়া যায়নি"
+        : "Seat Status: " + state;
+      div.style.gridRow = "ABCDEFGHIJKLM".indexOf(seat.row_label) + 1;
+      div.style.gridColumn = seat.seat_position;
+      $("seatLayout").appendChild(div);
+    });
+
+    $("seatSummary").textContent =
+      "মোট সিট: " + layout.length +
+      " | খালি: " + available +
+      " | বিক্রিত: " + sold +
+      " | সংরক্ষিত: " + reserved +
+      " | ব্লক: " + blocked +
+      " | তথ্য নেই: " + unknown;
+
+    if (unknown) {
+      seatMessage(
+        "সতর্কতা: " + unknown +
+        "টি সিটের Inventory তথ্য পাওয়া যায়নি। এগুলোকে খালি ধরা হয়নি।",
+        "error"
+      );
+    } else {
+      seatMessage("Seat Layout সফলভাবে Database থেকে লোড হয়েছে।","ok");
+    }
+
+  } catch(error) {
+    console.error("SEAT INVENTORY LOAD ERROR:",error);
+    $("seatSummary").textContent = "Seat Inventory লোড করা যায়নি।";
+    seatMessage("Seat Inventory লোড হয়নি: " + error.message,"error");
+  }
 }
 
-for (const seat of seats) {
-  const div = document.createElement("div");
-  div.className = "seat" + (seat.name === "K-3" ? " middle" : "");
-  div.textContent = seat.name;
-  div.style.gridRow = seat.row;
-  div.style.gridColumn = seat.col;
-  $("seatLayout").appendChild(div);
-}
+$("seatTripSelect").addEventListener("change",() => {
+  loadSeatInventory($("seatTripSelect").value);
+});
 
 const stops = [
   "Narayanganj","Abdullahpur","Gazipur","Bogura","Rangpur",
