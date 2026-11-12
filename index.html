@@ -115,6 +115,9 @@ th{color:#52647b;background:#f8fafc}
 }
 .seat.middle{background:#dbeafe;color:#0759a5;border:2px solid #60a5fa}
 .seat.available{background:#dcfce7;color:#166534;border-color:#22c55e}
+.seat.available{cursor:pointer}
+.seat.available:hover{filter:brightness(.96)}
+.seat.selected{background:#2563eb;color:#fff;border-color:#1d4ed8;outline:3px solid #bfdbfe}
 .seat.sold{background:#fee2e2;color:#991b1b;border-color:#ef4444}
 .seat.reserved{background:#fef3c7;color:#92400e;border-color:#f59e0b}
 .seat.blocked{background:#e5e7eb;color:#374151;border-color:#6b7280}
@@ -1628,7 +1631,141 @@ function fillBookingStopOptions(trips) {
   setOptions(toSelect,"গন্তব্য নির্বাচন",droppingNames,previousTo);
 }
 
-function renderBookingResults(trips,from,to) {
+async function appendBookingSeatPicker(trip,card) {
+  const title = document.createElement("h4");
+  title.textContent = "Seat নির্বাচন করুন";
+  card.appendChild(title);
+
+  const summary = document.createElement("p");
+  summary.className = "small muted";
+  summary.textContent = "Seat Inventory লোড হচ্ছে...";
+  card.appendChild(summary);
+
+  const grid = document.createElement("div");
+  grid.className = "seats";
+  card.appendChild(grid);
+
+  const selectedInfo = document.createElement("p");
+  selectedInfo.className = "small";
+  selectedInfo.textContent = "এখনো কোনো Seat নির্বাচন করা হয়নি।";
+  card.appendChild(selectedInfo);
+
+  try {
+    const {data:tripInfo,error:tripError} = await supabase
+      .from("trips")
+      .select("bus_id")
+      .eq("id",trip.id)
+      .single();
+
+    if (tripError) throw tripError;
+    if (!tripInfo || !tripInfo.bus_id) {
+      throw new Error("Trip-এর Bus তথ্য পাওয়া যায়নি।");
+    }
+
+    const [layoutResult,inventoryResult] = await Promise.all([
+      supabase
+        .from("bus_seat_layouts")
+        .select("seat_number,row_label,seat_position,seat_order")
+        .eq("bus_id",tripInfo.bus_id)
+        .order("seat_order",{ascending:true}),
+      supabase
+        .from("trip_seats")
+        .select("seat_number,status,hold_until")
+        .eq("trip_id",trip.id)
+    ]);
+
+    if (layoutResult.error) throw layoutResult.error;
+    if (inventoryResult.error) throw inventoryResult.error;
+
+    const layout = layoutResult.data || [];
+    const inventory = inventoryResult.data || [];
+    if (!layout.length) {
+      summary.textContent = "এই Bus-এর Seat Layout পাওয়া যায়নি।";
+      grid.remove();
+      return;
+    }
+
+    const inventoryBySeat = new Map(
+      inventory.map(item => [item.seat_number,item])
+    );
+    let selectedSeat = null;
+    let availableCount = 0;
+    let soldCount = 0;
+    let unavailableCount = 0;
+
+    layout.forEach(seat => {
+      const record = inventoryBySeat.get(seat.seat_number);
+      const state = String(record?.status || "").toLowerCase();
+      const div = document.createElement("div");
+      const isAvailable = state === "available";
+
+      if (isAvailable) availableCount++;
+      else if (state === "sold") soldCount++;
+      else unavailableCount++;
+
+      div.className = "seat " + (
+        isAvailable ? "available" :
+        state === "sold" ? "sold" :
+        state === "reserved" ? "reserved" :
+        state === "blocked" ? "blocked" : "unknown"
+      );
+      div.textContent = seat.seat_number;
+      div.title = isAvailable
+        ? "নির্বাচন করতে ক্লিক করুন"
+        : "এই Seat নির্বাচন করা যাবে না";
+      div.style.gridRow = "ABCDEFGHIJKLM".indexOf(seat.row_label) + 1;
+
+      const rowHasFifthSeat = layout.some(item =>
+        item.row_label === seat.row_label &&
+        item.seat_number === String(seat.row_label) + "-5"
+      );
+      div.style.gridColumn = rowHasFifthSeat
+        ? seat.seat_position
+        : seat.seat_position <= 2
+          ? seat.seat_position
+          : seat.seat_position + 1;
+
+      if (isAvailable) {
+        div.setAttribute("role","button");
+        div.setAttribute("tabindex","0");
+        const chooseSeat = () => {
+          grid.querySelectorAll(".seat.selected").forEach(item => {
+            item.classList.remove("selected");
+          });
+          if (selectedSeat === seat.seat_number) {
+            selectedSeat = null;
+            selectedInfo.textContent = "এখনো কোনো Seat নির্বাচন করা হয়নি।";
+            return;
+          }
+          selectedSeat = seat.seat_number;
+          div.classList.add("selected");
+          selectedInfo.textContent = "নির্বাচিত Seat: " + selectedSeat;
+        };
+        div.addEventListener("click",chooseSeat);
+        div.addEventListener("keydown",event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            chooseSeat();
+          }
+        });
+      }
+
+      grid.appendChild(div);
+    });
+
+    summary.textContent =
+      "মোট Seat: " + layout.length +
+      " | খালি: " + availableCount +
+      " | বিক্রিত: " + soldCount +
+      " | অন্যান্য/তথ্য নেই: " + unavailableCount;
+  } catch(error) {
+    console.error("BOOKING SEAT LOAD ERROR:",error);
+    summary.textContent = "Seat লোড হয়নি: " + error.message;
+    grid.remove();
+  }
+}
+
+async function renderBookingResults(trips,from,to) {
   const result = $("tripSearchResult");
   result.innerHTML = "";
 
@@ -1650,7 +1787,7 @@ function renderBookingResults(trips,from,to) {
     return;
   }
 
-  matches.forEach(trip => {
+  for (const trip of matches) {
     const card = document.createElement("div");
     card.className = "card";
     card.style.marginTop = "12px";
@@ -1672,12 +1809,9 @@ function renderBookingResults(trips,from,to) {
       " | ভাড়া: ৳" + Number(trip.ticket_price || 0).toLocaleString("en-BD");
     card.appendChild(details);
 
-    const note = document.createElement("p");
-    note.className = "small muted";
-    note.textContent = "Trip পাওয়া গেছে। Seat নির্বাচন ও টিকিট বিক্রির ধাপ পরবর্তী পর্যায়ে যুক্ত হবে।";
-    card.appendChild(note);
     result.appendChild(card);
-  });
+    await appendBookingSeatPicker(trip,card);
+  }
 }
 
 $("journeyDate").value = new Date().toLocaleDateString("en-CA");
