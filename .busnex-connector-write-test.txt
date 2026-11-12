@@ -1,0 +1,1 @@
+Temporary BUSNEX GitHub connector write-permission test. This file is intended to be removed immediately.
