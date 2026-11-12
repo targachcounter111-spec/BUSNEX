@@ -1674,7 +1674,7 @@ async function appendBookingSeatPicker(trip,card) {
         .order("seat_order",{ascending:true}),
       supabase
         .from("trip_seats")
-        .select("seat_number,status,hold_until")
+        .select("seat_number,status,hold_until,held_by,held_counter_id,reservation_id")
         .eq("trip_id",trip.id)
     ]);
 
@@ -1786,8 +1786,14 @@ async function appendBookingSeatPicker(trip,card) {
     layout.forEach(seat => {
       const record = inventoryBySeat.get(seat.seat_number);
       const state = String(record?.status || "").toLowerCase();
+      const isReservation = Boolean(record?.reservation_id);
+      const holdUntilMs = record?.hold_until ? Date.parse(record.hold_until) : NaN;
+      const activeTemporaryHold =
+        state === "held" && !isReservation &&
+        Number.isFinite(holdUntilMs) && holdUntilMs > Date.now();
       const div = document.createElement("div");
-      const isAvailable = state === "available";
+      const isAvailable = state === "available" ||
+        (state === "held" && !isReservation && !activeTemporaryHold);
 
       if (isAvailable) availableCount++;
       else if (state === "sold") soldCount++;
@@ -1796,13 +1802,17 @@ async function appendBookingSeatPicker(trip,card) {
       div.className = "seat " + (
         isAvailable ? "available" :
         state === "sold" ? "sold" :
-        state === "reserved" ? "reserved" :
+        (state === "reserved" || isReservation || activeTemporaryHold) ? "reserved" :
         state === "blocked" ? "blocked" : "unknown"
       );
       div.textContent = seat.seat_number;
       div.title = isAvailable
         ? "নির্বাচন করতে ক্লিক করুন"
-        : "এই Seat নির্বাচন করা যাবে না";
+        : activeTemporaryHold
+          ? "অন্য কাউন্টারে সাময়িক Hold করা আছে"
+          : isReservation
+            ? "Reservation করা আছে"
+            : "এই Seat নির্বাচন করা যাবে না";
       div.style.gridRow = "ABCDEFGHIJKLM".indexOf(seat.row_label) + 1;
 
       const rowHasFifthSeat = layout.some(item =>
@@ -1818,18 +1828,64 @@ async function appendBookingSeatPicker(trip,card) {
       if (isAvailable) {
         div.setAttribute("role","button");
         div.setAttribute("tabindex","0");
-        const chooseSeat = () => {
+        let holdRequestRunning = false;
+        let localHoldTimer = null;
+        const chooseSeat = async () => {
+          if (holdRequestRunning) return;
+
           if (selectedSeats.has(seat.seat_number)) {
             selectedSeats.delete(seat.seat_number);
+            if (localHoldTimer) clearTimeout(localHoldTimer);
             div.classList.remove("selected");
-          } else {
-            selectedSeats.add(seat.seat_number);
-            div.classList.add("selected");
+            selectedInfo.textContent =
+              "Seat " + seat.seat_number + " নির্বাচন থেকে সরানো হয়েছে। নিরাপত্তার জন্য Hold-এর বাকি সময় শেষ হলে Seat আবার খালি হবে।";
+            renderPassengerFields();
+            return;
           }
-          selectedInfo.textContent = selectedSeats.size
-            ? "নির্বাচিত Seat (" + selectedSeats.size + "): " + [...selectedSeats].join(", ")
-            : "এখনো কোনো Seat নির্বাচন করা হয়নি।";
-          renderPassengerFields();
+
+          if (selectedSeats.size >= 8) {
+            alert("একবারে সর্বোচ্চ ৮টি Seat নির্বাচন করা যাবে।");
+            return;
+          }
+
+          holdRequestRunning = true;
+          div.style.pointerEvents = "none";
+          div.textContent = "…";
+          try {
+            const {error:holdError} = await supabase.rpc("busnex_hold_seat",{
+              p_trip_id:trip.id,
+              p_seat_number:seat.seat_number
+            });
+            if (holdError) throw holdError;
+
+            selectedSeats.add(seat.seat_number);
+            div.classList.remove("available");
+            div.classList.add("selected");
+            div.title = "আপনার Counter-এর জন্য ৫০ সেকেন্ড Hold করা হয়েছে";
+            div.textContent = seat.seat_number;
+            selectedInfo.textContent =
+              "নির্বাচিত Seat (" + selectedSeats.size + "/8): " +
+              [...selectedSeats].join(", ") +
+              " — Hold ৫০ সেকেন্ডের জন্য।";
+            renderPassengerFields();
+
+            localHoldTimer = setTimeout(() => {
+              if (!selectedSeats.has(seat.seat_number)) return;
+              selectedSeats.delete(seat.seat_number);
+              div.classList.remove("selected");
+              div.classList.add("available");
+              div.title = "Hold-এর সময় শেষ। আবার নির্বাচন করতে ক্লিক করুন।";
+              selectedInfo.textContent =
+                "Seat " + seat.seat_number + "-এর ৫০ সেকেন্ড Hold শেষ হয়েছে।";
+              renderPassengerFields();
+            },50000);
+          } catch(error) {
+            alert("Seat Hold করা যায়নি: " + error.message);
+            div.textContent = seat.seat_number;
+          } finally {
+            holdRequestRunning = false;
+            div.style.pointerEvents = "";
+          }
         };
         div.addEventListener("click",chooseSeat);
         div.addEventListener("keydown",event => {
