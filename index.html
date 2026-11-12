@@ -274,20 +274,18 @@ th{color:#52647b;background:#f8fafc}
         <div class="page-head">
           <div>
             <h1>Ticket Booking</h1>
-            <div class="muted small">রুট ও যাত্রার তারিখ দিয়ে ট্রিপ খুঁজুন</div>
+            <div class="muted small">Trip-এর Stop ও যাত্রার তারিখ দিয়ে বাস খুঁজুন</div>
           </div>
         </div>
         <div class="card">
           <div class="form-row">
-            <div class="field"><label>FROM / যাত্রা শুরু</label><select id="fromStop"><option value="">শুরুর স্থান নির্বাচন</option></select></div>
-            <div class="field"><label>TO / গন্তব্য</label><select id="toStop"><option value="">গন্তব্য নির্বাচন</option></select></div>
+            <div class="field"><label>FROM / যাত্রা শুরু</label><select id="fromStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
+            <div class="field"><label>TO / গন্তব্য</label><select id="toStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
             <div class="field"><label>যাত্রার তারিখ</label><input id="journeyDate" type="date"></div>
-            <div class="field"><label>যাত্রীর নাম (ঐচ্ছিক)</label><input id="passengerName" placeholder="যাত্রীর নাম"></div>
           </div>
           <button id="searchTripButton" class="primary">ট্রিপ খুঁজুন</button>
-          <div id="tripSearchResult" class="section empty">ট্রিপ খুঁজলে ফলাফল এখানে দেখা যাবে।</div>
+          <div id="tripSearchResult" class="section empty">যাত্রার তারিখ নির্বাচন করে ট্রিপ খুঁজুন।</div>
         </div>
-        <div class="section notice">Ticket Booking এবং Live Seat Inventory-এর Database সংযোগ এখনো চালু হয়নি।</div>
       </section>
 
       <section id="page-trips" class="page hidden">
@@ -1543,43 +1541,199 @@ $("seatTripSelect").addEventListener("change",() => {
   loadSeatInventory($("seatTripSelect").value);
 });
 
-const stops = [
-  "Narayanganj","Abdullahpur","Gazipur","Bogura","Rangpur",
-  "Kaunia","Lalmonirhat","Hatibandha","Borokhata"
-];
+// Booking Search: Trip-এর সক্রিয় trip_stops থেকেই FROM ও TO তৈরি হবে।
+function bookingMessage(message,type = "") {
+  const result = $("tripSearchResult");
+  result.textContent = message;
+  result.className = "section " + (type === "error" ? "message error" : "empty");
+}
 
-for (const stop of stops) {
-  const a = document.createElement("option");
-  a.value = stop;
-  a.textContent = stop;
-  $("fromStop").appendChild(a);
+function localDateRange(dateValue) {
+  const start = new Date(dateValue + "T00:00:00");
+  if (Number.isNaN(start.getTime())) {
+    throw new Error("সঠিক যাত্রার তারিখ নির্বাচন করুন।");
+  }
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  return {start:start.toISOString(),end:end.toISOString()};
+}
 
-  const b = document.createElement("option");
-  b.value = stop;
-  b.textContent = stop;
-  $("toStop").appendChild(b);
+async function fetchBookingTrips(dateValue) {
+  const range = localDateRange(dateValue);
+  const {data,error} = await supabase
+    .from("trips")
+    .select(`
+      id,departure_time,ticket_price,status,is_active,
+      buses(bus_name),
+      routes(starting_point,ending_point),
+      trip_stops(id,stop_name,stop_type,stop_order,is_active)
+    `)
+    .eq("is_active",true)
+    .eq("status","scheduled")
+    .gte("departure_time",range.start)
+    .lt("departure_time",range.end)
+    .order("departure_time",{ascending:true});
+
+  if (error) throw error;
+  return (data || []).map(trip => ({
+    ...trip,
+    trip_stops:(trip.trip_stops || [])
+      .filter(stop => stop.is_active)
+      .sort((a,b) => a.stop_order - b.stop_order)
+  }));
+}
+
+function fillBookingStopOptions(trips) {
+  const fromSelect = $("fromStop");
+  const toSelect = $("toStop");
+  const previousFrom = fromSelect.value;
+  const previousTo = toSelect.value;
+  const boardingNames = new Map();
+  const droppingNames = new Map();
+
+  trips.forEach(trip => {
+    trip.trip_stops.forEach(stop => {
+      const name = String(stop.stop_name || "").trim();
+      const type = String(stop.stop_type || "").toLowerCase();
+      if (!name) return;
+      if (type === "boarding" || type === "both") {
+        boardingNames.set(name.toLowerCase(),name);
+      }
+      if (type === "dropping" || type === "both") {
+        droppingNames.set(name.toLowerCase(),name);
+      }
+    });
+  });
+
+  function setOptions(select,placeholder,names,previous) {
+    select.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = placeholder;
+    select.appendChild(first);
+    [...names.values()].sort((a,b) => a.localeCompare(b))
+      .forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+    if ([...names.values()].some(name => name.toLowerCase() === previous.toLowerCase())) {
+      select.value = [...names.values()].find(name => name.toLowerCase() === previous.toLowerCase());
+    }
+    select.disabled = names.size === 0;
+  }
+
+  setOptions(fromSelect,"যাত্রা শুরুর স্থান নির্বাচন",boardingNames,previousFrom);
+  setOptions(toSelect,"গন্তব্য নির্বাচন",droppingNames,previousTo);
+}
+
+function renderBookingResults(trips,from,to) {
+  const result = $("tripSearchResult");
+  result.innerHTML = "";
+
+  const matches = trips.filter(trip => {
+    const stops = trip.trip_stops;
+    const fromIndex = stops.findIndex(stop =>
+      stop.stop_name.toLowerCase() === from.toLowerCase() &&
+      ["boarding","both"].includes(String(stop.stop_type).toLowerCase())
+    );
+    const toIndex = stops.findIndex(stop =>
+      stop.stop_name.toLowerCase() === to.toLowerCase() &&
+      ["dropping","both"].includes(String(stop.stop_type).toLowerCase())
+    );
+    return fromIndex >= 0 && toIndex > fromIndex;
+  });
+
+  if (!matches.length) {
+    bookingMessage("এই তারিখে নির্বাচিত FROM → TO রুটে কোনো Trip পাওয়া যায়নি।");
+    return;
+  }
+
+  matches.forEach(trip => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.marginTop = "12px";
+
+    const heading = document.createElement("h3");
+    heading.textContent = from + " → " + to;
+    card.appendChild(heading);
+
+    const bus = trip.buses || {};
+    const route = trip.routes || {};
+    const departure = new Date(trip.departure_time);
+    const details = document.createElement("p");
+    details.className = "muted small";
+    details.textContent =
+      "বাস: " + (bus.bus_name || "তথ্য নেই") +
+      " | রুট: " + (route.starting_point || "—") + " → " +
+      (route.ending_point || "—") +
+      " | ছাড়ার সময়: " + departure.toLocaleString("en-GB") +
+      " | ভাড়া: ৳" + Number(trip.ticket_price || 0).toLocaleString("en-BD");
+    card.appendChild(details);
+
+    const note = document.createElement("p");
+    note.className = "small muted";
+    note.textContent = "Trip পাওয়া গেছে। Seat নির্বাচন ও টিকিট বিক্রির ধাপ পরবর্তী পর্যায়ে যুক্ত হবে।";
+    card.appendChild(note);
+    result.appendChild(card);
+  });
 }
 
 $("journeyDate").value = new Date().toLocaleDateString("en-CA");
 $("tripDate").value = new Date().toLocaleDateString("en-CA");
+$("fromStop").disabled = true;
+$("toStop").disabled = true;
 
-$("searchTripButton").addEventListener("click",() => {
+$("journeyDate").addEventListener("change",async() => {
+  const date = $("journeyDate").value;
+  $("fromStop").disabled = true;
+  $("toStop").disabled = true;
+  fillBookingStopOptions([]);
+  if (!date) {
+    bookingMessage("যাত্রার তারিখ নির্বাচন করুন।");
+    return;
+  }
+
+  bookingMessage("এই তারিখের Trip ও Stop লোড হচ্ছে...");
+  try {
+    const trips = await fetchBookingTrips(date);
+    fillBookingStopOptions(trips);
+    bookingMessage(trips.length
+      ? "এই তারিখে " + trips.length + "টি Trip পাওয়া গেছে। FROM ও TO নির্বাচন করুন।"
+      : "এই তারিখে কোনো সক্রিয় Scheduled Trip পাওয়া যায়নি।");
+  } catch(error) {
+    console.error("BOOKING STOP LOAD ERROR:",error);
+    bookingMessage("Trip/Stop লোড হয়নি: " + error.message,"error");
+  }
+});
+
+$("searchTripButton").addEventListener("click",async() => {
   const from = $("fromStop").value;
   const to = $("toStop").value;
   const date = $("journeyDate").value;
+  const button = $("searchTripButton");
 
   if (!from || !to || !date) {
-    $("tripSearchResult").textContent =
-      "FROM, TO এবং তারিখ নির্বাচন করুন।";
+    return bookingMessage("FROM, TO এবং যাত্রার তারিখ নির্বাচন করুন।","error");
+  }
+  if (from.toLowerCase() === to.toLowerCase()) {
+    return bookingMessage("FROM ও TO একই হতে পারবে না।","error");
+  }
 
-  } else if (from === to) {
-    $("tripSearchResult").textContent =
-      "FROM ও TO একই হতে পারবে না।";
-
-  } else {
-    $("tripSearchResult").textContent =
-      "আপনার সার্চ: " + from + " → " + to + " | " + date +
-      "। বাস্তব Ticket Booking সংযোগ পরবর্তী ধাপে চালু হবে।";
+  button.disabled = true;
+  button.textContent = "Trip খোঁজা হচ্ছে...";
+  bookingMessage("Database থেকে Trip খোঁজা হচ্ছে...");
+  try {
+    const trips = await fetchBookingTrips(date);
+    fillBookingStopOptions(trips);
+    renderBookingResults(trips,from,to);
+  } catch(error) {
+    console.error("BOOKING SEARCH ERROR:",error);
+    bookingMessage("Trip খুঁজে পাওয়া যায়নি: " + error.message,"error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "ট্রিপ খুঁজুন";
   }
 });
 
