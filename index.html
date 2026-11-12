@@ -1633,7 +1633,7 @@ function fillBookingStopOptions(trips) {
 
 async function appendBookingSeatPicker(trip,card) {
   const title = document.createElement("h4");
-  title.textContent = "Seat নির্বাচন করুন";
+  title.textContent = "এক বা একাধিক Seat নির্বাচন করুন";
   card.appendChild(title);
 
   const summary = document.createElement("p");
@@ -1649,6 +1649,10 @@ async function appendBookingSeatPicker(trip,card) {
   selectedInfo.className = "small";
   selectedInfo.textContent = "এখনো কোনো Seat নির্বাচন করা হয়নি।";
   card.appendChild(selectedInfo);
+
+  const passengerPanel = document.createElement("div");
+  passengerPanel.className = "section";
+  card.appendChild(passengerPanel);
 
   try {
     const {data:tripInfo,error:tripError} = await supabase
@@ -1688,10 +1692,96 @@ async function appendBookingSeatPicker(trip,card) {
     const inventoryBySeat = new Map(
       inventory.map(item => [item.seat_number,item])
     );
-    let selectedSeat = null;
+    const selectedSeats = new Set();
     let availableCount = 0;
     let soldCount = 0;
     let unavailableCount = 0;
+
+    function renderPassengerFields() {
+      passengerPanel.innerHTML = "";
+      if (!selectedSeats.size) {
+        passengerPanel.textContent = "Passenger-এর তথ্য দিতে প্রথমে Seat নির্বাচন করুন।";
+        return;
+      }
+
+      const heading = document.createElement("h4");
+      heading.textContent = "যাত্রীদের তথ্য";
+      passengerPanel.appendChild(heading);
+
+      [...selectedSeats].forEach((seatNumber,index) => {
+        const section = document.createElement("div");
+        section.className = "card";
+        section.style.marginTop = "10px";
+
+        const seatHeading = document.createElement("b");
+        seatHeading.textContent = "Seat " + seatNumber + " — Passenger " + (index + 1);
+        section.appendChild(seatHeading);
+
+        const fields = document.createElement("div");
+        fields.className = "form-row";
+
+        const nameField = document.createElement("div");
+        nameField.className = "field";
+        const nameLabel = document.createElement("label");
+        nameLabel.textContent = "যাত্রীর নাম";
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.required = true;
+        nameInput.maxLength = 120;
+        nameInput.placeholder = "পূর্ণ নাম লিখুন";
+        nameInput.dataset.passengerSeat = seatNumber;
+        nameInput.dataset.passengerField = "name";
+        nameField.append(nameLabel,nameInput);
+
+        const phoneField = document.createElement("div");
+        phoneField.className = "field";
+        const phoneLabel = document.createElement("label");
+        phoneLabel.textContent = "মোবাইল নম্বর";
+        const phoneInput = document.createElement("input");
+        phoneInput.type = "tel";
+        phoneInput.required = true;
+        phoneInput.maxLength = 20;
+        phoneInput.placeholder = "01XXXXXXXXX";
+        phoneInput.dataset.passengerSeat = seatNumber;
+        phoneInput.dataset.passengerField = "phone";
+        phoneField.append(phoneLabel,phoneInput);
+
+        const genderField = document.createElement("div");
+        genderField.className = "field";
+        const genderLabel = document.createElement("label");
+        genderLabel.textContent = "Gender / লিঙ্গ";
+        const genderSelect = document.createElement("select");
+        genderSelect.required = true;
+        genderSelect.dataset.passengerSeat = seatNumber;
+        genderSelect.dataset.passengerField = "gender";
+        genderSelect.innerHTML =
+          '<option value="">নির্বাচন করুন</option>' +
+          '<option value="male">Male / পুরুষ</option>' +
+          '<option value="female">Female / নারী</option>';
+        genderField.append(genderLabel,genderSelect);
+
+        fields.append(nameField,phoneField,genderField);
+        section.appendChild(fields);
+        passengerPanel.appendChild(section);
+      });
+
+      const modeField = document.createElement("div");
+      modeField.className = "field";
+      const modeLabel = document.createElement("label");
+      modeLabel.textContent = "Booking Type";
+      const modeSelect = document.createElement("select");
+      modeSelect.disabled = true;
+      modeSelect.innerHTML =
+        '<option value="booking">Booking / টিকিট বিক্রি</option>' +
+        '<option value="reservation">Reservation / আসন সংরক্ষণ</option>';
+      modeField.append(modeLabel,modeSelect);
+      passengerPanel.appendChild(modeField);
+
+      const note = document.createElement("p");
+      note.className = "notice small";
+      note.textContent = "যাত্রীর তথ্যের ফর্ম তৈরি হয়েছে। Booking ও Reservation জমা দেওয়ার ব্যবস্থা পরবর্তী ধাপে নিরাপদ Database যাচাই করে যুক্ত হবে।";
+      passengerPanel.appendChild(note);
+    }
 
     layout.forEach(seat => {
       const record = inventoryBySeat.get(seat.seat_number);
@@ -1729,17 +1819,17 @@ async function appendBookingSeatPicker(trip,card) {
         div.setAttribute("role","button");
         div.setAttribute("tabindex","0");
         const chooseSeat = () => {
-          grid.querySelectorAll(".seat.selected").forEach(item => {
-            item.classList.remove("selected");
-          });
-          if (selectedSeat === seat.seat_number) {
-            selectedSeat = null;
-            selectedInfo.textContent = "এখনো কোনো Seat নির্বাচন করা হয়নি।";
-            return;
+          if (selectedSeats.has(seat.seat_number)) {
+            selectedSeats.delete(seat.seat_number);
+            div.classList.remove("selected");
+          } else {
+            selectedSeats.add(seat.seat_number);
+            div.classList.add("selected");
           }
-          selectedSeat = seat.seat_number;
-          div.classList.add("selected");
-          selectedInfo.textContent = "নির্বাচিত Seat: " + selectedSeat;
+          selectedInfo.textContent = selectedSeats.size
+            ? "নির্বাচিত Seat (" + selectedSeats.size + "): " + [...selectedSeats].join(", ")
+            : "এখনো কোনো Seat নির্বাচন করা হয়নি।";
+          renderPassengerFields();
         };
         div.addEventListener("click",chooseSeat);
         div.addEventListener("keydown",event => {
@@ -1758,6 +1848,7 @@ async function appendBookingSeatPicker(trip,card) {
       " | খালি: " + availableCount +
       " | বিক্রিত: " + soldCount +
       " | অন্যান্য/তথ্য নেই: " + unavailableCount;
+    renderPassengerFields();
   } catch(error) {
     console.error("BOOKING SEAT LOAD ERROR:",error);
     summary.textContent = "Seat লোড হয়নি: " + error.message;
