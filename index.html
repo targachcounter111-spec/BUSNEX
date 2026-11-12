@@ -1498,9 +1498,13 @@ async function loadSeatInventory(tripId) {
         ? "এই Trip-এর জন্য Seat Status পাওয়া যায়নি"
         : "Seat Status: " + state;
       div.style.gridRow = "ABCDEFGHIJKLM".indexOf(seat.row_label) + 1;
-      // Keep a visible center aisle after seat 2; K row naturally uses five seats (2+3).
-      div.style.gridColumn =
-        seat.seat_position <= 2
+      // The fifth seat in a five-seat row sits directly under the center aisle.
+      // Example: K-1, K-2, K-5, K-3, K-4 (and J-5 on a 41-seat bus).
+      const isCenterFifthSeat =
+        seat.seat_number === String(seat.row_label) + "-5";
+      div.style.gridColumn = isCenterFifthSeat
+        ? 3
+        : seat.seat_position <= 2
           ? seat.seat_position
           : seat.seat_position + 1;
       $("seatLayout").appendChild(div);
