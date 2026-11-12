@@ -1697,6 +1697,9 @@ async function appendBookingSeatPicker(trip,card) {
     let soldCount = 0;
     let unavailableCount = 0;
 
+    const passengerData = new Map();
+    const seatButtons = new Map();
+
     function renderPassengerFields() {
       passengerPanel.innerHTML = "";
       if (!selectedSeats.size) {
@@ -1705,8 +1708,44 @@ async function appendBookingSeatPicker(trip,card) {
       }
 
       const heading = document.createElement("h4");
-      heading.textContent = "যাত্রীদের তথ্য";
+      heading.textContent = "প্রতিটি যাত্রীর তথ্য";
       passengerPanel.appendChild(heading);
+
+      const stops = (trip.trip_stops || []).slice().sort((a,b) => a.stop_order - b.stop_order);
+
+      function addStopSelect(parent,seatNumber,field,labelText,allowedTypes) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "field";
+        const label = document.createElement("label");
+        label.textContent = labelText;
+        const select = document.createElement("select");
+        select.required = true;
+        select.dataset.passengerSeat = seatNumber;
+        select.dataset.passengerField = field;
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "স্টপ নির্বাচন করুন";
+        select.appendChild(placeholder);
+
+        stops.filter(stop => {
+          const type = String(stop.stop_type || "").toLowerCase();
+          return allowedTypes.includes(type);
+        }).forEach(stop => {
+          const option = document.createElement("option");
+          option.value = stop.id;
+          option.textContent = stop.stop_name;
+          select.appendChild(option);
+        });
+
+        select.value = passengerData.get(seatNumber)?.[field] || "";
+        select.addEventListener("change",() => {
+          const current = passengerData.get(seatNumber) || {};
+          current[field] = select.value;
+          passengerData.set(seatNumber,current);
+        });
+        wrapper.append(label,select);
+        parent.appendChild(wrapper);
+      }
 
       [...selectedSeats].forEach((seatNumber,index) => {
         const section = document.createElement("div");
@@ -1717,37 +1756,37 @@ async function appendBookingSeatPicker(trip,card) {
         seatHeading.textContent = "Seat " + seatNumber + " — Passenger " + (index + 1);
         section.appendChild(seatHeading);
 
+        const saved = passengerData.get(seatNumber) || {};
         const fields = document.createElement("div");
         fields.className = "form-row";
 
-        const nameField = document.createElement("div");
-        nameField.className = "field";
-        const nameLabel = document.createElement("label");
-        nameLabel.textContent = "যাত্রীর নাম";
-        const nameInput = document.createElement("input");
-        nameInput.type = "text";
-        nameInput.required = true;
-        nameInput.maxLength = 120;
-        nameInput.placeholder = "পূর্ণ নাম লিখুন";
-        nameInput.dataset.passengerSeat = seatNumber;
-        nameInput.dataset.passengerField = "name";
-        nameField.append(nameLabel,nameInput);
+        [
+          {key:"name",label:"যাত্রীর নাম",type:"text",placeholder:"পূর্ণ নাম লিখুন",max:120},
+          {key:"phone",label:"মোবাইল নম্বর",type:"tel",placeholder:"01XXXXXXXXX",max:20}
+        ].forEach(config => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "field";
+          const label = document.createElement("label");
+          label.textContent = config.label;
+          const input = document.createElement("input");
+          input.type = config.type;
+          input.required = true;
+          input.maxLength = config.max;
+          input.placeholder = config.placeholder;
+          input.value = saved[config.key] || "";
+          input.dataset.passengerSeat = seatNumber;
+          input.dataset.passengerField = config.key;
+          input.addEventListener("input",() => {
+            const current = passengerData.get(seatNumber) || {};
+            current[config.key] = input.value;
+            passengerData.set(seatNumber,current);
+          });
+          wrapper.append(label,input);
+          fields.appendChild(wrapper);
+        });
 
-        const phoneField = document.createElement("div");
-        phoneField.className = "field";
-        const phoneLabel = document.createElement("label");
-        phoneLabel.textContent = "মোবাইল নম্বর";
-        const phoneInput = document.createElement("input");
-        phoneInput.type = "tel";
-        phoneInput.required = true;
-        phoneInput.maxLength = 20;
-        phoneInput.placeholder = "01XXXXXXXXX";
-        phoneInput.dataset.passengerSeat = seatNumber;
-        phoneInput.dataset.passengerField = "phone";
-        phoneField.append(phoneLabel,phoneInput);
-
-        const genderField = document.createElement("div");
-        genderField.className = "field";
+        const genderWrapper = document.createElement("div");
+        genderWrapper.className = "field";
         const genderLabel = document.createElement("label");
         genderLabel.textContent = "Gender / লিঙ্গ";
         const genderSelect = document.createElement("select");
@@ -1756,31 +1795,99 @@ async function appendBookingSeatPicker(trip,card) {
         genderSelect.dataset.passengerField = "gender";
         genderSelect.innerHTML =
           '<option value="">নির্বাচন করুন</option>' +
-          '<option value="male">Male / পুরুষ</option>' +
-          '<option value="female">Female / নারী</option>';
-        genderField.append(genderLabel,genderSelect);
-
-        fields.append(nameField,phoneField,genderField);
+          '<option value="Male">Male / পুরুষ</option>' +
+          '<option value="Female">Female / নারী</option>';
+        genderSelect.value = saved.gender || "";
+        genderSelect.addEventListener("change",() => {
+          const current = passengerData.get(seatNumber) || {};
+          current.gender = genderSelect.value;
+          passengerData.set(seatNumber,current);
+        });
+        genderWrapper.append(genderLabel,genderSelect);
+        fields.appendChild(genderWrapper);
         section.appendChild(fields);
+
+        const stopFields = document.createElement("div");
+        stopFields.className = "form-row";
+        addStopSelect(stopFields,seatNumber,"boarding","Boarding Stop",["boarding","both"]);
+        addStopSelect(stopFields,seatNumber,"dropping","Dropping Stop",["dropping","both"]);
+        section.appendChild(stopFields);
         passengerPanel.appendChild(section);
       });
 
-      const modeField = document.createElement("div");
-      modeField.className = "field";
-      const modeLabel = document.createElement("label");
-      modeLabel.textContent = "Booking Type";
-      const modeSelect = document.createElement("select");
-      modeSelect.disabled = true;
-      modeSelect.innerHTML =
-        '<option value="booking">Booking / টিকিট বিক্রি</option>' +
-        '<option value="reservation">Reservation / আসন সংরক্ষণ</option>';
-      modeField.append(modeLabel,modeSelect);
-      passengerPanel.appendChild(modeField);
-
       const note = document.createElement("p");
       note.className = "notice small";
-      note.textContent = "যাত্রীর তথ্যের ফর্ম তৈরি হয়েছে। Booking ও Reservation জমা দেওয়ার ব্যবস্থা পরবর্তী ধাপে নিরাপদ Database যাচাই করে যুক্ত হবে।";
+      note.textContent = "প্রতিটি যাত্রীর নাম, মোবাইল, Gender এবং Boarding/Dropping Stop পূরণ করে টিকিট বিক্রি করুন। একবারে সর্বোচ্চ ৮টি Seat।";
       passengerPanel.appendChild(note);
+
+      const submit = document.createElement("button");
+      submit.type = "button";
+      submit.className = "btn btn-primary";
+      submit.textContent = "নির্বাচিত Seat-এর টিকিট বিক্রি করুন";
+      submit.addEventListener("click",async () => {
+        if (submit.disabled) return;
+        const seatsToSell = [...selectedSeats];
+        const passengers = [];
+
+        for (const seatNumber of seatsToSell) {
+          const p = passengerData.get(seatNumber) || {};
+          if (!p.name?.trim() || !p.phone?.trim() || !p.gender || !p.boarding || !p.dropping) {
+            alert("Seat " + seatNumber + "-এর সব Passenger তথ্য পূরণ করুন।");
+            return;
+          }
+          const boarding = stops.find(x => x.id === p.boarding);
+          const dropping = stops.find(x => x.id === p.dropping);
+          if (!boarding || !dropping || boarding.stop_order >= dropping.stop_order) {
+            alert("Seat " + seatNumber + "-এর Boarding Stop অবশ্যই Dropping Stop-এর আগে হতে হবে।");
+            return;
+          }
+          passengers.push({seatNumber,...p});
+        }
+
+        submit.disabled = true;
+        submit.textContent = "টিকিট বিক্রি হচ্ছে...";
+        const sold = [];
+        try {
+          for (const p of passengers) {
+            const {data,error} = await supabase.rpc("busnex_sell_ticket",{
+              p_trip_id:trip.id,
+              p_seat_number:p.seatNumber,
+              p_passenger_name:p.name.trim(),
+              p_passenger_phone:p.phone.trim(),
+              p_boarding_stop_id:p.boarding,
+              p_dropping_stop_id:p.dropping,
+              p_passenger_gender:p.gender
+            });
+            if (error) throw error;
+            sold.push({seatNumber:p.seatNumber,data});
+            selectedSeats.delete(p.seatNumber);
+            passengerData.delete(p.seatNumber);
+            const seatButton = seatButtons.get(p.seatNumber);
+            if (seatButton) {
+              seatButton.classList.remove("selected","available");
+              seatButton.classList.add("sold");
+              seatButton.textContent = p.seatNumber;
+              seatButton.title = "টিকিট বিক্রি সম্পন্ন";
+              seatButton.removeAttribute("role");
+              seatButton.removeAttribute("tabindex");
+            }
+          }
+          selectedInfo.textContent = sold.length + "টি Seat-এর Ticket সফলভাবে বিক্রি হয়েছে: " +
+            sold.map(x => x.seatNumber).join(", ");
+          renderPassengerFields();
+          alert(sold.length + "টি Ticket সফলভাবে বিক্রি হয়েছে।");
+        } catch(error) {
+          selectedInfo.textContent = sold.length
+            ? sold.length + "টি Ticket বিক্রি হয়েছে। পরের Seat-এ সমস্যা: " + error.message
+            : "Ticket বিক্রি হয়নি: " + error.message;
+          alert(selectedInfo.textContent);
+          renderPassengerFields();
+        } finally {
+          submit.disabled = false;
+          submit.textContent = "নির্বাচিত Seat-এর টিকিট বিক্রি করুন";
+        }
+      });
+      passengerPanel.appendChild(submit);
     }
 
     layout.forEach(seat => {
@@ -1792,6 +1899,7 @@ async function appendBookingSeatPicker(trip,card) {
         state === "held" && !isReservation &&
         Number.isFinite(holdUntilMs) && holdUntilMs > Date.now();
       const div = document.createElement("div");
+      seatButtons.set(seat.seat_number,div);
       const isAvailable = state === "available" ||
         (state === "held" && !isReservation && !activeTemporaryHold);
 
