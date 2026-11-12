@@ -100,23 +100,36 @@ table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);white-space:nowrap}
 th{color:#52647b;background:#f8fafc}
 .seats{
-  display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));
-  gap:8px;max-width:480px;margin:15px auto
+  display:grid;
+  /* 1-2 seats | center aisle | 3-4 seats (last row also gets its fifth seat) */
+  grid-template-columns:minmax(42px,1fr) minmax(42px,1fr) minmax(22px,.45fr) repeat(3,minmax(42px,1fr));
+  gap:9px 8px;max-width:540px;margin:15px auto;
+  padding:14px 12px;background:#f8fafc;border:1px solid #dbe4ef;border-radius:14px
 }
 .seat{
-  min-height:43px;border:1px solid #cbd9e8;background:#e8f1fb;
-  color:#17578c;border-radius:8px;font-weight:800;font-size:12px;
-  display:flex;align-items:center;justify-content:flex-start;
-  padding-left:8px;text-align:left
+  min-height:48px;border:2px solid #cbd9e8;background:#e8f1fb;
+  color:#17578c;border-radius:9px;font-weight:900;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+  padding:4px;text-align:center;box-shadow:0 2px 4px #10243d12
 }
 .seat.middle{background:#dbeafe;color:#0759a5;border:2px solid #60a5fa}
-.seat.available{background:#e8f1fb;color:#17578c;border-color:#cbd9e8}
-.seat.sold{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
-.seat.reserved{background:#fef3c7;color:#92400e;border-color:#fcd34d}
-.seat.blocked{background:#e5e7eb;color:#374151;border-color:#9ca3af}
-.seat.unknown{background:#f3f4f6;color:#6b7280;border:1px dashed #9ca3af}
-.legend{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;font-size:12px}
-.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.seat.available{background:#dcfce7;color:#166534;border-color:#22c55e}
+.seat.sold{background:#fee2e2;color:#991b1b;border-color:#ef4444}
+.seat.reserved{background:#fef3c7;color:#92400e;border-color:#f59e0b}
+.seat.blocked{background:#e5e7eb;color:#374151;border-color:#6b7280}
+.seat.unknown{background:#f3f4f6;color:#6b7280;border:2px dashed #9ca3af}
+.legend{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;font-size:13px;margin:16px 0}
+.legend span{
+  display:flex;align-items:center;gap:7px;padding:9px 12px;
+  border:1px solid #cbd5e1;border-radius:10px;background:#fff;
+  color:#243449;font-weight:800;box-shadow:0 2px 6px #10243d10
+}
+.dot{display:inline-block;width:15px;height:15px;border-radius:4px;flex:0 0 15px;border:1px solid #64748b}
+.driver-label{
+  max-width:540px;margin:20px auto 12px;padding:11px;
+  text-align:center;background:#10243d;color:#fff;border-radius:10px;
+  font-size:13px;font-weight:900;letter-spacing:.5px
+}
 .notice{
   background:#fff8e8;border:1px solid #f2dfb4;padding:12px;
   border-radius:9px;color:#79551a;font-size:13px;line-height:1.5
@@ -372,14 +385,14 @@ th{color:#52647b;background:#f8fafc}
           </div>
           <div id="seatMessage" class="message"></div>
           <div id="seatSummary" class="small muted">প্রথমে একটি Trip নির্বাচন করুন।</div>
-          <div class="legend" style="margin-top:14px">
-            <span><i class="dot" style="background:#e8f1fb"></i>খালি</span>
-            <span><i class="dot" style="background:#fee2e2"></i>বিক্রিত</span>
-            <span><i class="dot" style="background:#fef3c7"></i>সংরক্ষিত</span>
-            <span><i class="dot" style="background:#e5e7eb"></i>ব্লক</span>
-            <span><i class="dot" style="background:#f3f4f6"></i>তথ্য নেই</span>
+          <div class="legend" aria-label="সিটের অবস্থা">
+            <span><i class="dot" style="background:#dcfce7;border-color:#22c55e"></i>খালি</span>
+            <span><i class="dot" style="background:#fee2e2;border-color:#ef4444"></i>বিক্রিত</span>
+            <span><i class="dot" style="background:#fef3c7;border-color:#f59e0b"></i>সংরক্ষিত</span>
+            <span><i class="dot" style="background:#e5e7eb;border-color:#6b7280"></i>ব্লক</span>
+            <span><i class="dot" style="background:#f3f4f6;border:2px dashed #9ca3af"></i>তথ্য নেই</span>
           </div>
-          <div style="text-align:center;font-size:12px;color:#64748b;margin-top:18px">সামনের দিক / DRIVER</div>
+          <div class="driver-label">সামনের দিক / DRIVER</div>
           <div id="seatLayout" class="seats"></div>
         </div>
       </section>
@@ -1485,7 +1498,11 @@ async function loadSeatInventory(tripId) {
         ? "এই Trip-এর জন্য Seat Status পাওয়া যায়নি"
         : "Seat Status: " + state;
       div.style.gridRow = "ABCDEFGHIJKLM".indexOf(seat.row_label) + 1;
-      div.style.gridColumn = seat.seat_position;
+      // Keep a visible center aisle after seat 2; K row naturally uses five seats (2+3).
+      div.style.gridColumn =
+        seat.seat_position <= 2
+          ? seat.seat_position
+          : seat.seat_position + 1;
       $("seatLayout").appendChild(div);
     });
 
