@@ -149,6 +149,12 @@ BEGIN
          p_dropping_stop_id, v_trip.ticket_price, now()
   FROM unnest(p_seat_numbers) AS s(seat);
 
+  UPDATE public.trip_seats
+  SET reservation_id=v_reservation_id
+  WHERE trip_id=p_trip_id AND seat_number IN (
+    SELECT btrim(s.seat) FROM unnest(p_seat_numbers) AS s(seat)
+  );
+
   RETURN v_reservation_id;
 END;
 $function$;
@@ -227,6 +233,9 @@ BEGIN
   UPDATE public.ticket_reservations
   SET status='cancelled', updated_at=now()
   WHERE id=p_reservation_id;
+  UPDATE public.trip_seats
+  SET reservation_id=NULL
+  WHERE reservation_id=p_reservation_id;
   RETURN true;
 END;
 $function$;
@@ -248,7 +257,7 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Login required'; END IF;
   v_role := public.busnex_user_role();
   v_company_id := public.busnex_company_id();
-  IF v_role NOT IN ('super_admin','company_manager') THEN
+  IF v_role IS DISTINCT FROM 'super_admin' AND v_role IS DISTINCT FROM 'company_manager' THEN
     RAISE EXCEPTION 'Only Manager or Super Admin can set VIP expiry';
   END IF;
   IF p_expires_at IS NOT NULL AND p_expires_at <= now() THEN
@@ -271,6 +280,57 @@ BEGIN
   RETURN FOUND;
 END;
 $function$;
+
+
+CREATE OR REPLACE FUNCTION public.busnex_expire_reservations()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+DECLARE
+  v_role text;
+  v_company_id uuid;
+  v_expired integer;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Login required'; END IF;
+  v_role := public.busnex_user_role();
+  v_company_id := public.busnex_company_id();
+  IF v_role IS DISTINCT FROM 'super_admin'
+     AND v_role IS DISTINCT FROM 'company_manager'
+     AND v_role IS DISTINCT FROM 'counter_operator' THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+
+  WITH expired AS (
+    UPDATE public.ticket_reservations r
+    SET status='expired', updated_at=now()
+    FROM public.trips t
+    WHERE t.id=r.trip_id
+      AND r.status='active'
+      AND r.expires_at IS NOT NULL
+      AND r.expires_at<=now()
+      AND (v_role='super_admin' OR t.company_id=v_company_id)
+    RETURNING r.id
+  )
+  SELECT count(*)::integer INTO v_expired FROM expired;
+
+  UPDATE public.trip_seats ts
+  SET reservation_id=NULL
+  WHERE ts.reservation_id IN (
+    SELECT r.id
+    FROM public.ticket_reservations r
+    JOIN public.trips t ON t.id=r.trip_id
+    WHERE r.status='expired'
+      AND r.updated_at >= now()-interval '1 minute'
+      AND (v_role='super_admin' OR t.company_id=v_company_id)
+  );
+  RETURN v_expired;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.busnex_expire_reservations() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.busnex_expire_reservations() TO authenticated;
 
 REVOKE ALL ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid) TO authenticated;
