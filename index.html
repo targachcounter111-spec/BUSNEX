@@ -1826,47 +1826,61 @@ async function appendBookingSeatPicker(trip,card) {
         print.textContent = "🖨 Print Ticket";
         print.addEventListener("click",() => {
           const esc = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-          const copy = label => `
-            <section class="copy">
-              <div class="pt-head"><div class="pt-brand"><b>B</b><span><strong>BUSNEX</strong><small>TRAVEL • VERIFIED JOURNEY</small></span></div><em>${label}</em></div>
-              <div class="pt-route"><div><small>BOARDING FROM</small><strong>${esc(stopName(ticket.boarding_stop_id))}</strong></div><i>✦</i><div><small>DESTINATION</small><strong>${esc(stopName(ticket.dropping_stop_id))}</strong></div></div>
-              <div class="pt-person"><div><small>PASSENGER NAME</small><strong>${esc(ticket.passenger_name)}</strong><span>${esc(ticket.passenger_phone)} · ${esc(ticket.passenger_gender || "—")}</span></div><aside><small>YOUR SEAT</small><b>${esc(ticket.seat_number)}</b><span>COACH ${esc(coach)}</span></aside></div>
-              <div class="pt-facts"><span>JOURNEY<strong>${esc(journey)}</strong></span><span>BUS / COACH<strong>${esc(busName)} / ${esc(coach)}</strong></span><span>FARE<strong>৳${esc(ticket.ticket_price)}</strong></span><span>REFERENCE<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span></div>
-              <div class="pt-foot"><span>ISSUED BY · ${esc(sellerText)}</span><span>KEEP THIS TICKET SAFE</span></div>
-            </section>`;
+          const ticketPanel = (kind,label) => {
+            const center = kind === "center";
+            return `
+              <section class="ticket-part ${kind}">
+                <div class="part-head"><div class="brand-mark">B</div><div class="brand-name">BUSNEX<small>TRAVEL TICKET</small></div><b class="copy-label">${label}</b></div>
+                ${center ? `
+                  <div class="status">● TICKET STATUS: SOLD & ACTIVE</div>
+                  <div class="main-passenger"><div><small>PASSENGER NAME</small><strong>${esc(ticket.passenger_name)}</strong><span>${esc(ticket.passenger_phone)} · ${esc(ticket.passenger_gender || "—")}</span></div><div class="seat-box"><small>SEAT</small><b>${esc(ticket.seat_number)}</b></div></div>
+                  <div class="journey-line"><div><small>FROM</small><b>${esc(stopName(ticket.boarding_stop_id))}</b></div><i>→</i><div><small>TO</small><b>${esc(stopName(ticket.dropping_stop_id))}</b></div></div>
+                  <div class="detail-grid"><span>Journey Date<strong>${esc(journey)}</strong></span><span>Coach<strong>${esc(coach)}</strong></span><span>Seat Fare<strong>৳${esc(ticket.ticket_price)}</strong></span><span>Total Fare<strong>৳${esc(ticket.ticket_price)}</strong></span><span>PNR<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span><span>Issued On<strong>${esc(created)}</strong></span></div>
+                  <div class="issued">Issued By: ${esc(sellerText)}</div>
+                ` : `
+                  <div class="side-info"><span>Passenger<strong>${esc(ticket.passenger_name)}</strong></span><span>Mobile<strong>${esc(ticket.passenger_phone)}</strong></span><span>Coach<strong>${esc(coach)}</strong></span><span>Seat<strong>${esc(ticket.seat_number)}</strong></span><span>Date<strong>${esc(journey)}</strong></span><span>Fare<strong>৳${esc(ticket.ticket_price)}</strong></span><span>PNR<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span><span>From<strong>${esc(stopName(ticket.boarding_stop_id))}</strong></span><span>To<strong>${esc(stopName(ticket.dropping_stop_id))}</strong></span></div>
+                  <div class="side-foot">BUSNEX · KEEP YOUR TICKET SAFE</div>
+                `}
+              </section>`;
+          };
           const printWindow = window.open("","_blank","width=1100,height=800");
           if (!printWindow) { alert("Print window খোলা যায়নি। Browser-এর popup permission চালু করুন।"); return; }
           printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BUSNEX Ticket ${esc(ticket.seat_number)}</title><style>
-            @page{size:297mm 210mm;margin:6mm}
+            @page{size:A4 landscape;margin:0}
             *{box-sizing:border-box}
-            html,body{width:285mm;height:198mm;margin:0;padding:0}
-            body{font-family:Arial,sans-serif;color:#172b43}
-            .copy{display:inline-flex;vertical-align:top;flex-direction:column;width:93mm;height:196mm;background:#101d2d;color:#f7f4eb;border:1px solid #c7a66a;border-radius:8px;padding:8mm 6mm;margin:0 1mm 0 0;page-break-inside:avoid;break-inside:avoid;position:relative;overflow:hidden}
-            .copy:not(:last-child){border-right:2px dashed #c7a66a}
-            .copy .pt-head{align-items:flex-start;flex-direction:column;gap:8px}
-            .copy .pt-brand strong{font-size:19px}
-            .copy .pt-route{align-items:flex-start;flex-direction:column;gap:8px;margin:18px 0;padding:15px 0}
-            .copy .pt-route>span{display:none}
-            .copy .pt-route strong{font-size:17px;overflow-wrap:anywhere}
-            .copy .pt-person{align-items:flex-start;flex-direction:column;gap:12px}
-            .copy .pt-person>div>strong{font-size:18px;overflow-wrap:anywhere}
-            .copy .pt-person aside{width:100%;display:flex;align-items:center;justify-content:space-between;gap:5px}
-            .copy .pt-person aside b{font-size:27px}
-            .copy .pt-facts{grid-template-columns:1fr 1fr;gap:12px 8px;margin-top:18px}
-            .copy .pt-facts strong{font-size:11px}
-            .copy .pt-foot{margin-top:auto;align-items:flex-start;flex-direction:column;gap:7px;font-size:9px;overflow-wrap:anywhere}
-
-            .pt-head,.pt-brand,.pt-route,.pt-person,.pt-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;position:relative;z-index:1}
-            .pt-brand{justify-content:flex-start}.pt-brand>b{width:38px;height:38px;display:grid;place-items:center;border:1px solid #c7a66a;border-radius:10px;color:#e8d3a8;font-size:23px}
-            .pt-brand strong{display:block;font-size:21px;letter-spacing:4px;color:#f1d7a4}.pt-brand small,.pt-route small,.pt-person small{display:block;font-size:9px;letter-spacing:1.2px;color:#b9c5d1}
-            .pt-head em{font-style:normal;border:1px solid #477e69;border-radius:20px;padding:7px 12px;color:#a9e0c2;font-size:11px}
-            .pt-route{margin:12px 0;padding:12px 0;border-top:1px solid #ffffff35;border-bottom:1px solid #ffffff35}.pt-route>div{flex:1}.pt-route strong{display:block;font-size:19px;color:#fff;margin-top:5px}.pt-route i{font-style:normal;color:#e3c58d;font-size:22px}
-            .pt-person>div{flex:1}.pt-person>div>strong{display:block;font-size:21px;margin:5px 0}.pt-person>div>span{font-size:12px;color:#d3dce5}
-            .pt-person aside{min-width:100px;text-align:center;background:#e8d4aa;color:#152438;border-radius:10px;padding:7px 12px}.pt-person aside small{color:#5d523f}.pt-person aside b{display:block;font-size:31px}.pt-person aside span{font-size:10px;font-weight:bold}
-            .pt-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:13px;padding-top:11px;border-top:1px dashed #ffffff55}.pt-facts span{font-size:9px;letter-spacing:1px;color:#b9c5d1}.pt-facts strong{display:block;color:#fff;font-size:12px;letter-spacing:0;margin-top:5px;overflow-wrap:anywhere}
-            .pt-foot{margin-top:12px;padding-top:8px;border-top:1px solid #ffffff25;font-size:9px;color:#d5c49f}
-            @media print{.copy{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-          </style></head><body>${copy("COUNTER COPY")}${copy("PASSENGER COPY")}${copy("GUIDE COPY")}<script>window.onload=()=>{window.print();};<\/script></body></html>`);
+            html,body{margin:0;width:297mm;height:210mm;font-family:Arial,sans-serif}
+            body{display:flex;align-items:center;justify-content:center;background:#fff;color:#153a3a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+            .ticket-strip{width:285mm;height:132mm;display:flex;flex-direction:row;overflow:hidden;border:1.1mm solid #b8794c;border-radius:2mm;background:#f7f3e9;box-shadow:0 0 0 .5mm #153a3a}
+            .ticket-part{height:100%;padding:7mm 5mm;position:relative;overflow:hidden;background:#f7f3e9;color:#153a3a}
+            .ticket-part.left,.ticket-part.right{width:27%;background:#e9eee8}
+            .ticket-part.center{width:46%;background:#153a3a;color:#fff;padding:8mm 7mm}
+            .ticket-part:not(:last-child){border-right:1mm dashed #b8794c}
+            .part-head{display:flex;align-items:center;gap:2.5mm;padding-bottom:3mm;border-bottom:.4mm solid #b8794c}
+            .brand-mark{width:10mm;height:10mm;border:.5mm solid #b8794c;border-radius:2mm;display:grid;place-items:center;font-size:19pt;font-weight:900;color:#b8794c}
+            .brand-name{font-size:15pt;font-weight:900;letter-spacing:1.5pt;color:#153a3a}.center .brand-name{color:#f3d7b7}
+            .brand-name small{display:block;font-size:6pt;letter-spacing:1pt;font-weight:600}
+            .copy-label{margin-left:auto;font-size:7pt;color:#9b613e;letter-spacing:.5pt;text-align:right}
+            .center .copy-label{color:#f3d7b7}
+            .status{font-size:8pt;text-align:center;margin:4mm 0;color:#f3d7b7;letter-spacing:.6pt;font-weight:bold}
+            .main-passenger{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin:5mm 0}
+            .main-passenger small,.journey-line small{display:block;font-size:7pt;letter-spacing:1pt;color:#b9c8c1}
+            .main-passenger strong{display:block;font-size:20pt;margin:1.5mm 0;color:#fff}
+            .main-passenger span{font-size:9pt;color:#d9e2dc}
+            .seat-box{min-width:25mm;text-align:center;background:#f3d7b7;color:#153a3a;border-radius:2mm;padding:2.5mm}
+            .seat-box small{color:#76543e}.seat-box b{display:block;font-size:27pt}
+            .journey-line{display:flex;align-items:center;gap:3mm;padding:4mm 0;border-top:.3mm solid #ffffff45;border-bottom:.3mm solid #ffffff45}
+            .journey-line>div{flex:1;min-width:0}.journey-line b{display:block;font-size:13pt;margin-top:1.5mm;overflow-wrap:anywhere;color:#fff}
+            .journey-line i{font-style:normal;color:#f3d7b7;font-size:19pt}
+            .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:3mm 5mm;margin-top:4mm}
+            .detail-grid span,.side-info span{font-size:7pt;color:#b9c8c1}
+            .detail-grid strong,.side-info strong{display:block;font-size:9pt;color:inherit;margin-top:1mm;overflow-wrap:anywhere}
+            .issued{font-size:7pt;margin-top:4mm;padding-top:2mm;border-top:.3mm dashed #ffffff55;color:#f3d7b7}
+            .side-info{display:flex;flex-direction:column;gap:3mm;margin-top:5mm}
+            .side-info span{font-size:7.5pt;color:#526b64}
+            .side-info strong{font-size:9pt;color:#153a3a}
+            .side-foot{position:absolute;bottom:5mm;left:5mm;right:5mm;padding-top:2mm;border-top:.3mm solid #b8794c;font-size:6pt;letter-spacing:.5pt;color:#9b613e}
+            @media print{html,body{width:297mm;height:210mm}.ticket-strip{box-shadow:none}}
+          </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main><script>window.onload=()=>{window.focus();setTimeout(()=>window.print(),350);};<\\/script></body></html>`);
           printWindow.document.close();
         });
         actions.appendChild(print);
