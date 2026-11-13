@@ -1709,6 +1709,75 @@ async function appendBookingSeatPicker(trip,card) {
     const seatButtons = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
 
+    async function showSoldTicketDetails(seatNumber,container) {
+      const row = document.createElement("div");
+      row.className = "card";
+      row.style.marginTop = "8px";
+      row.textContent = "Seat " + seatNumber + " এর Ticket তথ্য লোড হচ্ছে...";
+      container.appendChild(row);
+      try {
+        const {data:ticket,error:ticketError} = await supabase
+          .from("tickets")
+          .select("id,seat_number,passenger_name,passenger_phone,passenger_gender,ticket_price,status,created_at,sold_by,counter_id,boarding_stop_id,dropping_stop_id")
+          .eq("trip_id",trip.id)
+          .eq("seat_number",seatNumber)
+          .eq("status","sold")
+          .maybeSingle();
+        if (ticketError) throw ticketError;
+        if (!ticket) {
+          row.textContent = "Seat " + seatNumber + ": বিক্রিত Ticket-এর রেকর্ড পাওয়া যায়নি।";
+          return;
+        }
+
+        let sellerText = "বিক্রেতার তথ্য পাওয়া যায়নি";
+        if (ticket.sold_by) {
+          const {data:profile,error:profileError} = await supabase
+            .from("profiles")
+            .select("full_name,role,counter_id")
+            .eq("id",ticket.sold_by)
+            .maybeSingle();
+          if (profileError) throw profileError;
+          if (profile) {
+            let counterName = "";
+            if (ticket.counter_id || profile.counter_id) {
+              const {data:counter,error:counterError} = await supabase
+                .from("counters")
+                .select("name")
+                .eq("id",ticket.counter_id || profile.counter_id)
+                .maybeSingle();
+              if (counterError) throw counterError;
+              counterName = counter?.name || "";
+            }
+            sellerText = (profile.full_name || "নাম নেই") +
+              " (" + (profile.role || "Role নেই") + ")" +
+              (counterName ? " | Counter: " + counterName : "");
+          }
+        }
+
+        const stopName = id => (trip.trip_stops || []).find(stop => stop.id === id)?.stop_name || "—";
+        const created = ticket.created_at ? new Date(ticket.created_at).toLocaleString("en-GB") : "—";
+        row.innerHTML = "";
+        const title = document.createElement("h4");
+        title.textContent = "Seat " + ticket.seat_number + " — Ticket Details";
+        const details = document.createElement("p");
+        details.style.whiteSpace = "pre-line";
+        details.textContent =
+          "Ticket ID: " + ticket.id +
+          "\nযাত্রী: " + ticket.passenger_name +
+          "\nমোবাইল: " + ticket.passenger_phone +
+          "\nGender: " + (ticket.passenger_gender || "—") +
+          "\nBoarding: " + stopName(ticket.boarding_stop_id) +
+          "\nDropping: " + stopName(ticket.dropping_stop_id) +
+          "\nভাড়া: ৳" + ticket.ticket_price +
+          "\nবিক্রির সময়: " + created +
+          "\nবিক্রেতা: " + sellerText;
+        row.append(title,details);
+      } catch(error) {
+        console.error("SOLD TICKET DETAILS ERROR:",error);
+        row.textContent = "Ticket তথ্য লোড করা যায়নি: " + error.message;
+      }
+    }
+
     function renderTicketReceipt(soldItems,passengerInfo) {
       ticketReceiptPanel.innerHTML = "";
       if (!soldItems || !soldItems.length) return;
@@ -1716,20 +1785,7 @@ async function appendBookingSeatPicker(trip,card) {
       heading.textContent = "বিক্রিত Ticket-এর বিবরণ";
       ticketReceiptPanel.appendChild(heading);
       soldItems.forEach(item => {
-        const result = Array.isArray(item.data) ? item.data[0] : item.data;
-        const row = document.createElement("div");
-        row.className = "card";
-        row.style.marginTop = "8px";
-        const details = document.createElement("p");
-        details.textContent =
-          "Ticket ID: " + (result && result.ticket_id ? result.ticket_id : "তথ্য পাওয়া যায়নি") +
-          " | Seat: " + item.seatNumber +
-          " | যাত্রী: " + (result && result.passenger_name ? result.passenger_name : passengerInfo.name) +
-          " | মোবাইল: " + passengerInfo.phone +
-          " | Gender: " + passengerInfo.gender +
-          " | ভাড়া: ৳" + (result && result.ticket_price != null ? result.ticket_price : "—");
-        row.appendChild(details);
-        ticketReceiptPanel.appendChild(row);
+        showSoldTicketDetails(item.seatNumber,ticketReceiptPanel);
       });
     }
 
@@ -1932,9 +1988,11 @@ async function appendBookingSeatPicker(trip,card) {
         state === "blocked" ? "blocked" : "unknown"
       );
       div.textContent = seat.seat_number;
-      div.title = isAvailable
-        ? "নির্বাচন করতে ক্লিক করুন"
-        : activeTemporaryHold
+      div.title = state === "sold"
+        ? "বিক্রিত Ticket-এর বিস্তারিত দেখতে ক্লিক করুন"
+        : isAvailable
+          ? "নির্বাচন করতে ক্লিক করুন"
+          : activeTemporaryHold
           ? "অন্য কাউন্টারে সাময়িক Hold করা আছে"
           : isReservation
             ? "Reservation করা আছে"
@@ -1950,6 +2008,26 @@ async function appendBookingSeatPicker(trip,card) {
         : seat.seat_position <= 2
           ? seat.seat_position
           : seat.seat_position + 1;
+
+      if (state === "sold") {
+        div.setAttribute("role","button");
+        div.setAttribute("tabindex","0");
+        const openSoldDetails = () => {
+          ticketReceiptPanel.innerHTML = "";
+          const heading = document.createElement("h3");
+          heading.textContent = "বিক্রিত Ticket-এর বিবরণ";
+          ticketReceiptPanel.appendChild(heading);
+          showSoldTicketDetails(seat.seat_number,ticketReceiptPanel);
+          ticketReceiptPanel.scrollIntoView({behavior:"smooth",block:"nearest"});
+        };
+        div.addEventListener("click",openSoldDetails);
+        div.addEventListener("keydown",event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openSoldDetails();
+          }
+        });
+      }
 
       if (isAvailable) {
         div.setAttribute("role","button");
