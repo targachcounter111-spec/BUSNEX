@@ -1852,8 +1852,15 @@ async function appendBookingSeatPicker(trip,card) {
             body{display:flex;align-items:center;justify-content:flex-start;flex-direction:column;padding-top:8mm;background:#fff;color:#153a3a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
             .ticket-strip{flex:0 0 auto;width:198mm;height:91.7mm;display:flex;flex-direction:row;overflow:hidden;border:1mm solid #b8794c;border-radius:2mm;background:#f7f3e9;box-shadow:0 0 0 .5mm #153a3a}
             .ticket-part{height:100%;padding:4mm 3.2mm;position:relative;overflow:hidden;background:#f7f3e9;color:#153a3a}
-            .ticket-part.left,.ticket-part.right{width:27%;background:#e9eee8}
-            .ticket-part.center{width:46%;background:#153a3a;color:#fff;padding:4.5mm 4mm}
+            .ticket-part.left,.ticket-part.right{flex:0 0 30%;width:30%;background:#e9eee8;padding:4mm 4mm}
+            .ticket-part.center{flex:0 0 40%;width:40%;background:#153a3a;color:#fff;padding:4.5mm 4mm}
+            .ticket-part.left .part-head,.ticket-part.right .part-head{gap:2mm}
+            .ticket-part.left .brand-name,.ticket-part.right .brand-name{font-size:16pt}
+            .ticket-part.left .copy-label,.ticket-part.right .copy-label{font-size:7.5pt}
+            .ticket-part.left .side-info,.ticket-part.right .side-info{gap:2.3mm;margin-top:4mm}
+            .ticket-part.left .side-info span,.ticket-part.right .side-info span{font-size:8.5pt}
+            .ticket-part.left .side-info strong,.ticket-part.right .side-info strong{font-size:10pt}
+            .ticket-part.left .side-foot,.ticket-part.right .side-foot{font-size:7pt;left:4mm;right:4mm}
             .ticket-part:not(:last-child){border-right:1mm dashed #b8794c}
             .part-head{display:flex;align-items:center;gap:2.5mm;padding-bottom:3mm;border-bottom:.4mm solid #b8794c}
             .brand-mark{width:10mm;height:10mm;border:.5mm solid #b8794c;border-radius:2mm;display:grid;place-items:center;font-size:19pt;font-weight:900;color:#b8794c}
