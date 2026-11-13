@@ -1,6 +1,7 @@
 -- BUSNEX MANUAL DATABASE SETUP
--- Apply this complete script once in Supabase SQL Editor.
--- It combines the ordered migration files below. Review the execution result before using the new features.
+-- Reservation has no fee. Only tickets with status='sold' are billed at BDT 0.50 per seat.
+-- Apply this complete script once in Supabase SQL Editor on the target project.
+-- This is a manual bundle of the ordered migration files below.
 
 BEGIN;
 
@@ -687,7 +688,8 @@ GRANT EXECUTE ON FUNCTION public.busnex_record_company_payment(uuid, numeric, te
 -- Standard expires five minutes before departure; VIP has no expiry by default.
 -- Confirmation is tracked separately while status remains active, so existing
 -- seat-sale protection that checks active reservations continues to protect seats.
--- Confirmation fee is not recorded until its billing unit is confirmed.
+-- Reservation has NO fee. Billing is charged only for actually sold tickets,
+-- at BDT 0.50 per sold seat through the separate company billing ledger.
 ALTER TABLE public.ticket_reservations
   ADD COLUMN IF NOT EXISTS confirmed_at timestamptz;
 
