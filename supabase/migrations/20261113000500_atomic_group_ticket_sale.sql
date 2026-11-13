@@ -43,7 +43,7 @@ BEGIN
     RAISE EXCEPTION 'Invalid seat number';
   END IF;
 
-  IF (SELECT count(DISTINCT btrim(x)) FROM unnest(p_seat_numbers) AS x) <> v_count THEN
+  IF (SELECT count(DISTINCT btrim(requested.seat_number)) FROM unnest(p_seat_numbers) AS requested(seat_number)) <> v_count THEN
     RAISE EXCEPTION 'একই Seat একাধিকবার নির্বাচন করা হয়েছে';
   END IF;
 
@@ -52,7 +52,7 @@ BEGIN
     FROM unnest(p_seat_numbers) AS requested(seat_number)
     ORDER BY btrim(requested.seat_number)
   LOOP
-    v_ticket := public.busnex_sell_ticket(
+    v_ticket := pg_catalog.to_jsonb(public.busnex_sell_ticket(
       p_trip_id,
       v_seat,
       p_passenger_name,
@@ -61,7 +61,7 @@ BEGIN
       p_dropping_stop_id,
       p_passenger_gender,
       COALESCE(p_confirm_past_date, false)
-    );
+    ));
 
     v_result := v_result || jsonb_build_array(
       jsonb_build_object('seat_number', v_seat, 'result', v_ticket)
