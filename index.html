@@ -1572,12 +1572,15 @@ async function toggleBusOff(id,button) {
 
   button.disabled = true;
   try {
-    const {error} = await supabase
+    const {data:updatedTrip,error} = await supabase
       .from("trips")
       .update({is_active: !turningOff})
       .eq("id", id)
-      .eq("status", "scheduled");
+      .eq("status", "scheduled")
+      .select("id")
+      .single();
     if (error) throw error;
+    if (!updatedTrip?.id) throw new Error("Trip পাওয়া যায়নি অথবা পরিবর্তনের অনুমতি নেই।");
     tripMessage(
       turningOff
         ? "BUS OFF হয়েছে। এই Trip-এর Ticket Sale বন্ধ; Sold Ticket অক্ষত আছে।"
