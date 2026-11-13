@@ -2191,7 +2191,7 @@ function fillBookingStopOptions(trips) {
   setOptions(toSelect,"গন্তব্য নির্বাচন",droppingNames,previousTo);
 }
 
-async function appendBookingSeatPicker(trip,card) {
+async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   const title = document.createElement("h4");
   title.textContent = "এক বা একাধিক Seat নির্বাচন করুন";
   card.appendChild(title);
@@ -2601,7 +2601,8 @@ async function appendBookingSeatPicker(trip,card) {
               p_passenger_phone:groupPassenger.phone.trim(),
               p_boarding_stop_id:groupPassenger.boarding,
               p_dropping_stop_id:groupPassenger.dropping,
-              p_passenger_gender:groupPassenger.gender
+              p_passenger_gender:groupPassenger.gender,
+              p_confirm_past_date:confirmPastDate
             });
             if (error) throw error;
             sold.push({seatNumber:p.seatNumber,data});
@@ -2801,7 +2802,8 @@ async function appendBookingSeatPicker(trip,card) {
           try {
             const {error:holdError} = await supabase.rpc("busnex_hold_seat",{
               p_trip_id:trip.id,
-              p_seat_number:seat.seat_number
+              p_seat_number:seat.seat_number,
+              p_confirm_past_date:confirmPastDate
             });
             if (holdError) throw holdError;
 
@@ -2904,7 +2906,26 @@ async function renderBookingResults(trips,from,to) {
     card.appendChild(details);
 
     result.appendChild(card);
-    await appendBookingSeatPicker(trip,card);
+    const dhakaDate = value => new Intl.DateTimeFormat("en-CA",{
+      timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"
+    }).format(new Date(value));
+    const tripDate = dhakaDate(trip.departure_time);
+    const todayDhaka = dhakaDate(new Date());
+    let confirmPastDate = false;
+    if (tripDate < todayDhaka) {
+      confirmPastDate = window.confirm(
+        "সতর্কতা! এই Trip-এর যাত্রার তারিখ (" + tripDate +
+        ") পার হয়ে গেছে। আপনি কি নিশ্চিত যে এই আগের তারিখের Trip-এ Ticket বিক্রি করতে চান?"
+      );
+      if (!confirmPastDate) {
+        const declined = document.createElement("p");
+        declined.className = "notice small";
+        declined.textContent = "আগের তারিখের Trip-এ Ticket বিক্রির অনুমতি দেওয়া হয়নি।";
+        card.appendChild(declined);
+        continue;
+      }
+    }
+    await appendBookingSeatPicker(trip,card,confirmPastDate);
   }
 }
 
