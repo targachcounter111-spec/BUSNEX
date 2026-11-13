@@ -592,7 +592,29 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
 
       <section id="page-reservations" class="page hidden">
         <div class="page-head"><div><h1>Reservations</h1><div class="muted small">আপনার অনুমোদিত Company/Counter-এর Reservation</div></div><button id="reservationRefresh" class="secondary" type="button">↻ Refresh</button></div>
-        <div class="card"><div class="notice">এখানে Reservation-এর বর্তমান Database Record দেখা যাবে। নতুন Reservation, Confirm, Cancel এবং Expiry পরিবর্তনের জন্য নিরাপদ server-side RPC সংযুক্ত করা প্রয়োজন—সরাসরি Database write করা হচ্ছে না।</div><div id="reservationMessage" class="message section">তথ্য লোড করতে Reservations খুলুন।</div><div id="reservationList" class="table-wrap"><div class="empty">Reservation তালিকা লোড হয়নি।</div></div></div>
+        <div class="card">
+          <div class="notice">Standard Reservation যাত্রা শুরুর ৫ মিনিট আগে Expire হবে। VIP Reservation-এর নির্দিষ্ট Expiry থাকবে না, তবে Manager চাইলে সময় নির্ধারণ করতে পারবেন। Reservation-এর জন্য Counter-এ সক্রিয় Permission থাকতে হবে।</div>
+          <div id="reservationCreatePanel" class="section">
+            <h2>নতুন Reservation</h2>
+            <div class="form-row">
+              <div class="field"><label for="reservationTrip">Trip</label><select id="reservationTrip"><option value="">Trip নির্বাচন করুন</option></select></div>
+              <div class="field"><label for="reservationType">Type</label><select id="reservationType"><option value="standard">Standard</option><option value="vip">VIP</option></select></div>
+              <div class="field"><label for="reservationSeats">Seat Number (কমা দিয়ে, সর্বোচ্চ ৮টি)</label><input id="reservationSeats" placeholder="যেমন: A1,A2"></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label for="reservationPassengerName">Passenger Name</label><input id="reservationPassengerName" autocomplete="off"></div>
+              <div class="field"><label for="reservationPassengerPhone">Phone</label><input id="reservationPassengerPhone" inputmode="tel" autocomplete="off"></div>
+              <div class="field"><label for="reservationPassengerGender">Gender</label><select id="reservationPassengerGender"><option value="">নির্বাচন করুন</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label for="reservationBoarding">Boarding Stop</label><select id="reservationBoarding"><option value="">Trip নির্বাচন করুন</option></select></div>
+              <div class="field"><label for="reservationDropping">Dropping Stop</label><select id="reservationDropping"><option value="">Trip নির্বাচন করুন</option></select></div>
+            </div>
+            <button id="reservationCreateButton" class="primary" type="button">Reservation তৈরি করুন</button>
+          </div>
+          <div id="reservationMessage" class="message section">Reservation লোড হচ্ছে...</div>
+          <div id="reservationList" class="table-wrap"><div class="empty">Reservation তালিকা লোড হয়নি।</div></div>
+        </div>
       </section>
       <section id="page-counters" class="page hidden">
         <div class="page-head"><div><h1>Counters & Access</h1><div class="muted small">Company Counter Directory ও Reservation Permission</div></div><button id="counterRefresh" class="secondary" type="button">↻ Refresh</button></div>
@@ -1790,29 +1812,159 @@ function safeTable(rows,columns) {
     '</tbody></table>';
 }
 
+let reservationTripCache = [];
+
+async function loadReservationTripOptions() {
+  if (currentProfile?.role !== "counter_operator") {
+    $("reservationCreatePanel").classList.add("hidden");
+    return;
+  }
+  $("reservationCreatePanel").classList.remove("hidden");
+  const date = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const {data,error} = await supabase
+    .from("trips")
+    .select("id,departure_time,ticket_price,status,is_active,buses(bus_name),routes(starting_point,ending_point),trip_stops(id,stop_name,stop_type,stop_order,is_active)")
+    .eq("is_active",true).eq("status","scheduled")
+    .gte("departure_time",localDateRange(date).start)
+    .order("departure_time",{ascending:true});
+  if (error) throw error;
+  reservationTripCache = (data || []).map(trip=>({
+    ...trip,
+    trip_stops:(trip.trip_stops||[]).filter(x=>x.is_active).sort((a,b)=>a.stop_order-b.stop_order)
+  }));
+  const select=$("reservationTrip");
+  select.innerHTML='<option value="">Trip নির্বাচন করুন</option>';
+  reservationTripCache.forEach(trip=>{
+    const option=document.createElement("option");
+    option.value=trip.id;
+    option.textContent=(trip.routes?.starting_point||"—")+" → "+(trip.routes?.ending_point||"—")+" · "+new Date(trip.departure_time).toLocaleString("en-GB");
+    select.appendChild(option);
+  });
+  select.disabled=!reservationTripCache.length;
+}
+
+function fillReservationStopSelects(trip) {
+  const fill=(id,types,placeholder)=>{
+    const select=$(id);
+    select.innerHTML='<option value="">'+placeholder+'</option>';
+    (trip?.trip_stops||[]).filter(stop=>types.includes(String(stop.stop_type).toLowerCase())).forEach(stop=>{
+      const option=document.createElement("option");
+      option.value=stop.id;
+      option.textContent=stop.stop_name;
+      select.appendChild(option);
+    });
+    select.disabled=!trip;
+  };
+  fill("reservationBoarding",["boarding","both"],"Boarding Stop");
+  fill("reservationDropping",["dropping","both"],"Dropping Stop");
+}
+
 async function loadReservationsPage() {
   $("reservationMessage").textContent = "Reservation লোড হচ্ছে...";
   try {
-    const {data,error} = await supabase.from("ticket_reservations").select("*").order("created_at",{ascending:false}).limit(300);
+    await loadReservationTripOptions();
+    const {data,error} = await supabase
+      .from("ticket_reservations")
+      .select("id,trip_id,counter_id,reserved_by,reservation_type,status,expires_at,created_at,updated_at,trips(departure_time,coach_number,routes(starting_point,ending_point)),counters(name),ticket_reservation_seats(seat_number,passenger_name,passenger_phone)")
+      .order("created_at",{ascending:false}).limit(300);
     if (error) throw error;
-    const rows = data || [];
-    $("reservationList").innerHTML = safeTable(rows,[
-      {label:"Reservation ID",value:r=>r.id},
-      {label:"Trip",value:r=>r.trip_id},
-      {label:"Type",value:r=>r.reservation_type},
-      {label:"Status",value:r=>r.status},
-      {label:"Expiry",value:r=>r.expires_at ? new Date(r.expires_at).toLocaleString("en-GB") : "VIP / নির্দিষ্ট নয়"},
-      {label:"Created",value:r=>r.created_at ? new Date(r.created_at).toLocaleString("en-GB") : "—"}
-    ]);
-    $("reservationMessage").textContent = rows.length+"টি Reservation Record পাওয়া গেছে।";
-    $("reservationMessage").className = "message section ok";
+    const rows=data||[];
+    if (!rows.length) {
+      $("reservationList").innerHTML='<div class="empty">কোনো Reservation পাওয়া যায়নি।</div>';
+    } else {
+      const canManageExpiry=["super_admin","company_manager"].includes(currentProfile?.role);
+      $("reservationList").innerHTML='<table><thead><tr><th>Trip / Counter</th><th>Seat & Passenger</th><th>Type</th><th>Status</th><th>Expiry</th><th>Action</th></tr></thead><tbody>'+
+        rows.map(row=>{
+          const seats=(row.ticket_reservation_seats||[]).map(x=>escapeHtml(x.seat_number)+" · "+escapeHtml(x.passenger_name)).join("<br>");
+          const expiry=row.expires_at?new Date(row.expires_at).toLocaleString("en-GB"):"কোনো Expiry নেই";
+          const active=["active","confirmed"].includes(row.status);
+          return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(row.status)+'</td><td>'+escapeHtml(expiry)+'</td><td>'+(active?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'" '+(row.status==="confirmed"?'disabled':'')+'>Confirm</button> <button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+(canManageExpiry&&row.reservation_type==="vip"&&row.status==="active"?' <button type="button" class="secondary reservation-expiry" data-id="'+escapeHtml(row.id)+'">Expiry সেট</button>':'')+'</td></tr>';
+        }).join("")+'</tbody></table>';
+      $("reservationList").querySelectorAll(".reservation-confirm").forEach(button=>button.addEventListener("click",()=>runReservationAction(button,"busnex_confirm_reservation","Reservation Confirm হয়েছে?")));
+      $("reservationList").querySelectorAll(".reservation-cancel").forEach(button=>button.addEventListener("click",()=>runReservationAction(button,"busnex_cancel_reservation","এই Reservation Cancel করবেন?")));
+      $("reservationList").querySelectorAll(".reservation-expiry").forEach(button=>button.addEventListener("click",async()=>{
+        const value=prompt("VIP Reservation-এর নতুন Expiry লিখুন (উদাহরণ: 2026-11-14T18:00)। খালি রাখলে Expiry থাকবে না।");
+        if(value===null)return;
+        const expiry=value.trim()?new Date(value).toISOString():null;
+        await runReservationRpc(button,"busnex_set_vip_reservation_expiry",{p_reservation_id:button.dataset.id,p_expires_at:expiry});
+      }));
+    }
+    $("reservationMessage").textContent=rows.length+"টি Reservation পাওয়া গেছে।";
+    $("reservationMessage").className="message section ok";
   } catch(error) {
-    $("reservationMessage").textContent = "Reservation লোড হয়নি: "+error.message;
-    $("reservationMessage").className = "message section error";
-    $("reservationList").innerHTML = '<div class="empty">RLS/Database Error-এর কারণে তথ্য পাওয়া যায়নি।</div>';
+    $("reservationMessage").textContent="Reservation লোড হয়নি: "+error.message;
+    $("reservationMessage").className="message section error";
+    $("reservationList").innerHTML='<div class="empty">Database Migration প্রয়োগ আছে কি না দেখুন।</div>';
   }
 }
 
+async function runReservationRpc(button,rpc,args) {
+  if (rpc==="busnex_confirm_reservation" || rpc==="busnex_cancel_reservation") {
+    const action=rpc==="busnex_confirm_reservation"?"Confirm":"Cancel";
+    if(!confirm("এই Reservation "+action+" করবেন?"))return;
+    args={p_reservation_id:button.dataset.id};
+  }
+  await runReservationAction(button,rpc,"Reservation আপডেট হয়েছে?",args);
+}
+
+async function runReservationAction(button,rpc,message,args) {
+  if (!args && rpc==="busnex_confirm_reservation") args={p_reservation_id:button.dataset.id};
+  if (!args && rpc==="busnex_cancel_reservation") args={p_reservation_id:button.dataset.id};
+  button.disabled=true;
+  try {
+    const {error}=await supabase.rpc(rpc,args);
+    if(error)throw error;
+    $("reservationMessage").textContent=message;
+    $("reservationMessage").className="message section ok";
+    await loadReservationsPage();
+  } catch(error) {
+    $("reservationMessage").textContent="Reservation পরিবর্তন হয়নি: "+error.message;
+    $("reservationMessage").className="message section error";
+  } finally {button.disabled=false;}
+}
+
+$("reservationTrip").addEventListener("change",()=>{
+  const trip=reservationTripCache.find(x=>x.id===$("reservationTrip").value);
+  fillReservationStopSelects(trip);
+});
+
+$("reservationCreateButton").addEventListener("click",async()=>{
+  if(currentProfile?.role!=="counter_operator")return;
+  const tripId=$("reservationTrip").value;
+  const seats=$("reservationSeats").value.split(",").map(x=>x.trim()).filter(Boolean);
+  const name=$("reservationPassengerName").value.trim();
+  const phone=$("reservationPassengerPhone").value.trim();
+  const gender=$("reservationPassengerGender").value;
+  const boarding=$("reservationBoarding").value;
+  const dropping=$("reservationDropping").value;
+  if(!tripId||!seats.length||seats.length>8||!name||!phone||!gender||!boarding||!dropping){
+    $("reservationMessage").textContent="Trip, ১–৮টি Seat, Passenger তথ্য এবং Boarding/Dropping Stop পূরণ করুন।";
+    $("reservationMessage").className="message section error";return;
+  }
+  const trip=reservationTripCache.find(x=>x.id===tripId);
+  const board=trip?.trip_stops.find(x=>x.id===boarding);
+  const drop=trip?.trip_stops.find(x=>x.id===dropping);
+  if(!board||!drop||board.stop_order>=drop.stop_order){
+    $("reservationMessage").textContent="Boarding Stop অবশ্যই Dropping Stop-এর আগে হতে হবে।";
+    $("reservationMessage").className="message section error";return;
+  }
+  const button=$("reservationCreateButton");button.disabled=true;
+  try{
+    const {data,error}=await supabase.rpc("busnex_create_reservation",{
+      p_trip_id:tripId,p_reservation_type:$("reservationType").value,p_seat_numbers:seats,
+      p_passenger_name:name,p_passenger_phone:phone,p_passenger_gender:gender,
+      p_boarding_stop_id:boarding,p_dropping_stop_id:dropping
+    });
+    if(error)throw error;
+    $("reservationMessage").textContent="Reservation তৈরি হয়েছে। ID: "+data;
+    $("reservationMessage").className="message section ok";
+    $("reservationSeats").value="";
+    await loadReservationsPage();
+  }catch(error){
+    $("reservationMessage").textContent="Reservation তৈরি হয়নি: "+error.message;
+    $("reservationMessage").className="message section error";
+  }finally{button.disabled=false;}
+});
 async function loadCounterDirectory() {
   $("counterDirectoryMessage").textContent = "Counter লোড হচ্ছে...";
   $("permissionMessage").textContent = "Permission লোড হচ্ছে...";
