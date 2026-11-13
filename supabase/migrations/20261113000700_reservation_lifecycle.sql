@@ -48,7 +48,7 @@ BEGIN
   END IF;
   IF p_passenger_name IS NULL OR btrim(p_passenger_name) = ''
      OR p_passenger_phone IS NULL OR btrim(p_passenger_phone) = ''
-     OR p_passenger_gender NOT IN ('Male','Female') THEN
+     OR p_passenger_gender IS NULL OR p_passenger_gender NOT IN ('Male','Female') THEN
     RAISE EXCEPTION 'Passenger name, phone and gender are required';
   END IF;
   IF p_seat_numbers IS NULL OR cardinality(p_seat_numbers) < 1 OR cardinality(p_seat_numbers) > 8 THEN
