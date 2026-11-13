@@ -2548,10 +2548,18 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   sheetButton.type = "button";
   sheetButton.className = "secondary";
   sheetButton.textContent = "TRIP SHEET";
-  sheetButton.addEventListener("click",() => {
+  sheetButton.addEventListener("click",async () => {
     const sheetNav = document.querySelector('.nav-btn[data-page="sheet"]');
-    if (sheetNav) sheetNav.click();
-    else alert("Trip Sheet পেজটি এই Role-এর জন্য উপলভ্য নয়।");
+    if (!sheetNav) { alert("Trip Sheet পেজটি এই Role-এর জন্য উপলভ্য নয়।"); return; }
+    sheetButton.disabled = true;
+    try {
+      sheetNav.click();
+      await loadTripSheetTrips();
+      $("tripSheetTrip").value = trip.id;
+      await loadTripSheet(trip.id);
+    } catch(error) {
+      alert("Trip Sheet খোলা যায়নি: " + error.message);
+    } finally { sheetButton.disabled = false; }
   });
   tripToolbar.append(tripStatus,refreshButton,sheetButton);
   card.appendChild(tripToolbar);
