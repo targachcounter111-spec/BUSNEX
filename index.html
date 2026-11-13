@@ -1654,6 +1654,10 @@ async function appendBookingSeatPicker(trip,card) {
   passengerPanel.className = "section";
   card.appendChild(passengerPanel);
 
+  const ticketReceiptPanel = document.createElement("div");
+  ticketReceiptPanel.className = "section";
+  card.appendChild(ticketReceiptPanel);
+
   try {
     const {data:tripInfo,error:tripError} = await supabase
       .from("trips")
@@ -1700,6 +1704,30 @@ async function appendBookingSeatPicker(trip,card) {
     const passengerData = new Map();
     const seatButtons = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
+
+    function renderTicketReceipt(soldItems,passengerInfo) {
+      ticketReceiptPanel.innerHTML = "";
+      if (!soldItems || !soldItems.length) return;
+      const heading = document.createElement("h3");
+      heading.textContent = "বিক্রিত Ticket-এর বিবরণ";
+      ticketReceiptPanel.appendChild(heading);
+      soldItems.forEach(item => {
+        const result = Array.isArray(item.data) ? item.data[0] : item.data;
+        const row = document.createElement("div");
+        row.className = "card";
+        row.style.marginTop = "8px";
+        const details = document.createElement("p");
+        details.textContent =
+          "Ticket ID: " + (result && result.ticket_id ? result.ticket_id : "তথ্য পাওয়া যায়নি") +
+          " | Seat: " + item.seatNumber +
+          " | যাত্রী: " + (result && result.passenger_name ? result.passenger_name : passengerInfo.name) +
+          " | মোবাইল: " + passengerInfo.phone +
+          " | Gender: " + passengerInfo.gender +
+          " | ভাড়া: ৳" + (result && result.ticket_price != null ? result.ticket_price : "—");
+        row.appendChild(details);
+        ticketReceiptPanel.appendChild(row);
+      });
+    }
 
     function renderPassengerFields() {
       passengerPanel.innerHTML = "";
@@ -1852,6 +1880,7 @@ async function appendBookingSeatPicker(trip,card) {
           }
           selectedInfo.textContent = sold.length + "টি Seat-এর Ticket সফলভাবে বিক্রি হয়েছে: " +
             sold.map(x => x.seatNumber).join(", ");
+          renderTicketReceipt(sold,groupPassenger);
           if (!selectedSeats.size) {
             groupPassenger.name = "";
             groupPassenger.phone = "";
