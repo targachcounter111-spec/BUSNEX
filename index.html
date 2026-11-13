@@ -2588,30 +2588,30 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const style = document.createElement("style");
     style.id = "busnex-booking-workspace-style";
     style.textContent = `
-      .booking-trip-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 14px;margin:12px 0 16px;background:linear-gradient(115deg,#102f30,#1d554d);border:1px solid #c18a55;border-radius:13px;box-shadow:0 10px 24px rgba(16,47,48,.16)}
+      .booking-trip-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:7px 9px;margin:8px 0 10px;background:#f1e4e4;border:1px solid #c5b3b3;border-radius:0;box-shadow:none}
       .booking-trip-status{margin-right:auto;color:#fff;background:#2d6656;padding:8px 13px;border-radius:4px;font-size:12px;font-weight:900;letter-spacing:.04em}
       .booking-trip-status.cancelled{background:#a64238}.booking-trip-status.departed{background:#526d78}
       .booking-trip-toolbar button{border-radius:4px;padding:9px 14px;font-size:11px;font-weight:900;letter-spacing:.04em}
-      .booking-workspace{display:grid;grid-template-columns:minmax(350px,.42fr) minmax(0,.58fr);gap:16px;align-items:start;margin-top:12px}
-      .booking-seat-panel,.booking-passenger-panel{min-width:0;background:linear-gradient(180deg,#fffefa,#f8f5ed);border:1px solid #dfd3c1;border-radius:13px;padding:14px;box-shadow:0 10px 26px rgba(35,54,48,.08)}
-      .booking-seat-panel{background:linear-gradient(160deg,#fffefa,#f1eee5)}
-      .booking-seat-panel .seats{width:100%;min-width:0;margin:12px auto;max-width:440px;grid-template-columns:repeat(5,minmax(48px,1fr));gap:10px 8px;padding:14px 12px;border-radius:12px}
-      .booking-seat-panel .seat{width:100%;min-width:0;min-height:50px;padding:5px 2px;border-radius:9px;font-size:13px;white-space:nowrap;}
+      .booking-workspace{display:grid;grid-template-columns:minmax(290px,.30fr) minmax(0,.70fr);gap:10px;align-items:start;margin-top:8px}
+      .booking-seat-panel,.booking-passenger-panel{min-width:0;background:#fff;border:1px solid #b8b8b8;border-radius:2px;padding:8px;box-shadow:none}
+      .booking-seat-panel{background:#fff}
+      .booking-seat-panel .seats{width:100%;min-width:0;margin:8px auto;max-width:100%;grid-template-columns:repeat(5,minmax(38px,1fr));gap:6px 5px;padding:8px 6px;border:1px solid #168c36;border-radius:2px}
+      .booking-seat-panel .seat{width:100%;min-width:0;min-height:39px;padding:4px 1px;border-radius:3px;font-size:12px;white-space:nowrap;box-shadow:none}
       .booking-passenger-panel{position:static;max-height:none;overflow:visible;border-radius:2px}
       .booking-passenger-panel:empty{display:block;min-height:130px}
-      .booking-passenger-panel h4{margin:0 0 12px;padding:11px 13px;background:linear-gradient(105deg,#123b3a,#23675d);border:1px solid #c18a55;border-radius:8px;color:#fff;font-size:13px;letter-spacing:.06em;box-shadow:0 5px 12px rgba(18,59,58,.12)}
+      .booking-passenger-panel h4{margin:0 0 8px;padding:6px 8px;background:#f1f1f1;border:1px solid #888;border-radius:0;color:#222;font-size:12px;letter-spacing:.02em;box-shadow:none}
       .booking-passenger-panel .card{box-shadow:none;background:#fff;border:0;padding:8px}
-      .booking-passenger-panel .form-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+      .booking-passenger-panel .form-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px}
       .booking-passenger-panel .field{margin:5px 0;gap:5px}
       .booking-passenger-panel .field label{font-size:10px;text-transform:uppercase;letter-spacing:.045em}
-      .booking-passenger-panel .field input,.booking-passenger-panel .field select{padding:9px 10px;border-radius:3px;min-height:37px}
-      .booking-seat-summary{margin:0 0 10px;padding:10px 12px;background:#e9f0e9;border:1px solid #d3e0d5;border-left:4px solid #c18a55;border-radius:8px;color:#244d45;font-weight:800;line-height:1.6}
-      .booking-seat-panel .seat{border-radius:9px;box-shadow:0 3px 8px rgba(20,49,44,.10);transition:transform .15s,box-shadow .15s}
-      .booking-seat-panel .seat.available:hover{transform:translateY(-2px);box-shadow:0 7px 14px rgba(20,49,44,.15)}
-      .booking-seat-panel .seat.selected{background:linear-gradient(135deg,#174f4b,#c18a55);border-color:#a97748;color:#fff;box-shadow:0 5px 14px rgba(18,59,58,.22)}
-      .booking-seat-panel>p.small:not(.booking-seat-summary){padding:9px 11px;background:#f5f1e9;border:1px dashed #d5c3aa;border-radius:8px;color:#244d45;font-weight:800}
-      .booking-passenger-panel .btn.btn-primary{display:block;width:100%;min-height:54px;margin-top:16px;padding:14px 18px;background:linear-gradient(110deg,#123b3a 0%,#1d665c 65%,#b98250 100%);border:1px solid #c18a55;border-radius:12px;color:#fff;font-size:15px;font-weight:900;letter-spacing:.02em;box-shadow:0 9px 20px rgba(18,59,58,.2)}
-      .booking-passenger-panel .btn.btn-primary:hover{filter:brightness(1.06);transform:translateY(-2px)}
+      .booking-passenger-panel .field input,.booking-passenger-panel .field select{padding:8px 9px;border-radius:0;min-height:36px;background:#fff;border:1px solid #999}
+      .booking-seat-summary{margin:0 0 7px;padding:7px 9px;background:#fff;border:1px solid #bbb;border-radius:0;color:#222;font-weight:800;line-height:1.5}
+      .booking-seat-panel .seat{border-radius:3px;box-shadow:none;transition:filter .12s}
+      .booking-seat-panel .seat.available:hover{filter:brightness(.94)}
+      .booking-seat-panel .seat.selected{background:#146b36;border-color:#0d5729;color:#fff;box-shadow:none}
+      .booking-seat-panel>p.small:not(.booking-seat-summary){padding:6px 8px;background:#fff;border:1px solid #bbb;border-radius:0;color:#222;font-weight:700}
+      .booking-passenger-panel .btn.btn-primary{display:block;width:100%;min-height:48px;margin-top:10px;padding:11px 16px;background:#ed1010;border:1px solid #bd0000;border-radius:3px;color:#fff;font-size:15px;font-weight:900;letter-spacing:.02em;box-shadow:none}
+      .booking-passenger-panel .btn.btn-primary:hover{filter:brightness(.94)}
       .booking-passenger-panel .notice{margin:8px 0;padding:9px;font-size:11px}
       .booking-passenger-panel button{border-radius:3px}
       @media(max-width:1050px){.booking-workspace{grid-template-columns:minmax(0,1fr)}.booking-seat-panel .seats{max-width:440px}.booking-passenger-panel .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
