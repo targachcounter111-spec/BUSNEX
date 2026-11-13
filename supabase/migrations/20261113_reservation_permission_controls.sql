@@ -23,11 +23,11 @@ BEGIN
   v_role := public.busnex_user_role();
   v_company_id := public.busnex_company_id();
 
-  IF v_role NOT IN ('super_admin', 'company_manager') THEN
+  IF v_role IS NULL OR v_role NOT IN ('super_admin', 'company_manager') THEN
     RAISE EXCEPTION 'Only Manager or Super Admin can grant permissions';
   END IF;
 
-  IF p_reservation_type NOT IN ('standard', 'vip') THEN
+  IF p_reservation_type IS NULL OR p_reservation_type NOT IN ('standard', 'vip') THEN
     RAISE EXCEPTION 'Invalid reservation type';
   END IF;
 
