@@ -1837,9 +1837,25 @@ async function appendBookingSeatPicker(trip,card) {
           const printWindow = window.open("","_blank","width=1100,height=800");
           if (!printWindow) { alert("Print window খোলা যায়নি। Browser-এর popup permission চালু করুন।"); return; }
           printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BUSNEX Ticket ${esc(ticket.seat_number)}</title><style>
-            @page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172b43;margin:0}
-            .copy{height:88mm;background:#101d2d;color:#f7f4eb;border:1px solid #c7a66a;border-radius:12px;padding:8mm 10mm;margin:0 0 4mm;page-break-inside:avoid;position:relative;overflow:hidden}
-            .copy:not(:last-child){border-bottom:2px dashed #c7a66a}
+            @page{size:297mm 210mm;margin:6mm}
+            *{box-sizing:border-box}
+            html,body{width:285mm;height:198mm;margin:0;padding:0}
+            body{font-family:Arial,sans-serif;color:#172b43}
+            .copy{display:inline-flex;vertical-align:top;flex-direction:column;width:93mm;height:196mm;background:#101d2d;color:#f7f4eb;border:1px solid #c7a66a;border-radius:8px;padding:8mm 6mm;margin:0 1mm 0 0;page-break-inside:avoid;break-inside:avoid;position:relative;overflow:hidden}
+            .copy:not(:last-child){border-right:2px dashed #c7a66a}
+            .copy .pt-head{align-items:flex-start;flex-direction:column;gap:8px}
+            .copy .pt-brand strong{font-size:19px}
+            .copy .pt-route{align-items:flex-start;flex-direction:column;gap:8px;margin:18px 0;padding:15px 0}
+            .copy .pt-route>span{display:none}
+            .copy .pt-route strong{font-size:17px;overflow-wrap:anywhere}
+            .copy .pt-person{align-items:flex-start;flex-direction:column;gap:12px}
+            .copy .pt-person>div>strong{font-size:18px;overflow-wrap:anywhere}
+            .copy .pt-person aside{width:100%;display:flex;align-items:center;justify-content:space-between;gap:5px}
+            .copy .pt-person aside b{font-size:27px}
+            .copy .pt-facts{grid-template-columns:1fr 1fr;gap:12px 8px;margin-top:18px}
+            .copy .pt-facts strong{font-size:11px}
+            .copy .pt-foot{margin-top:auto;align-items:flex-start;flex-direction:column;gap:7px;font-size:9px;overflow-wrap:anywhere}
+
             .pt-head,.pt-brand,.pt-route,.pt-person,.pt-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;position:relative;z-index:1}
             .pt-brand{justify-content:flex-start}.pt-brand>b{width:38px;height:38px;display:grid;place-items:center;border:1px solid #c7a66a;border-radius:10px;color:#e8d3a8;font-size:23px}
             .pt-brand strong{display:block;font-size:21px;letter-spacing:4px;color:#f1d7a4}.pt-brand small,.pt-route small,.pt-person small{display:block;font-size:9px;letter-spacing:1.2px;color:#b9c5d1}
