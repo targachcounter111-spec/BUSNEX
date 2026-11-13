@@ -1712,17 +1712,17 @@ async function appendBookingSeatPicker(trip,card) {
         style.id = styleId;
         style.textContent = `
           .busnex-ticket-overlay{position:fixed;inset:0;background:rgba(8,20,36,.68);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
-          .busnex-ticket-modal{background:#fff;width:min(760px,96vw);max-height:92vh;overflow:auto;border-radius:16px;box-shadow:0 24px 70px #0005;padding:22px;position:relative}
+          .busnex-ticket-modal{background:#fff;width:min(1120px,97vw);max-height:94vh;overflow:auto;border-radius:4px;box-shadow:0 24px 70px #0005;padding:22px;position:relative;border:1px solid #d5dbe3}
           .busnex-ticket-modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e2e8f0;padding-bottom:13px;margin-bottom:16px}
           .busnex-ticket-modal-head h2{margin:0;color:#10243d;font-size:20px}
           .busnex-ticket-close{background:#eef2f7;color:#243449;padding:8px 13px}
-          .busnex-ticket-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+          .busnex-ticket-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
           .busnex-ticket-field{background:#f6f9fc;border:1px solid #e3eaf2;border-radius:9px;padding:11px;min-width:0}
           .busnex-ticket-field small{display:block;color:#64748b;margin-bottom:5px}
           .busnex-ticket-field b{overflow-wrap:anywhere;color:#172b43}
           .busnex-ticket-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
-          .busnex-sold-tooltip{position:fixed;z-index:9998;background:#10243d;color:#fff;padding:10px 13px;border-radius:9px;box-shadow:0 8px 24px #0003;font-size:12px;line-height:1.65;pointer-events:none;max-width:260px}
-          @media(max-width:560px){.busnex-ticket-modal{padding:15px}.busnex-ticket-details{grid-template-columns:1fr}.busnex-ticket-modal-head h2{font-size:17px}}
+          .busnex-sold-tooltip{position:fixed;z-index:10000;background:#171923;color:#fff;padding:14px 16px;border-radius:8px;box-shadow:0 10px 28px #0005;font-size:14px;line-height:1.55;pointer-events:none;width:330px;max-width:calc(100vw - 16px);text-align:center;font-weight:600;border:1px solid #343844}
+          @media(max-width:760px){.busnex-ticket-modal{padding:15px}.busnex-ticket-details{grid-template-columns:repeat(2,minmax(0,1fr))}.busnex-ticket-modal-head h2{font-size:17px}} @media(max-width:430px){.busnex-ticket-details{grid-template-columns:1fr}}
         `;
         document.head.appendChild(style);
       }
@@ -2089,37 +2089,51 @@ async function appendBookingSeatPicker(trip,card) {
           hoverTimer = setTimeout(async() => {
             const tip = document.createElement("div");
             tip.className = "busnex-sold-tooltip";
-            tip.textContent = "Seat " + seat.seat_number + " • Ticket তথ্য লোড হচ্ছে...";
+            tip.textContent = "Ticket তথ্য লোড হচ্ছে...";
             document.body.appendChild(tip);
             hoverTooltip = tip;
             const rect = div.getBoundingClientRect();
-            tip.style.left = Math.max(8,Math.min(window.innerWidth - 275,rect.left)) + "px";
-            tip.style.top = Math.max(8,Math.min(window.innerHeight - 110,rect.bottom + 7)) + "px";
+            const tipWidth = 330;
+            let left = rect.right + 12;
+            if (left + tipWidth > window.innerWidth - 8) left = rect.left - tipWidth - 12;
+            left = Math.max(8,Math.min(window.innerWidth - tipWidth - 8,left));
+            let top = rect.top + rect.height / 2 - 55;
+            top = Math.max(8,Math.min(window.innerHeight - 145,top));
+            tip.style.left = left + "px";
+            tip.style.top = top + "px";
             try {
               const {data:quickTicket,error:quickError} = await supabase
                 .from("tickets")
-                .select("seat_number,passenger_name,passenger_phone,ticket_price")
+                .select("id,seat_number,passenger_name,passenger_phone,ticket_price,created_at")
                 .eq("trip_id",trip.id)
                 .eq("seat_number",seat.seat_number)
                 .eq("status","sold")
                 .maybeSingle();
               if (quickError) throw quickError;
+              let sellerText = "বিক্রেতার তথ্য নেই";
+              if (quickTicket) {
+                const {data:sellerRows,error:sellerError} = await supabase.rpc(
+                  "busnex_get_ticket_seller",
+                  {p_ticket_id:quickTicket.id}
+                );
+                if (sellerError) throw sellerError;
+                const seller = Array.isArray(sellerRows) ? sellerRows[0] : sellerRows;
+                if (seller) sellerText = (seller.seller_name || "নাম নেই") +
+                  (seller.counter_name ? " (" + seller.counter_name + ")" : "");
+              }
               if (hoverTooltip === tip && tip.isConnected) {
+                const when = quickTicket?.created_at
+                  ? new Date(quickTicket.created_at).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"2-digit",hour:"2-digit",minute:"2-digit",hour12:true})
+                  : "সময় পাওয়া যায়নি";
                 tip.textContent = quickTicket
-                  ? "Seat: " + quickTicket.seat_number + " | " + quickTicket.passenger_name + " | " + quickTicket.passenger_phone + " | ভাড়া ৳" + quickTicket.ticket_price + " — বিস্তারিত দেখতে ক্লিক করুন"
+                  ? "Booked by " + sellerText + " on " + when +
+                    " For: " + quickTicket.passenger_name + " (" + quickTicket.passenger_phone + ")"
                   : "Seat " + seat.seat_number + " — Ticket তথ্য পাওয়া যায়নি";
               }
             } catch(error) {
               if (hoverTooltip === tip && tip.isConnected) tip.textContent = "Ticket তথ্য লোড হয়নি";
             }
-          },250);
-        });
-        div.addEventListener("mousemove",event => {
-          if (!hoverTooltip) return;
-          const x = Math.max(8,Math.min(window.innerWidth - 275,event.clientX + 12));
-          const y = Math.max(8,Math.min(window.innerHeight - 100,event.clientY + 12));
-          hoverTooltip.style.left = x + "px";
-          hoverTooltip.style.top = y + "px";
+          },180);
         });
         div.addEventListener("mouseleave",() => {
           if (hoverTimer) clearTimeout(hoverTimer);
