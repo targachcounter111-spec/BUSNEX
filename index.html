@@ -1856,26 +1856,27 @@ async function loadCounterDirectory() {
 }
 
 async function loadBillingPage() {
+  const monthValue = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit"}).format(new Date());
+  if (!$("billingMonth").value) $("billingMonth").value = monthValue;
   const adminControls = $("billingAdminControls");
   const isSuperAdmin = currentProfile?.role === "super_admin";
   adminControls.classList.toggle("hidden", !isSuperAdmin);
-  if (isSuperAdmin) {
-    const companySelect = $("billingCompanySelect");
-    if (companySelect.options.length <= 1) {
-      const {data:companyRows,error:companyError} = await supabase
-        .from("companies").select("id,name").order("name");
-      if (companyError) throw companyError;
-      (companyRows || []).forEach(company => {
-        const option = document.createElement("option");
-        option.value = company.id;
-        option.textContent = company.name;
-        companySelect.appendChild(option);
-      });
-    }
-  }
-
   $("billingMessage").textContent = "Invoice ও Payment Ledger লোড হচ্ছে...";
   try {
+    if (isSuperAdmin) {
+      const companySelect = $("billingCompanySelect");
+      if (companySelect.options.length <= 1) {
+        const {data:companyRows,error:companyError} = await supabase
+          .from("companies").select("id,name").order("name");
+        if (companyError) throw companyError;
+        (companyRows || []).forEach(company => {
+          const option = document.createElement("option");
+          option.value = company.id;
+          option.textContent = company.name;
+          companySelect.appendChild(option);
+        });
+      }
+    }
     let query = supabase
       .from("company_billing_invoices")
       .select("id,company_id,period_start,period_end,due_date,sold_seat_count,rate_per_seat,amount,paid_amount,status,created_at,companies(name)")
@@ -1980,6 +1981,7 @@ $("billingGenerateInvoice").addEventListener("click",async()=>{
   }
 });
 
+$("billingRefresh").addEventListener("click",loadBillingPage);
 $("reservationRefresh").addEventListener("click",loadReservationsPage);
 $("counterRefresh").addEventListener("click",loadCounterDirectory);
 $("grantPermission").addEventListener("click",async() => {
