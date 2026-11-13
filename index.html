@@ -1944,10 +1944,15 @@ async function runReservationAction(button,rpc,message,args) {
   if (!args && rpc==="busnex_cancel_reservation") args={p_reservation_id:button.dataset.id};
   button.disabled=true;
   try {
-    const {error}=await supabase.rpc(rpc,args);
+    const {data,error}=await supabase.rpc(rpc,args);
     if(error)throw error;
-    $("reservationMessage").textContent=message;
-    $("reservationMessage").className="message section ok";
+    if(rpc==="busnex_confirm_reservation" && data===false) {
+      $("reservationMessage").textContent="এই Reservation-এর সময় শেষ। এটি Expired হয়েছে এবং সিটটি মুক্ত করা হয়েছে।";
+      $("reservationMessage").className="message section ok";
+    } else {
+      $("reservationMessage").textContent=message;
+      $("reservationMessage").className="message section ok";
+    }
     await loadReservationsPage();
   } catch(error) {
     $("reservationMessage").textContent="Reservation পরিবর্তন হয়নি: "+error.message;
