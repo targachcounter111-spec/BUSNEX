@@ -433,7 +433,16 @@ th{color:#52647b;background:#f8fafc}
       <section id="page-counters" class="page hidden">
         <div class="page-head"><div><h1>Counters & Access</h1><div class="muted small">Company Counter Directory ও Reservation Permission</div></div><button id="counterRefresh" class="secondary" type="button">↻ Refresh</button></div>
         <div class="card"><h2>Counter List</h2><div id="counterDirectoryMessage" class="message">Counter তালিকা লোড করতে Refresh করুন।</div><div id="counterDirectory" class="table-wrap"><div class="empty">কোনো তথ্য লোড হয়নি।</div></div></div>
-        <div class="card section"><h2>Reservation Permission</h2><div class="notice">Permission Grant/Revoke-এর নিরাপদ RPC এখনো যুক্ত হয়নি। তাই এই অংশে শুধু বিদ্যমান Permission দেখা যাবে; কোনো অনুমতি পরিবর্তন করা হবে না।</div><div id="permissionMessage" class="message">Permission তালিকা লোড হয়নি।</div><div id="permissionList" class="table-wrap"><div class="empty">তথ্য লোড হয়নি।</div></div></div>
+        <div class="card section"><h2>Reservation Permission</h2>
+          <div class="notice">Company Manager নিজের Company-এর Counter-এ এবং Super Admin যেকোনো Counter-এ Standard বা VIP Reservation Permission দিতে বা বন্ধ করতে পারবেন। Database RPC Migration চালু না থাকলে পরিবর্তন সংরক্ষণ হবে না।</div>
+          <div id="permissionControls" class="form-row section">
+            <div class="field"><label for="permissionCounter">Counter নির্বাচন</label><select id="permissionCounter"><option value="">Counter নির্বাচন করুন</option></select></div>
+            <div class="field"><label for="permissionType">Permission Type</label><select id="permissionType"><option value="standard">Standard Reservation</option><option value="vip">VIP Reservation</option></select></div>
+            <div class="field"><label>Permission Action</label><div class="actions"><button id="grantPermission" class="primary" type="button">Grant Permission</button><button id="revokePermission" class="danger" type="button">Revoke Permission</button></div></div>
+          </div>
+          <div id="permissionMessage" class="message">Permission তালিকা লোড হয়নি।</div>
+          <div id="permissionList" class="table-wrap"><div class="empty">তথ্য লোড হয়নি।</div></div>
+        </div></div>
       </section>
       <section id="page-billing" class="page hidden">
         <div class="page-head"><div><h1>Billing</h1><div class="muted small">মাসিক Ticket Sale হিসাব</div></div><button id="billingRefresh" class="secondary" type="button">↻ হিসাব Refresh</button></div>
@@ -1586,10 +1595,19 @@ async function loadCounterDirectory() {
     if(currentProfile.role!=="super_admin") query=query.eq("company_id",currentProfile.company_id);
     const {data,error}=await query;
     if(error) throw error;
-    $("counterDirectory").innerHTML=safeTable(data||[],[
+    const counters = data || [];
+    $("counterDirectory").innerHTML=safeTable(counters,[
       {label:"Counter",value:r=>r.name},{label:"Address",value:r=>r.address},{label:"Counter ID",value:r=>r.id}
     ]);
-    $("counterDirectoryMessage").textContent=(data||[]).length+"টি Counter পাওয়া গেছে।";
+    const counterSelect = $("permissionCounter");
+    counterSelect.innerHTML = '<option value="">Counter নির্বাচন করুন</option>';
+    counters.forEach(counter => {
+      const option = document.createElement("option");
+      option.value = counter.id;
+      option.textContent = counter.name + (counter.address ? " — " + counter.address : "");
+      counterSelect.appendChild(option);
+    });
+    $("counterDirectoryMessage").textContent=counters.length+"টি Counter পাওয়া গেছে।";
   } catch(error) {
     $("counterDirectoryMessage").textContent="Counter লোড হয়নি: "+error.message;
     $("counterDirectory").innerHTML='<div class="empty">Counter তালিকা পাওয়া যায়নি।</div>';
@@ -1597,8 +1615,11 @@ async function loadCounterDirectory() {
   try {
     const {data,error}=await supabase.from("counter_reservation_permissions").select("*").order("created_at",{ascending:false}).limit(300);
     if(error) throw error;
+    const counterNames = new Map();
+    const {data:counterRows} = await supabase.from("counters").select("id,name");
+    (counterRows || []).forEach(counter => counterNames.set(counter.id,counter.name));
     $("permissionList").innerHTML=safeTable(data||[],[
-      {label:"Counter ID",value:r=>r.counter_id},{label:"Type",value:r=>r.reservation_type},
+      {label:"Counter",value:r=>counterNames.get(r.counter_id) || r.counter_id},{label:"Type",value:r=>String(r.reservation_type || "").toUpperCase()},
       {label:"Active",value:r=>r.is_active ? "হ্যাঁ" : "না"},{label:"Granted",value:r=>r.created_at ? new Date(r.created_at).toLocaleString("en-GB") : "—"}
     ]);
     $("permissionMessage").textContent=(data||[]).length+"টি Permission Record পাওয়া গেছে।";
@@ -1639,6 +1660,43 @@ async function loadBillingPage() {
 
 $("reservationRefresh").addEventListener("click",loadReservationsPage);
 $("counterRefresh").addEventListener("click",loadCounterDirectory);
+$("grantPermission").addEventListener("click",async() => {
+  const counterId=$("permissionCounter").value;
+  const reservationType=$("permissionType").value;
+  if(!counterId) { $("permissionMessage").textContent="প্রথমে Counter নির্বাচন করুন।"; $("permissionMessage").className="message section error"; return; }
+  const button=$("grantPermission");
+  button.disabled=true;
+  $("permissionMessage").textContent="Permission Grant হচ্ছে...";
+  try {
+    const {data,error}=await supabase.rpc("busnex_grant_reservation_permission",{p_counter_id:counterId,p_reservation_type:reservationType});
+    if(error) throw error;
+    $("permissionMessage").textContent="Permission সফলভাবে Grant হয়েছে।";
+    $("permissionMessage").className="message section ok";
+    await loadCounterDirectory();
+  } catch(error) {
+    $("permissionMessage").textContent="Permission Grant হয়নি: "+error.message;
+    $("permissionMessage").className="message section error";
+  } finally { button.disabled=false; }
+});
+$("revokePermission").addEventListener("click",async() => {
+  const counterId=$("permissionCounter").value;
+  const reservationType=$("permissionType").value;
+  if(!counterId) { $("permissionMessage").textContent="প্রথমে Counter নির্বাচন করুন।"; $("permissionMessage").className="message section error"; return; }
+  if(!confirm("এই Counter-এর "+reservationType.toUpperCase()+" Reservation Permission বন্ধ করবেন?")) return;
+  const button=$("revokePermission");
+  button.disabled=true;
+  $("permissionMessage").textContent="Permission Revoke হচ্ছে...";
+  try {
+    const {data,error}=await supabase.rpc("busnex_revoke_reservation_permission",{p_counter_id:counterId,p_reservation_type:reservationType});
+    if(error) throw error;
+    $("permissionMessage").textContent=data ? "Permission Revoke হয়েছে।" : "এই Permission আগে থেকেই বন্ধ ছিল বা পাওয়া যায়নি।";
+    $("permissionMessage").className="message section ok";
+    await loadCounterDirectory();
+  } catch(error) {
+    $("permissionMessage").textContent="Permission Revoke হয়নি: "+error.message;
+    $("permissionMessage").className="message section error";
+  } finally { button.disabled=false; }
+});
 $("billingRefresh").addEventListener("click",loadBillingPage);
 $("billingMonth").value=new Date().toISOString().slice(0,7);
 $("billingMonth").addEventListener("change",loadBillingPage);
