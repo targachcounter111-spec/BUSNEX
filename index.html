@@ -432,6 +432,7 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
           <div class="card"><div class="stat-label">আজকের ট্রিপে খালি সিট</div><div id="dashboardSeats" class="stat-value">—</div><div class="small muted">এখনো Available</div></div>
           <div class="card"><div class="stat-label">মোট কাউন্টার</div><div id="dashboardCounters" class="stat-value">—</div><div class="small muted">আপনার অনুমোদিত Company</div></div>
         </div>
+        <div id="dashboardBillingNotice" class="notice section hidden" role="status"></div>
         <div id="dashboardMessage" class="message section" aria-live="polite"></div>
 
         <div class="section card">
@@ -713,6 +714,26 @@ function isAdmin() {
     ["super_admin","company_manager"].includes(currentProfile.role);
 }
 
+async function loadBillingDashboardNotice() {
+  const notice=$("dashboardBillingNotice");
+  notice.classList.add("hidden");
+  if(!["company_manager","counter_operator"].includes(currentProfile?.role))return;
+  try{
+    const {data,error}=await supabase.rpc("busnex_get_company_billing_due");
+    if(error)throw error;
+    const summary=Array.isArray(data)?data[0]:data;
+    const due=Number(summary?.total_due||0);
+    const count=Number(summary?.invoice_count||0);
+    if(due<=0||count<=0)return;
+    notice.textContent="Billing Notice: আপনার Company-এর "+count+"টি Invoice-এর মোট বকেয়া ৳"+due.toFixed(2)+
+      (summary?.earliest_due?"। নিকটতম Due Date: "+summary.earliest_due:"")+
+      "। বিস্তারিত দেখতে Manager-কে Billing পেজ দেখুন।";
+    notice.classList.remove("hidden");
+  }catch(error){
+    console.warn("BILLING NOTICE LOAD:",error.message);
+  }
+}
+
 async function loadDashboardStats() {
   const message = $("dashboardMessage");
   const fields = ["dashboardTrips","dashboardTickets","dashboardSeats","dashboardCounters"];
@@ -810,6 +831,7 @@ function showDashboard(profile) {
 
   document.title = "BUSNEX | Dashboard";
   loadDashboardStats();
+  loadBillingDashboardNotice();
 }
 
 function showLogin() {
