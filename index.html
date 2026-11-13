@@ -610,7 +610,24 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
       </section>
       <section id="page-billing" class="page hidden">
         <div class="page-head"><div><h1>Billing</h1><div class="muted small">মাসিক Ticket Sale হিসাব</div></div><button id="billingRefresh" class="secondary" type="button">↻ হিসাব Refresh</button></div>
-        <div class="card"><div class="notice">বর্তমান নীতিমালা অনুযায়ী প্রতি Sold Ticket ৳০.৫০ ধরে হিসাব দেখানো হবে। এটি বিক্রির আনুমানিক Service Charge; Payment Received, Due Settlement বা Invoice History দেখানোর জন্য Payment Ledger এখনো Database-এ নেই।</div><div class="form-row"><div class="field"><label>মাস নির্বাচন</label><input id="billingMonth" type="month"></div></div><div id="billingMessage" class="message">মাস নির্বাচন করে হিসাব দেখুন।</div><div class="grid"><div class="card"><div class="stat-label">Sold Ticket</div><div id="billingSoldCount" class="stat-value">—</div></div><div class="card"><div class="stat-label">Service Charge</div><div id="billingCharge" class="stat-value">—</div></div></div><div id="billingCompanyList" class="table-wrap section"></div></div>
+        <div class="card">
+          <div class="notice">প্রতি Sold Seat-এর Service Charge ৳০.৫০। Cancelled Ticket বাদ। Invoice-এর সময়সীমা বাংলাদেশ সময় অনুযায়ী গণনা হবে। Payment ও Due হিসাব Database Ledger-এ সংরক্ষিত থাকবে।</div>
+          <div id="billingAdminControls" class="section hidden">
+            <h2>নতুন Monthly Invoice</h2>
+            <div class="form-row">
+              <div class="field"><label for="billingCompanySelect">Company</label><select id="billingCompanySelect"><option value="">Company নির্বাচন করুন</option></select></div>
+              <div class="field"><label for="billingMonth">Billing Month</label><input id="billingMonth" type="month"></div>
+              <div class="field"><label for="billingDueDate">Payment Due Date</label><input id="billingDueDate" type="date"></div>
+            </div>
+            <button id="billingGenerateInvoice" class="primary" type="button">Generate Invoice</button>
+          </div>
+          <div id="billingMessage" class="message">Invoice হিসাব লোড হচ্ছে...</div>
+          <div class="grid">
+            <div class="card"><div class="stat-label">মোট Invoice</div><div id="billingSoldCount" class="stat-value">—</div></div>
+            <div class="card"><div class="stat-label">মোট Invoice Amount</div><div id="billingCharge" class="stat-value">—</div></div>
+          </div>
+          <div id="billingCompanyList" class="table-wrap section"></div>
+        </div>
       </section>
       <div class="footer">BUSNEX • Bus Counter Management System</div>
     </main>
@@ -1839,33 +1856,129 @@ async function loadCounterDirectory() {
 }
 
 async function loadBillingPage() {
-  const month=$("billingMonth").value;
-  if(!month) { $("billingMessage").textContent="একটি মাস নির্বাচন করুন।"; return; }
-  const start=new Date(month+"-01T00:00:00");
-  const end=new Date(start.getFullYear(),start.getMonth()+1,1);
-  $("billingMessage").textContent="Sold Ticket হিসাব হচ্ছে...";
-  try {
-    let q=supabase.from("tickets").select("id,trip_id,ticket_price,created_at,trips!inner(company_id)").eq("status","sold").gte("created_at",start.toISOString()).lt("created_at",end.toISOString());
-    if(currentProfile.role!=="super_admin") {
-      if(!currentProfile.company_id) throw new Error("Company Assignment পাওয়া যায়নি।");
-      q=q.eq("trips.company_id",currentProfile.company_id);
+  const adminControls = $("billingAdminControls");
+  const isSuperAdmin = currentProfile?.role === "super_admin";
+  adminControls.classList.toggle("hidden", !isSuperAdmin);
+  if (isSuperAdmin) {
+    const companySelect = $("billingCompanySelect");
+    if (companySelect.options.length <= 1) {
+      const {data:companyRows,error:companyError} = await supabase
+        .from("companies").select("id,name").order("name");
+      if (companyError) throw companyError;
+      (companyRows || []).forEach(company => {
+        const option = document.createElement("option");
+        option.value = company.id;
+        option.textContent = company.name;
+        companySelect.appendChild(option);
+      });
     }
-    const {data,error}=await q;
-    if(error) throw error;
-    const tickets=data||[];
-    const charge=tickets.length*0.5;
-    $("billingSoldCount").textContent=String(tickets.length);
-    $("billingCharge").textContent="৳"+charge.toFixed(2);
-    $("billingCompanyList").innerHTML=safeTable([{company:currentProfile.role==="super_admin"?"সব Company":currentProfile.company_id,count:tickets.length,charge:"৳"+charge.toFixed(2)}],[
-      {label:"Company",value:r=>r.company},{label:"Sold Ticket",value:r=>r.count},{label:"Service Charge",value:r=>r.charge}
-    ]);
-    $("billingMessage").textContent="হিসাব সম্পন্ন। শুধু status='sold' Ticket গণনা করা হয়েছে; এটি Payment/Due Status নয়।";
-    $("billingMessage").className="message section ok";
+  }
+
+  $("billingMessage").textContent = "Invoice ও Payment Ledger লোড হচ্ছে...";
+  try {
+    let query = supabase
+      .from("company_billing_invoices")
+      .select("id,company_id,period_start,period_end,due_date,sold_seat_count,rate_per_seat,amount,paid_amount,status,created_at,companies(name)")
+      .order("period_start",{ascending:false})
+      .limit(300);
+    if (!isSuperAdmin) {
+      if (currentProfile.role !== "company_manager" || !currentProfile.company_id) {
+        throw new Error("এই Account-এর Billing দেখার অনুমতি নেই।");
+      }
+      query = query.eq("company_id",currentProfile.company_id);
+    }
+    const {data,error} = await query;
+    if (error) throw error;
+    const invoices = data || [];
+    const totalAmount = invoices.reduce((sum,row)=>sum+Number(row.amount||0),0);
+    $("billingSoldCount").textContent = String(invoices.length);
+    $("billingCharge").textContent = "৳" + totalAmount.toFixed(2);
+
+    const esc = value => escapeHtml(value ?? "—");
+    if (!invoices.length) {
+      $("billingCompanyList").innerHTML = '<div class="empty">এখনো কোনো Invoice তৈরি হয়নি। Super Admin মাস নির্বাচন করে Invoice তৈরি করতে পারবেন।</div>';
+    } else {
+      $("billingCompanyList").innerHTML = '<table><thead><tr><th>Company</th><th>Period</th><th>Sold Seats</th><th>Amount</th><th>Paid</th><th>Due</th><th>Status</th><th>Due Date</th>' +
+        (isSuperAdmin ? '<th>Action</th>' : '') +
+        '</tr></thead><tbody>' + invoices.map(row => {
+          const due = Math.max(0,Number(row.amount||0)-Number(row.paid_amount||0));
+          return '<tr><td>'+esc(row.companies?.name)+'</td><td>'+esc(row.period_start)+' – '+esc(row.period_end)+'</td><td>'+esc(row.sold_seat_count)+'</td><td>৳'+Number(row.amount||0).toFixed(2)+'</td><td>৳'+Number(row.paid_amount||0).toFixed(2)+'</td><td>৳'+due.toFixed(2)+'</td><td>'+esc(row.status)+'</td><td>'+esc(row.due_date)+'</td>' +
+            (isSuperAdmin ? '<td>'+(due>0 ? '<button type="button" class="secondary billing-payment" data-id="'+esc(row.id)+'" data-due="'+due.toFixed(2)+'">Payment নিন</button>' : '—')+'</td>' : '') +
+            '</tr>';
+        }).join('') + '</tbody></table>';
+      if (isSuperAdmin) {
+        $("billingCompanyList").querySelectorAll(".billing-payment").forEach(button => {
+          button.addEventListener("click",async()=>{
+            const remaining = Number(button.dataset.due);
+            const amountText = prompt("কত টাকা Payment গ্রহণ করেছেন? বাকি Due: ৳"+remaining.toFixed(2));
+            if (amountText === null) return;
+            const amount = Number(amountText);
+            if (!Number.isFinite(amount) || amount <= 0) {
+              alert("সঠিক Payment Amount লিখুন।");
+              return;
+            }
+            const reference = prompt("Payment Reference (ঐচ্ছিক):") || "";
+            button.disabled = true;
+            try {
+              const {error:paymentError} = await supabase.rpc("busnex_record_company_payment",{
+                p_invoice_id:button.dataset.id,
+                p_amount:amount,
+                p_payment_reference:reference,
+                p_note:null
+              });
+              if (paymentError) throw paymentError;
+              $("billingMessage").textContent = "Payment Ledger-এ সংরক্ষণ হয়েছে।";
+              await loadBillingPage();
+            } catch(paymentError) {
+              alert("Payment সংরক্ষণ হয়নি: "+paymentError.message);
+              button.disabled = false;
+            }
+          });
+        });
+      }
+    }
+    $("billingMessage").textContent = invoices.length+"টি Invoice পাওয়া গেছে।";
+    $("billingMessage").className = "message section ok";
   } catch(error) {
-    $("billingMessage").textContent="Billing হিসাব করা যায়নি: "+error.message;
-    $("billingMessage").className="message section error";
+    $("billingMessage").textContent = "Billing Ledger লোড হয়নি: "+error.message;
+    $("billingMessage").className = "message section error";
+    $("billingCompanyList").innerHTML = '<div class="empty">Invoice তথ্য পাওয়া যায়নি। প্রয়োজনীয় Billing Migration প্রয়োগ করা আছে কি না দেখুন।</div>';
   }
 }
+
+$("billingGenerateInvoice").addEventListener("click",async()=>{
+  if (currentProfile?.role !== "super_admin") return;
+  const companyId = $("billingCompanySelect").value;
+  const month = $("billingMonth").value;
+  const dueDate = $("billingDueDate").value;
+  if (!companyId || !month || !dueDate) {
+    $("billingMessage").textContent = "Company, Billing Month ও Due Date নির্বাচন করুন।";
+    $("billingMessage").className = "message section error";
+    return;
+  }
+  const periodStart = month+"-01";
+  const startDate = new Date(periodStart+"T00:00:00Z");
+  startDate.setUTCMonth(startDate.getUTCMonth()+1);
+  const periodEnd = startDate.toISOString().slice(0,10);
+  const button = $("billingGenerateInvoice");
+  button.disabled = true;
+  try {
+    const {error} = await supabase.rpc("busnex_generate_company_invoice",{
+      p_company_id:companyId,
+      p_period_start:periodStart,
+      p_period_end:periodEnd,
+      p_due_date:dueDate
+    });
+    if (error) throw error;
+    $("billingMessage").textContent = "Invoice তৈরি/আপডেট হয়েছে।";
+    await loadBillingPage();
+  } catch(error) {
+    $("billingMessage").textContent = "Invoice তৈরি হয়নি: "+error.message;
+    $("billingMessage").className = "message section error";
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("reservationRefresh").addEventListener("click",loadReservationsPage);
 $("counterRefresh").addEventListener("click",loadCounterDirectory);
