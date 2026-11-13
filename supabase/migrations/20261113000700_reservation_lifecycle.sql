@@ -312,19 +312,14 @@ BEGIN
       AND r.expires_at<=now()
       AND (v_role='super_admin' OR t.company_id=v_company_id)
     RETURNING r.id
+  ),
+  cleared AS (
+    UPDATE public.trip_seats ts
+    SET reservation_id=NULL
+    WHERE ts.reservation_id IN (SELECT id FROM expired)
+    RETURNING ts.id
   )
   SELECT count(*)::integer INTO v_expired FROM expired;
-
-  UPDATE public.trip_seats ts
-  SET reservation_id=NULL
-  WHERE ts.reservation_id IN (
-    SELECT r.id
-    FROM public.ticket_reservations r
-    JOIN public.trips t ON t.id=r.trip_id
-    WHERE r.status='expired'
-      AND r.updated_at >= now()-interval '1 minute'
-      AND (v_role='super_admin' OR t.company_id=v_company_id)
-  );
   RETURN v_expired;
 END;
 $function$;
