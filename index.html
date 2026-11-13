@@ -1865,7 +1865,7 @@ async function loadReservationsPage() {
     await loadReservationTripOptions();
     const {data,error} = await supabase
       .from("ticket_reservations")
-      .select("id,trip_id,counter_id,reserved_by,reservation_type,status,expires_at,created_at,updated_at,trips(departure_time,coach_number,routes(starting_point,ending_point)),counters(name),ticket_reservation_seats(seat_number,passenger_name,passenger_phone)")
+      .select("id,trip_id,counter_id,reserved_by,reservation_type,status,expires_at,confirmed_at,created_at,updated_at,trips(departure_time,coach_number,routes(starting_point,ending_point)),counters(name),ticket_reservation_seats(seat_number,passenger_name,passenger_phone)")
       .order("created_at",{ascending:false}).limit(300);
     if (error) throw error;
     const rows=data||[];
@@ -1877,16 +1877,22 @@ async function loadReservationsPage() {
         rows.map(row=>{
           const seats=(row.ticket_reservation_seats||[]).map(x=>escapeHtml(x.seat_number)+" · "+escapeHtml(x.passenger_name)).join("<br>");
           const expiry=row.expires_at?new Date(row.expires_at).toLocaleString("en-GB"):"কোনো Expiry নেই";
-          const active=["active","confirmed"].includes(row.status);
+          const active=row.status==="active";
+          const reservationStatus=row.status==="active"&&row.confirmed_at?"confirmed":row.status;
           return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(row.status)+'</td><td>'+escapeHtml(expiry)+'</td><td>'+(active?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'" '+(row.status==="confirmed"?'disabled':'')+'>Confirm</button> <button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+(canManageExpiry&&row.reservation_type==="vip"&&row.status==="active"?' <button type="button" class="secondary reservation-expiry" data-id="'+escapeHtml(row.id)+'">Expiry সেট</button>':'')+'</td></tr>';
         }).join("")+'</tbody></table>';
-      $("reservationList").querySelectorAll(".reservation-confirm").forEach(button=>button.addEventListener("click",()=>runReservationAction(button,"busnex_confirm_reservation","Reservation Confirm হয়েছে?")));
-      $("reservationList").querySelectorAll(".reservation-cancel").forEach(button=>button.addEventListener("click",()=>runReservationAction(button,"busnex_cancel_reservation","এই Reservation Cancel করবেন?")));
+      $("reservationList").querySelectorAll(".reservation-confirm").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_confirm_reservation","Reservation Confirm হয়েছে?")));
+      $("reservationList").querySelectorAll(".reservation-cancel").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_cancel_reservation","Reservation Cancel হয়েছে?")));
       $("reservationList").querySelectorAll(".reservation-expiry").forEach(button=>button.addEventListener("click",async()=>{
         const value=prompt("VIP Reservation-এর নতুন Expiry লিখুন (উদাহরণ: 2026-11-14T18:00)। খালি রাখলে Expiry থাকবে না।");
         if(value===null)return;
-        const expiry=value.trim()?new Date(value).toISOString():null;
-        await runReservationRpc(button,"busnex_set_vip_reservation_expiry",{p_reservation_id:button.dataset.id,p_expires_at:expiry});
+        let expiry=null;
+        if(value.trim()){
+          const parsed=new Date(value);
+          if(Number.isNaN(parsed.getTime())){alert("সঠিক তারিখ ও সময় লিখুন।");return;}
+          expiry=parsed.toISOString();
+        }
+        await runReservationAction(button,"busnex_set_vip_reservation_expiry","Expiry আপডেট হয়েছে?",{p_reservation_id:button.dataset.id,p_expires_at:expiry});
       }));
     }
     $("reservationMessage").textContent=rows.length+"টি Reservation পাওয়া গেছে।";
