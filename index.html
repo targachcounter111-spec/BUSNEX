@@ -253,22 +253,26 @@ th{color:#52647b;background:#f8fafc}
             <h1>Dashboard</h1>
             <div class="muted small">কোম্পানির বাস কাউন্টার ব্যবস্থাপনা</div>
           </div>
-          <span id="roleLabel" class="user-chip" style="background:#eaf2fa;color:#1769aa">Role</span>
+          <div class="actions">
+            <span id="roleLabel" class="user-chip" style="background:#eaf2fa;color:#1769aa">Role</span>
+            <button id="dashboardRefreshButton" class="secondary" type="button">↻ Refresh</button>
+          </div>
         </div>
 
         <div class="grid">
-          <div class="card"><div class="stat-label">আজকের ট্রিপ</div><div class="stat-value">—</div><div class="small muted">পরবর্তী সংযোগ বাকি</div></div>
-          <div class="card"><div class="stat-label">বিক্রিত টিকিট</div><div class="stat-value">—</div><div class="small muted">পরবর্তী সংযোগ বাকি</div></div>
-          <div class="card"><div class="stat-label">খালি সিট</div><div class="stat-value">—</div><div class="small muted">পরবর্তী সংযোগ বাকি</div></div>
-          <div class="card"><div class="stat-label">মোট কাউন্টার</div><div class="stat-value">—</div><div class="small muted">পরবর্তী সংযোগ বাকি</div></div>
+          <div class="card"><div class="stat-label">আজকের ট্রিপ</div><div id="dashboardTrips" class="stat-value">—</div><div class="small muted">আজ যাত্রা শুরু হবে</div></div>
+          <div class="card"><div class="stat-label">আজ বিক্রিত টিকিট</div><div id="dashboardTickets" class="stat-value">—</div><div class="small muted">আজকের বিক্রির হিসাব</div></div>
+          <div class="card"><div class="stat-label">আজকের ট্রিপে খালি সিট</div><div id="dashboardSeats" class="stat-value">—</div><div class="small muted">এখনো Available</div></div>
+          <div class="card"><div class="stat-label">মোট কাউন্টার</div><div id="dashboardCounters" class="stat-value">—</div><div class="small muted">আপনার অনুমোদিত Company</div></div>
         </div>
+        <div id="dashboardMessage" class="message section" aria-live="polite"></div>
 
         <div class="section card">
           <h2>স্বাগতম BUSNEX-এ</h2>
-          <p class="muted">এখান থেকে টিকিট বুকিং, ট্রিপ, সিট লেআউট এবং ট্রিপ শিটের বিভাগে যেতে পারবেন।</p>
+          <p class="muted">এখান থেকে Ticket Booking, Trip Management, Seat Layout এবং Trip Sheet পরিচালনা করুন। Dashboard-এর পরিসংখ্যান Database থেকে লোড হয়।</p>
           <div class="notice">
-            Trip Management Supabase Database-এর সঙ্গে সংযুক্ত।
-            Ticket Booking এবং Live Seat Inventory-এর সংযোগ এখনো আলাদা করে সম্পন্ন করতে হবে।
+            তথ্য আপনার Role ও Database-এর অনুমোদিত Company/Counter অনুযায়ী দেখানো হয়।
+            কোনো তথ্য লোড না হলে Refresh করুন অথবা নিচের Error বার্তাটি দেখুন।
           </div>
         </div>
       </section>
@@ -470,6 +474,83 @@ function isAdmin() {
     ["super_admin","company_manager"].includes(currentProfile.role);
 }
 
+async function loadDashboardStats() {
+  const message = $("dashboardMessage");
+  const fields = ["dashboardTrips","dashboardTickets","dashboardSeats","dashboardCounters"];
+  fields.forEach(id => { $(id).textContent = "…"; });
+  message.textContent = "Dashboard-এর হিসাব লোড হচ্ছে...";
+  message.className = "message section";
+
+  try {
+    const dateText = new Intl.DateTimeFormat("en-CA",{
+      timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"
+    }).format(new Date());
+    const start = new Date(dateText + "T00:00:00+06:00");
+    const end = new Date(start.getTime() + 86400000);
+    const startISO = start.toISOString();
+    const endISO = end.toISOString();
+
+    let tripQuery = supabase.from("trips")
+      .select("id",{count:"exact"})
+      .gte("departure_time",startISO)
+      .lt("departure_time",endISO);
+
+    if (currentProfile.role !== "super_admin") {
+      if (!currentProfile.company_id) throw new Error("আপনার Company Assignment পাওয়া যায়নি।");
+      tripQuery = tripQuery.eq("company_id",currentProfile.company_id);
+    }
+
+    const {data:tripRows,error:tripError,count:tripCount} = await tripQuery;
+    if (tripError) throw tripError;
+    const tripIds = (tripRows || []).map(row => row.id);
+
+    let ticketCount = 0;
+    let availableCount = 0;
+    if (tripIds.length) {
+      let ticketQuery = supabase.from("tickets")
+        .select("id",{count:"exact",head:true})
+        .in("trip_id",tripIds)
+        .eq("status","sold")
+        .gte("created_at",startISO)
+        .lt("created_at",endISO);
+      if (currentProfile.role === "counter_operator") {
+        ticketQuery = ticketQuery.eq("counter_id",currentProfile.counter_id);
+      }
+      const {count,error} = await ticketQuery;
+      if (error) throw error;
+      ticketCount = count || 0;
+
+      const {count:seatCount,error:seatError} = await supabase
+        .from("trip_seats")
+        .select("id",{count:"exact",head:true})
+        .in("trip_id",tripIds)
+        .eq("status","available");
+      if (seatError) throw seatError;
+      availableCount = seatCount || 0;
+    }
+
+    let counterQuery = supabase.from("counters")
+      .select("id",{count:"exact",head:true});
+    if (currentProfile.role !== "super_admin") {
+      counterQuery = counterQuery.eq("company_id",currentProfile.company_id);
+    }
+    const {count:counterCount,error:counterError} = await counterQuery;
+    if (counterError) throw counterError;
+
+    $("dashboardTrips").textContent = String(tripCount || 0);
+    $("dashboardTickets").textContent = String(ticketCount);
+    $("dashboardSeats").textContent = String(availableCount);
+    $("dashboardCounters").textContent = String(counterCount || 0);
+    message.textContent = "সর্বশেষ আপডেট: " + new Date().toLocaleTimeString("bn-BD",{hour:"2-digit",minute:"2-digit"});
+    message.className = "message section ok";
+  } catch(error) {
+    console.error("DASHBOARD LOAD ERROR:",error);
+    fields.forEach(id => { $(id).textContent = "—"; });
+    message.textContent = "Dashboard-এর তথ্য লোড হয়নি: " + (error.message || "অজানা সমস্যা");
+    message.className = "message section error";
+  }
+}
+
 function showDashboard(profile) {
   currentProfile = profile || {};
 
@@ -489,6 +570,7 @@ function showDashboard(profile) {
   });
 
   document.title = "BUSNEX | Dashboard";
+  loadDashboardStats();
 }
 
 function showLogin() {
@@ -1327,6 +1409,8 @@ $("refreshTripsButton").addEventListener("click",async() => {
     tripMessage(error.message,"error");
   }
 });
+
+$("dashboardRefreshButton").addEventListener("click",loadDashboardStats);
 
 document.querySelectorAll(".nav-btn").forEach(button => {
   button.addEventListener("click",async() => {
