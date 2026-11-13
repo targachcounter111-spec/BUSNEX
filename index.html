@@ -2556,23 +2556,46 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   title.textContent = "এক বা একাধিক Seat নির্বাচন করুন";
   card.appendChild(title);
 
+  // Professional two-column booking workspace: seats left, passenger form right.
+  if (!document.getElementById("busnex-booking-workspace-style")) {
+    const style = document.createElement("style");
+    style.id = "busnex-booking-workspace-style";
+    style.textContent = `
+      .booking-workspace{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:20px;align-items:start;margin-top:14px}
+      .booking-seat-panel,.booking-passenger-panel{min-width:0;background:#fffdf9;border:1px solid #e7dfd2;border-radius:14px;padding:16px}
+      .booking-seat-panel .seats{margin:12px auto;max-width:520px}
+      .booking-passenger-panel{position:sticky;top:14px;max-height:calc(100vh - 40px);overflow:auto}
+      .booking-passenger-panel:empty{display:block;min-height:130px}
+      .booking-passenger-panel h4{margin:0 0 12px}
+      .booking-passenger-panel .card{box-shadow:none;background:#f8f5ee}
+      .booking-passenger-panel .form-row{grid-template-columns:1fr}
+      .booking-seat-summary{margin:0 0 8px}
+      @media(max-width:900px){.booking-workspace{grid-template-columns:1fr}.booking-passenger-panel{position:static;max-height:none}.booking-seat-panel .seats{max-width:100%}}
+    `;
+    document.head.appendChild(style);
+  }
+
   const summary = document.createElement("p");
-  summary.className = "small muted";
+  summary.className = "small muted booking-seat-summary";
   summary.textContent = "Seat Inventory লোড হচ্ছে...";
-  card.appendChild(summary);
+
+  const workspace = document.createElement("div");
+  workspace.className = "booking-workspace";
+  const seatPanel = document.createElement("section");
+  seatPanel.className = "booking-seat-panel";
+  const passengerPanel = document.createElement("aside");
+  passengerPanel.className = "booking-passenger-panel section";
+  passengerPanel.setAttribute("aria-label","Passenger Information");
 
   const grid = document.createElement("div");
   grid.className = "seats";
-  card.appendChild(grid);
-
   const selectedInfo = document.createElement("p");
   selectedInfo.className = "small";
   selectedInfo.textContent = "এখনো কোনো Seat নির্বাচন করা হয়নি।";
-  card.appendChild(selectedInfo);
 
-  const passengerPanel = document.createElement("div");
-  passengerPanel.className = "section";
-  card.appendChild(passengerPanel);
+  seatPanel.append(summary,grid,selectedInfo);
+  workspace.append(seatPanel,passengerPanel);
+  card.appendChild(workspace);
 
   try {
     const {data:tripInfo,error:tripError} = await supabase
