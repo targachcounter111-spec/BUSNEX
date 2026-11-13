@@ -406,9 +406,16 @@ th{color:#52647b;background:#f8fafc}
       <section id="page-sheet" class="page hidden">
         <div class="page-head">
           <div><h1>Trip Sheet</h1><div class="muted small">বিক্রিত আসন ও যাত্রীর তালিকা</div></div>
+          <div class="actions"><button id="tripSheetRefresh" class="secondary" type="button">↻ Refresh</button><button id="tripSheetPrint" class="primary" type="button" disabled>🖨 Print Sheet</button></div>
         </div>
         <div class="card">
-          <div class="empty">Trip Sheet-এর বিক্রিত Seat ও Passenger Database সংযোগ এখনো বাকি।</div>
+          <div class="form-row">
+            <div class="field"><label for="tripSheetTrip">Trip নির্বাচন করুন</label><select id="tripSheetTrip"><option value="">Trip লোড হচ্ছে...</option></select></div>
+            <div class="field"><label>যাত্রীর সংখ্যা</label><div id="tripSheetCount" class="stat-value">—</div></div>
+          </div>
+          <div id="tripSheetMessage" class="message section" aria-live="polite">Trip নির্বাচন করুন।</div>
+          <div id="tripSheetDetails" class="notice hidden"></div>
+          <div id="tripSheetTableWrap" class="table-wrap section"><div class="empty">Trip নির্বাচন করলে Passenger List দেখা যাবে।</div></div>
         </div>
       </section>
 
@@ -1439,6 +1446,10 @@ document.querySelectorAll(".nav-btn").forEach(button => {
     if (button.dataset.page === "seats") {
       await loadSeatTrips();
     }
+
+    if (button.dataset.page === "sheet") {
+      await loadTripSheetTrips();
+    }
   });
 });
 
@@ -1508,6 +1519,103 @@ async function loadSeatTrips() {
     seatMessage("Trip লোড হয়নি: " + error.message,"error");
   }
 }
+
+async function loadTripSheetTrips() {
+  const select = $("tripSheetTrip");
+  select.disabled = true;
+  select.innerHTML = '<option value="">Trip লোড হচ্ছে...</option>';
+  $("tripSheetTableWrap").innerHTML = '<div class="empty">Trip তালিকা লোড হচ্ছে...</div>';
+  $("tripSheetPrint").disabled = true;
+  try {
+    let query = supabase.from("trips").select("id,company_id,bus_id,departure_time,status,coach_number,ticket_price,buses(bus_name),routes(starting_point,ending_point)").order("departure_time",{ascending:false}).limit(200);
+    if (currentProfile.role !== "super_admin") {
+      if (!currentProfile.company_id) throw new Error("আপনার Company Assignment পাওয়া যায়নি।");
+      query = query.eq("company_id",currentProfile.company_id);
+    }
+    const {data,error} = await query;
+    if (error) throw error;
+    select.innerHTML = '<option value="">একটি Trip নির্বাচন করুন</option>';
+    (data || []).forEach(trip => {
+      const option = document.createElement("option");
+      option.value = trip.id;
+      option.textContent = formatTripOption(trip);
+      select.appendChild(option);
+    });
+    select.disabled = !(data && data.length);
+    $("tripSheetMessage").textContent = data?.length ? "মোট " + data.length + "টি Trip পাওয়া গেছে।" : "কোনো Trip পাওয়া যায়নি।";
+    if (!data?.length) $("tripSheetTableWrap").innerHTML = '<div class="empty">এই Account-এর জন্য Trip নেই।</div>';
+  } catch(error) {
+    console.error("TRIP SHEET TRIP LOAD ERROR:",error);
+    select.innerHTML = '<option value="">Trip লোড হয়নি</option>';
+    $("tripSheetMessage").textContent = "Trip লোড হয়নি: " + error.message;
+    $("tripSheetMessage").className = "message section error";
+    $("tripSheetTableWrap").innerHTML = '<div class="empty">Trip তালিকা লোড করা যায়নি।</div>';
+  }
+}
+
+async function loadTripSheet(tripId) {
+  $("tripSheetCount").textContent = "…";
+  $("tripSheetPrint").disabled = true;
+  $("tripSheetDetails").classList.add("hidden");
+  $("tripSheetTableWrap").innerHTML = '<div class="empty">Passenger List লোড হচ্ছে...</div>';
+  if (!tripId) {
+    $("tripSheetCount").textContent = "—";
+    $("tripSheetMessage").textContent = "একটি Trip নির্বাচন করুন।";
+    return;
+  }
+  try {
+    const [tripResult,ticketResult] = await Promise.all([
+      supabase.from("trips").select("id,departure_time,status,coach_number,ticket_price,buses(bus_name),routes(starting_point,ending_point),trip_stops(id,stop_name,stop_order)").eq("id",tripId).single(),
+      supabase.from("tickets").select("id,seat_number,passenger_name,passenger_phone,passenger_gender,ticket_price,status,created_at,boarding_stop_id,dropping_stop_id,counter_id").eq("trip_id",tripId).eq("status","sold").order("seat_number",{ascending:true})
+    ]);
+    if (tripResult.error) throw tripResult.error;
+    if (ticketResult.error) throw ticketResult.error;
+    const trip = tripResult.data;
+    const tickets = ticketResult.data || [];
+    const stops = new Map((trip.trip_stops || []).map(stop => [stop.id,stop.stop_name]));
+    const route = trip.routes || {};
+    const bus = trip.buses || {};
+    const journey = trip.departure_time ? new Date(trip.departure_time).toLocaleString("en-GB") : "—";
+    $("tripSheetCount").textContent = String(tickets.length);
+    $("tripSheetDetails").textContent = (route.starting_point || "—") + " → " + (route.ending_point || "—") + " | " + (bus.bus_name || "Bus নেই") + " | Coach: " + (trip.coach_number || "—") + " | Journey: " + journey + " | Status: " + (trip.status || "—");
+    $("tripSheetDetails").classList.remove("hidden");
+    if (!tickets.length) {
+      $("tripSheetTableWrap").innerHTML = '<div class="empty">এই Trip-এ বর্তমানে কোনো বিক্রিত Ticket নেই।</div>';
+      $("tripSheetMessage").textContent = "বিক্রিত Ticket: ০";
+      $("tripSheetMessage").className = "message section";
+      return;
+    }
+    const esc = value => escapeHtml(value ?? "—");
+    const rows = tickets.map((ticket,index) => `<tr><td>${index+1}</td><td><b>${esc(ticket.seat_number)}</b></td><td>${esc(ticket.passenger_name)}</td><td>${esc(ticket.passenger_phone)}</td><td>${esc(ticket.passenger_gender)}</td><td>${esc(stops.get(ticket.boarding_stop_id) || "—")}</td><td>${esc(stops.get(ticket.dropping_stop_id) || "—")}</td><td>৳${esc(ticket.ticket_price)}</td></tr>`).join("");
+    $("tripSheetTableWrap").innerHTML = `<table id="tripSheetTable"><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th></tr></thead><tbody>${rows}</tbody></table>`;
+    $("tripSheetMessage").textContent = "বিক্রিত Ticket: " + tickets.length + "টি। Cancelled Ticket এই তালিকায় নেই।";
+    $("tripSheetMessage").className = "message section ok";
+    $("tripSheetPrint").disabled = false;
+  } catch(error) {
+    console.error("TRIP SHEET LOAD ERROR:",error);
+    $("tripSheetCount").textContent = "—";
+    $("tripSheetMessage").textContent = "Trip Sheet লোড হয়নি: " + error.message;
+    $("tripSheetMessage").className = "message section error";
+    $("tripSheetTableWrap").innerHTML = '<div class="empty">Passenger List লোড করা যায়নি।</div>';
+  }
+}
+
+$("tripSheetTrip").addEventListener("change",() => loadTripSheet($("tripSheetTrip").value));
+$("tripSheetRefresh").addEventListener("click",loadTripSheetTrips);
+$("tripSheetPrint").addEventListener("click",() => {
+  const table = $("tripSheetTable");
+  if (!table) return;
+  const printWindow = window.open("","_blank","width=1000,height=750");
+  if (!printWindow) {
+    $("tripSheetMessage").textContent = "Browser popup বন্ধ করেছে। এই সাইটের জন্য pop-up অনুমতি দিয়ে আবার Print করুন।";
+    $("tripSheetMessage").className = "message section error";
+    return;
+  }
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>body{font-family:Arial,sans-serif;padding:22px;color:#142b35}h1{color:#124c4b}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #ccd6d4;padding:8px;text-align:left}th{background:#e9f0ec}@media print{body{padding:0}}</style></head><body><h1>BUSNEX — TRIP SHEET</h1><p>${escapeHtml($("tripSheetDetails").textContent)}</p>${table.outerHTML}</body></html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.onload = () => printWindow.print();
+});
 
 async function loadSeatInventory(tripId) {
   $("seatLayout").innerHTML = "";
