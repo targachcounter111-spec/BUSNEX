@@ -1539,7 +1539,7 @@ async function loadSeatInventory(tripId) {
         .order("seat_order",{ascending:true}),
       supabase
         .from("trip_seats")
-        .select("seat_number,status,hold_until")
+        .select("seat_number,status,hold_until,held_by,held_counter_id,reservation_id")
         .eq("trip_id",tripId)
     ]);
 
@@ -1562,6 +1562,7 @@ async function loadSeatInventory(tripId) {
     let available = 0;
     let sold = 0;
     let reserved = 0;
+    let held = 0;
     let blocked = 0;
     let unknown = 0;
 
@@ -1573,20 +1574,37 @@ async function loadSeatInventory(tripId) {
       if (rawStatus === "available") state = "available";
       else if (rawStatus === "sold") state = "sold";
       else if (rawStatus === "reserved") state = "reserved";
+      else if (rawStatus === "held") {
+        state = record?.reservation_id ? "reserved" : "held";
+      }
       else if (rawStatus === "blocked") state = "blocked";
 
       if (state === "available") available++;
       else if (state === "sold") sold++;
       else if (state === "reserved") reserved++;
+      else if (state === "held") held++;
       else if (state === "blocked") blocked++;
       else unknown++;
 
       const div = document.createElement("div");
       div.className = "seat " + state;
       div.textContent = seat.seat_number;
-      div.title = state === "unknown"
-        ? "এই Trip-এর জন্য Seat Status পাওয়া যায়নি"
-        : "Seat Status: " + state;
+      if (state === "held") {
+        const expiry = record?.hold_until
+          ? new Date(record.hold_until).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"})
+          : "সময় পাওয়া যায়নি";
+        div.title = "সাময়িক Hold | Counter ID: " +
+          (record?.held_counter_id || "তথ্য নেই") +
+          " | User ID: " + (record?.held_by || "তথ্য নেই") +
+          " | Hold শেষ: " + expiry;
+        div.style.background = "#ede9fe";
+        div.style.color = "#5b21b6";
+        div.style.borderColor = "#8b5cf6";
+      } else {
+        div.title = state === "unknown"
+          ? "এই Trip-এর জন্য Seat Status পাওয়া যায়নি"
+          : "Seat Status: " + state;
+      }
       div.style.gridRow = "ABCDEFGHIJKLM".indexOf(seat.row_label) + 1;
       // Four-seat rows leave the middle column empty for the aisle.
       // A five-seat end row (K on a 45-seat bus or J on a 41-seat bus)
@@ -1608,6 +1626,7 @@ async function loadSeatInventory(tripId) {
       " | খালি: " + available +
       " | বিক্রিত: " + sold +
       " | সংরক্ষিত: " + reserved +
+      " | সাময়িক Hold: " + held +
       " | ব্লক: " + blocked +
       " | তথ্য নেই: " + unknown;
 
