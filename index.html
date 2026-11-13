@@ -2259,67 +2259,40 @@ async function loadTripSheetTrips() {
 }
 
 async function loadTripSheet(tripId) {
-  $("tripSheetCount").textContent = "…";
-  $("tripSheetPrint").disabled = true;
+  $("tripSheetCount").textContent="…"; $("tripSheetPrint").disabled=true;
   $("tripSheetDetails").classList.add("hidden");
-  $("tripSheetTableWrap").innerHTML = '<div class="empty">Passenger List লোড হচ্ছে...</div>';
-  if (!tripId) {
-    $("tripSheetCount").textContent = "—";
-    $("tripSheetMessage").textContent = "একটি Trip নির্বাচন করুন।";
-    return;
-  }
-  try {
-    const [tripResult,ticketResult] = await Promise.all([
+  $("tripSheetTableWrap").innerHTML='<div class="empty">Passenger List লোড হচ্ছে...</div>';
+  if(!tripId){$("tripSheetCount").textContent="—";$("tripSheetMessage").textContent="একটি Trip নির্বাচন করুন।";return;}
+  try{
+    const [tr,tks,pts]=await Promise.all([
       supabase.from("trips").select("id,departure_time,status,coach_number,ticket_price,buses(bus_name),routes(starting_point,ending_point),trip_stops(id,stop_name,stop_order)").eq("id",tripId).single(),
-      supabase.from("tickets").select("id,seat_number,passenger_name,passenger_phone,passenger_gender,ticket_price,status,created_at,boarding_stop_id,dropping_stop_id,counter_id").eq("trip_id",tripId).eq("status","sold").order("seat_number",{ascending:true})
+      supabase.from("tickets").select("id,seat_number,passenger_name,passenger_phone,passenger_gender,ticket_price,status,created_at,boarding_stop_id,dropping_stop_id,counter_id").eq("trip_id",tripId).eq("status","sold").order("seat_number",{ascending:true}),
+      supabase.from("trip_boarding_points").select("point_name,boarding_time,point_order").eq("trip_id",tripId).order("point_order",{ascending:true})
     ]);
-    if (tripResult.error) throw tripResult.error;
-    if (ticketResult.error) throw ticketResult.error;
-    const trip = tripResult.data;
-    const tickets = ticketResult.data || [];
-    const stops = new Map((trip.trip_stops || []).map(stop => [stop.id,stop.stop_name]));
-    const route = trip.routes || {};
-    const bus = trip.buses || {};
-    const journey = trip.departure_time ? new Date(trip.departure_time).toLocaleString("en-GB") : "—";
-    $("tripSheetCount").textContent = String(tickets.length);
-    $("tripSheetDetails").textContent = (route.starting_point || "—") + " → " + (route.ending_point || "—") + " | " + (bus.bus_name || "Bus নেই") + " | Coach: " + (trip.coach_number || "—") + " | Journey: " + journey + " | Status: " + (trip.status || "—");
+    if(tr.error)throw tr.error;if(tks.error)throw tks.error;if(pts.error)throw pts.error;
+    const trip=tr.data,tickets=tks.data||[],points=pts.data||[],route=trip.routes||{},bus=trip.buses||{};
+    const stops=new Map((trip.trip_stops||[]).map(x=>[x.id,x.stop_name]));
+    const esc=v=>escapeHtml(v??"—"),dt=trip.departure_time?new Date(trip.departure_time):null;
+    const journey=dt&&!Number.isNaN(dt.getTime())?dt.toLocaleString("en-GB"):"—";
+    const total=tickets.reduce((n,x)=>n+(Number(x.ticket_price)||0),0);
+    const rows=tickets.map((x,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+esc(x.seat_number)+'</b></td><td>'+esc(x.passenger_name)+'</td><td>'+esc(x.passenger_phone)+'</td><td>'+esc(x.passenger_gender)+'</td><td>'+esc(stops.get(x.boarding_stop_id)||"—")+'</td><td>'+esc(stops.get(x.dropping_stop_id)||"—")+'</td><td>৳'+esc(x.ticket_price)+'</td></tr>').join("");
+    const pointRows=points.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.point_name)+'</td><td>'+esc(x.boarding_time)+'</td></tr>').join("");
+    $("tripSheetCount").textContent=String(tickets.length);
+    $("tripSheetDetails").textContent=(route.starting_point||"—")+" → "+(route.ending_point||"—")+" | "+(bus.bus_name||"Bus নেই")+" | Coach: "+(trip.coach_number||"—")+" | Journey: "+journey+" | Status: "+(trip.status||"—");
     $("tripSheetDetails").classList.remove("hidden");
-    if (!tickets.length) {
-      $("tripSheetTableWrap").innerHTML = '<div class="empty">এই Trip-এ বর্তমানে কোনো বিক্রিত Ticket নেই।</div>';
-      $("tripSheetMessage").textContent = "বিক্রিত Ticket: ০";
-      $("tripSheetMessage").className = "message section";
-      return;
-    }
-    const esc = value => escapeHtml(value ?? "—");
-    const rows = tickets.map((ticket,index) => `<tr><td>${index+1}</td><td><b>${esc(ticket.seat_number)}</b></td><td>${esc(ticket.passenger_name)}</td><td>${esc(ticket.passenger_phone)}</td><td>${esc(ticket.passenger_gender)}</td><td>${esc(stops.get(ticket.boarding_stop_id) || "—")}</td><td>${esc(stops.get(ticket.dropping_stop_id) || "—")}</td><td>৳${esc(ticket.ticket_price)}</td></tr>`).join("");
-    $("tripSheetTableWrap").innerHTML = `<table id="tripSheetTable"><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th></tr></thead><tbody>${rows}</tbody></table>`;
-    $("tripSheetMessage").textContent = "বিক্রিত Ticket: " + tickets.length + "টি। Cancelled Ticket এই তালিকায় নেই।";
-    $("tripSheetMessage").className = "message section ok";
-    $("tripSheetPrint").disabled = false;
-  } catch(error) {
-    console.error("TRIP SHEET LOAD ERROR:",error);
-    $("tripSheetCount").textContent = "—";
-    $("tripSheetMessage").textContent = "Trip Sheet লোড হয়নি: " + error.message;
-    $("tripSheetMessage").className = "message section error";
-    $("tripSheetTableWrap").innerHTML = '<div class="empty">Passenger List লোড করা যায়নি।</div>';
-  }
+    $("tripSheetTableWrap").innerHTML='<table id="tripSheetTable"><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table>';
+    $("tripSheetMessage").textContent="বিক্রিত Ticket: "+tickets.length+"টি | মোট আদায়কৃত ভাড়া: ৳"+total.toFixed(2)+" | Cancelled Ticket বাদ";
+    $("tripSheetMessage").className="message section ok"; $("tripSheetPrint").disabled=false;
+    $("tripSheetPrint").dataset.printHtml='<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#183b38;margin:0;font-size:10px}.head{background:#123b3a;color:#fff;padding:18px 20px;border-bottom:4px solid #c18a55}.brand{font-size:23px;font-weight:900;letter-spacing:3px}.sub{color:#e2c49e;font-size:10px;letter-spacing:2px;margin-top:4px}.title{display:flex;justify-content:space-between;align-items:end;margin:18px 0 12px}.title h1{font-size:19px;margin:0}.status{border:1px solid #c18a55;padding:5px 10px;border-radius:20px;font-weight:bold}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}.fact{border:1px solid #d8e1dc;background:#f6f8f5;padding:9px}.fact span{display:block;color:#687a73;font-size:8px;text-transform:uppercase;margin-bottom:4px}.fact b{font-size:11px}.section-title{font-size:12px;margin:17px 0 7px;padding-bottom:5px;border-bottom:2px solid #c18a55}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #cbd5d0;padding:6px;text-align:left}th{background:#e8efea;color:#183b38}.summary{display:flex;justify-content:space-between;margin-top:12px;padding:12px;background:#f5f1e9;border:1px solid #d8e1dc;font-weight:bold}.foot{margin-top:24px;padding-top:9px;border-top:1px solid #cbd5d0;color:#718078;font-size:8px;display:flex;justify-content:space-between}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="brand">BUSNEX</div><div class="sub">BUS OPERATIONS · OFFICIAL TRIP DOCUMENT</div></header><div class="title"><h1>TRIP SHEET / যাত্রার তালিকা</h1><span class="status">'+esc(trip.status||"—").toUpperCase()+'</span></div><div class="facts"><div class="fact"><span>Route / রুট</span><b>'+esc(route.starting_point)+' → '+esc(route.ending_point)+'</b></div><div class="fact"><span>Bus / বাস</span><b>'+esc(bus.bus_name)+'</b></div><div class="fact"><span>Coach No.</span><b>'+esc(trip.coach_number)+'</b></div><div class="fact"><span>Departure / যাত্রা</span><b>'+esc(journey)+'</b></div><div class="fact"><span>Ticket Fare / ভাড়া</span><b>৳'+esc(trip.ticket_price)+'</b></div><div class="fact"><span>Sold Seats / বিক্রিত সিট</span><b>'+tickets.length+'</b></div></div><div class="section-title">BOARDING SCHEDULE / ওঠার সময়সূচি</div><table><thead><tr><th>#</th><th>Boarding Point</th><th>Time</th></tr></thead><tbody>'+(pointRows||'<tr><td colspan="3">কোনো Boarding Schedule পাওয়া যায়নি</td></tr>')+'</tbody></table><div class="section-title">PASSENGER MANIFEST / যাত্রী তালিকা</div><table><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table><div class="summary"><span>Total Passengers: '+tickets.length+'</span><span>Total Collected Fare: ৳'+total.toFixed(2)+'</span></div><footer class="foot"><span>BUSNEX · Official Counter Trip Sheet</span><span>Printed: '+esc(new Date().toLocaleString("en-GB"))+'</span></footer></body></html>';
+  }catch(error){console.error("TRIP SHEET LOAD ERROR:",error);$("tripSheetCount").textContent="—";$("tripSheetMessage").textContent="Trip Sheet লোড হয়নি: "+error.message;$("tripSheetMessage").className="message section error";$("tripSheetTableWrap").innerHTML='<div class="empty">Passenger List লোড করা যায়নি।</div>';}
 }
-
-$("tripSheetTrip").addEventListener("change",() => loadTripSheet($("tripSheetTrip").value));
+$("tripSheetTrip").addEventListener("change",()=>loadTripSheet($("tripSheetTrip").value));
 $("tripSheetRefresh").addEventListener("click",loadTripSheetTrips);
-$("tripSheetPrint").addEventListener("click",() => {
-  const table = $("tripSheetTable");
-  if (!table) return;
-  const printWindow = window.open("","_blank","width=1000,height=750");
-  if (!printWindow) {
-    $("tripSheetMessage").textContent = "Browser popup বন্ধ করেছে। এই সাইটের জন্য pop-up অনুমতি দিয়ে আবার Print করুন।";
-    $("tripSheetMessage").className = "message section error";
-    return;
-  }
-  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>body{font-family:Arial,sans-serif;padding:22px;color:#142b35}h1{color:#124c4b}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #ccd6d4;padding:8px;text-align:left}th{background:#e9f0ec}@media print{body{padding:0}}</style></head><body><h1>BUSNEX — TRIP SHEET</h1><p>${escapeHtml($("tripSheetDetails").textContent)}</p>${table.outerHTML}</body></html>`);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.onload = () => printWindow.print();
+$("tripSheetPrint").addEventListener("click",()=>{
+  const html=$("tripSheetPrint").dataset.printHtml;if(!html)return;
+  const w=window.open("","_blank","width=1000,height=800");
+  if(!w){$("tripSheetMessage").textContent="Browser popup বন্ধ করেছে। Pop-up permission দিয়ে আবার Print করুন।";$("tripSheetMessage").className="message section error";return;}
+  w.document.open();w.document.write(html);w.document.close();w.onload=()=>{w.focus();w.print();};
 });
 
 async function loadSeatInventory(tripId) {
@@ -2588,24 +2561,30 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const style = document.createElement("style");
     style.id = "busnex-booking-workspace-style";
     style.textContent = `
-      .booking-trip-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:10px 12px;margin:12px 0 14px;background:#123b3a;border:1px solid #c18a55;border-radius:9px}
+      .booking-trip-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 14px;margin:12px 0 16px;background:linear-gradient(115deg,#102f30,#1d554d);border:1px solid #c18a55;border-radius:13px;box-shadow:0 10px 24px rgba(16,47,48,.16)}
       .booking-trip-status{margin-right:auto;color:#fff;background:#2d6656;padding:8px 13px;border-radius:4px;font-size:12px;font-weight:900;letter-spacing:.04em}
       .booking-trip-status.cancelled{background:#a64238}.booking-trip-status.departed{background:#526d78}
       .booking-trip-toolbar button{border-radius:4px;padding:9px 14px;font-size:11px;font-weight:900;letter-spacing:.04em}
       .booking-workspace{display:grid;grid-template-columns:minmax(245px,.38fr) minmax(0,.62fr);gap:12px;align-items:start;margin-top:10px}
-      .booking-seat-panel,.booking-passenger-panel{min-width:0;background:#fff;border:1px solid #b9b9b9;border-radius:2px;padding:10px}
-      .booking-seat-panel{background:#fbfaf6}
+      .booking-seat-panel,.booking-passenger-panel{min-width:0;background:linear-gradient(180deg,#fffefa,#f8f5ed);border:1px solid #dfd3c1;border-radius:13px;padding:14px;box-shadow:0 10px 26px rgba(35,54,48,.08)}
+      .booking-seat-panel{background:linear-gradient(160deg,#fffefa,#f1eee5)}
       .booking-seat-panel .seats{margin:10px auto;max-width:100%;grid-template-columns:repeat(5,minmax(30px,1fr));gap:6px 5px;padding:9px;border-radius:3px}
       .booking-seat-panel .seat{min-height:39px;border-radius:3px;font-size:12px}
       .booking-passenger-panel{position:static;max-height:none;overflow:visible;border-radius:2px}
       .booking-passenger-panel:empty{display:block;min-height:130px}
-      .booking-passenger-panel h4{margin:0 0 10px;padding:7px 9px;background:#f0eee8;border:1px solid #b9b9b9;color:#173b38;font-size:13px;letter-spacing:.04em}
+      .booking-passenger-panel h4{margin:0 0 12px;padding:11px 13px;background:linear-gradient(105deg,#123b3a,#23675d);border:1px solid #c18a55;border-radius:8px;color:#fff;font-size:13px;letter-spacing:.06em;box-shadow:0 5px 12px rgba(18,59,58,.12)}
       .booking-passenger-panel .card{box-shadow:none;background:#fff;border:0;padding:8px}
       .booking-passenger-panel .form-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
       .booking-passenger-panel .field{margin:5px 0;gap:5px}
       .booking-passenger-panel .field label{font-size:10px;text-transform:uppercase;letter-spacing:.045em}
       .booking-passenger-panel .field input,.booking-passenger-panel .field select{padding:9px 10px;border-radius:3px;min-height:37px}
-      .booking-seat-summary{margin:0 0 8px;font-weight:700}
+      .booking-seat-summary{margin:0 0 10px;padding:10px 12px;background:#e9f0e9;border:1px solid #d3e0d5;border-left:4px solid #c18a55;border-radius:8px;color:#244d45;font-weight:800;line-height:1.6}
+      .booking-seat-panel .seat{border-radius:9px;box-shadow:0 3px 8px rgba(20,49,44,.10);transition:transform .15s,box-shadow .15s}
+      .booking-seat-panel .seat.available:hover{transform:translateY(-2px);box-shadow:0 7px 14px rgba(20,49,44,.15)}
+      .booking-seat-panel .seat.selected{background:linear-gradient(135deg,#174f4b,#c18a55);border-color:#a97748;color:#fff;box-shadow:0 5px 14px rgba(18,59,58,.22)}
+      .booking-seat-panel>p.small:not(.booking-seat-summary){padding:9px 11px;background:#f5f1e9;border:1px dashed #d5c3aa;border-radius:8px;color:#244d45;font-weight:800}
+      .booking-passenger-panel .btn.btn-primary{display:block;width:100%;min-height:54px;margin-top:16px;padding:14px 18px;background:linear-gradient(110deg,#123b3a 0%,#1d665c 65%,#b98250 100%);border:1px solid #c18a55;border-radius:12px;color:#fff;font-size:15px;font-weight:900;letter-spacing:.02em;box-shadow:0 9px 20px rgba(18,59,58,.2)}
+      .booking-passenger-panel .btn.btn-primary:hover{filter:brightness(1.06);transform:translateY(-2px)}
       .booking-passenger-panel .notice{margin:8px 0;padding:9px;font-size:11px}
       .booking-passenger-panel button{border-radius:3px}
       @media(max-width:900px){.booking-workspace{grid-template-columns:minmax(0,1fr)}.booking-seat-panel .seats{max-width:440px}.booking-passenger-panel .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
