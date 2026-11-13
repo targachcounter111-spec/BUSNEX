@@ -2695,8 +2695,17 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         const style = document.createElement("style");
         style.id = styleId;
         style.textContent = `
-          .busnex-ticket-overlay{position:fixed;inset:0;background:rgba(8,20,36,.68);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
-          .busnex-ticket-modal{background:#fff;width:min(1120px,97vw);max-height:94vh;overflow:auto;border-radius:4px;box-shadow:0 24px 70px #0005;padding:22px;position:relative;border:1px solid #d5dbe3}
+          .busnex-ticket-overlay{position:fixed;inset:0;background:rgba(8,20,36,.58);z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px;overscroll-behavior:contain}
+          .busnex-ticket-modal{background:#fff;width:min(980px,96vw);max-height:92vh;overflow:auto;overscroll-behavior:contain;border-radius:3px;box-shadow:0 12px 36px #0004;padding:16px;position:relative;border:1px solid #c8c8c8}
+          .busnex-ticket-close{position:relative;z-index:2;cursor:pointer;min-width:110px}
+          .busnex-ticket-actions button{min-width:140px;min-height:42px;cursor:pointer}
+          .busnex-premium-ticket{background:#fff!important;color:#111!important;border:1px solid #777!important;border-radius:2px!important;box-shadow:none!important;padding:18px!important}
+          .bpt-brand strong,.bpt-route strong,.bpt-passenger>strong,.bpt-seat strong,.bpt-facts strong{color:#111!important}
+          .bpt-brand small,.bpt-status,.bpt-route small,.bpt-passenger small,.bpt-seat small,.bpt-facts small,.bpt-passenger>span,.bpt-bottom{color:#444!important}
+          .bpt-status,.bpt-seat{background:#fff!important;border:1px solid #999!important;border-radius:2px!important;color:#111!important}
+          .bpt-mark{border:1px solid #555!important;color:#111!important;border-radius:2px!important}
+          .bpt-route,.bpt-facts,.bpt-bottom{border-color:#aaa!important}
+          .bpt-watermark{display:none!important}
           .busnex-ticket-modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e2e8f0;padding-bottom:13px;margin-bottom:16px}
           .busnex-ticket-modal-head h2{margin:0;color:#10243d;font-size:20px}
           .busnex-ticket-close{background:#eef2f7;color:#243449;padding:8px 13px}
@@ -2749,10 +2758,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       document.addEventListener("keydown",onEscape);
 
       try {
-        const {data:details,error:detailsError} = await supabase.rpc(
+        const detailsRequest = supabase.rpc(
           "busnex_get_ticket_details",
           {p_trip_id:trip.id,p_seat_number:seatNumber}
         );
+        const timeoutRequest = new Promise((_,reject) => setTimeout(() => reject(new Error("Ticket তথ্য আনতে ১২ সেকেন্ডের বেশি সময় লাগছে। Close করে আবার চেষ্টা করুন।")),12000));
+        const {data:details,error:detailsError} = await Promise.race([detailsRequest,timeoutRequest]);
+        if (!overlay.isConnected) return;
         if (detailsError) throw detailsError;
         if (!details || !details.ticket) throw new Error("বিক্রিত Ticket-এর রেকর্ড পাওয়া যায়নি।");
 
@@ -2795,6 +2807,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           <div class="bpt-watermark">B</div>
         `;
         body.innerHTML = "";
+        if (!overlay.isConnected) return;
         body.appendChild(ticketPreview);
 
         const actions = document.createElement("div");
@@ -2910,10 +2923,23 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           },800);
         });
         actions.appendChild(print);
+        const closeFooter = document.createElement("button");
+        closeFooter.type = "button";
+        closeFooter.className = "secondary";
+        closeFooter.textContent = "✕ বন্ধ করুন";
+        closeFooter.addEventListener("click",closeModal);
+        actions.appendChild(closeFooter);
         body.appendChild(actions);
       } catch(error) {
+        if (!overlay.isConnected) return;
         console.error("SOLD TICKET DETAILS ERROR:",error);
         body.textContent = "Ticket তথ্য লোড করা যায়নি: " + error.message;
+        const retryClose = document.createElement("button");
+        retryClose.type = "button";
+        retryClose.className = "secondary";
+        retryClose.textContent = "✕ বন্ধ করুন";
+        retryClose.addEventListener("click",closeModal);
+        body.appendChild(retryClose);
       }
     }
 
