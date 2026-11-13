@@ -1,8 +1,11 @@
 -- BUSNEX: secure reservation lifecycle.
 -- Reservation permissions are granted per counter and type.
 -- Standard expires five minutes before departure; VIP has no expiry by default.
--- This migration does not charge the confirmation fee because its billing unit
--- (per reservation vs per seat) has not been specified.
+-- Confirmation is tracked separately while status remains active, so existing
+-- seat-sale protection that checks active reservations continues to protect seats.
+-- Confirmation fee is not recorded until its billing unit is confirmed.
+ALTER TABLE public.ticket_reservations
+  ADD COLUMN IF NOT EXISTS confirmed_at timestamptz;
 
 CREATE OR REPLACE FUNCTION public.busnex_create_reservation(
   p_trip_id uuid,
@@ -27,6 +30,7 @@ DECLARE
   v_reservation_id uuid;
   v_expiry timestamptz;
   v_seat text;
+  v_seat_row public.trip_seats%ROWTYPE;
   v_seat_count integer;
   v_board_order integer;
   v_drop_order integer;
@@ -98,10 +102,19 @@ BEGIN
   FOR v_seat IN
     SELECT btrim(s.seat) FROM unnest(p_seat_numbers) AS s(seat) ORDER BY btrim(s.seat)
   LOOP
-    PERFORM 1 FROM public.trip_seats ts
+    SELECT ts.* INTO v_seat_row
+    FROM public.trip_seats ts
     WHERE ts.trip_id = p_trip_id AND ts.seat_number = v_seat
     FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Seat % পাওয়া যায়নি', v_seat; END IF;
+    IF v_seat_row.status NOT IN ('available','held') THEN
+      RAISE EXCEPTION 'Seat % এখন Reservation-এর জন্য Available নয়', v_seat;
+    END IF;
+    IF v_seat_row.status = 'held'
+       AND v_seat_row.hold_until > now()
+       AND v_seat_row.held_by IS DISTINCT FROM auth.uid() THEN
+      RAISE EXCEPTION 'Seat % অন্য Counter/User-এর Temporary Hold-এ আছে', v_seat;
+    END IF;
 
     IF EXISTS (
       SELECT 1 FROM public.tickets tk
@@ -175,7 +188,7 @@ BEGIN
   END IF;
 
   UPDATE public.ticket_reservations
-  SET status='confirmed', updated_at=now()
+  SET confirmed_at=COALESCE(confirmed_at,now()), updated_at=now()
   WHERE id=p_reservation_id;
   RETURN true;
 END;
@@ -209,7 +222,7 @@ BEGIN
     )
   FOR UPDATE OF r;
   IF NOT FOUND THEN RAISE EXCEPTION 'Reservation পাওয়া যায়নি অথবা অনুমতি নেই'; END IF;
-  IF v_status NOT IN ('active','confirmed') THEN RAISE EXCEPTION 'এই Reservation Cancel করা যাবে না'; END IF;
+  IF v_status <> 'active' THEN RAISE EXCEPTION 'এই Reservation Cancel করা যাবে না'; END IF;
 
   UPDATE public.ticket_reservations
   SET status='cancelled', updated_at=now()
@@ -254,7 +267,7 @@ BEGIN
 
   UPDATE public.ticket_reservations
   SET expires_at=p_expires_at, updated_at=now()
-  WHERE id=p_reservation_id AND status='active';
+  WHERE id=p_reservation_id AND status='active' AND confirmed_at IS NULL;
   RETURN FOUND;
 END;
 $function$;
