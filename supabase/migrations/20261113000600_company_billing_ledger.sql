@@ -87,7 +87,7 @@ DECLARE
   v_count integer;
   v_amount numeric(12,2);
 BEGIN
-  IF auth.uid() IS NULL OR public.busnex_user_role() <> 'super_admin' THEN
+  IF auth.uid() IS NULL OR public.busnex_user_role() IS DISTINCT FROM 'super_admin' THEN
     RAISE EXCEPTION 'Only Super Admin can generate invoices';
   END IF;
   IF p_company_id IS NULL OR p_period_start IS NULL OR p_period_end IS NULL
