@@ -12,7 +12,7 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Login required'; END IF;
   v_role := public.busnex_user_role();
   v_company_id := public.busnex_company_id();
-  IF v_role NOT IN ('company_manager','counter_operator') OR v_company_id IS NULL THEN
+  IF v_role IS DISTINCT FROM 'company_manager' AND v_role IS DISTINCT FROM 'counter_operator' OR v_company_id IS NULL THEN
     RAISE EXCEPTION 'Company billing summary is not available for this account';
   END IF;
 
