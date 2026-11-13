@@ -1846,14 +1846,14 @@ async function appendBookingSeatPicker(trip,card) {
           const printWindow = window.open("","_blank","width=1100,height=800");
           if (!printWindow) { alert("Print window খোলা যায়নি। Browser-এর popup permission চালু করুন।"); return; }
           printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BUSNEX Ticket ${esc(ticket.seat_number)}</title><style>
-            @page{size:A4 landscape;margin:0}
+            @page{size:A4 portrait;margin:0}
             *{box-sizing:border-box}
-            html,body{margin:0;width:297mm;height:210mm;font-family:Arial,sans-serif}
-            body{display:flex;align-items:center;justify-content:center;background:#fff;color:#153a3a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-            .ticket-strip{width:285mm;height:132mm;display:flex;flex-direction:row;overflow:hidden;border:1.1mm solid #b8794c;border-radius:2mm;background:#f7f3e9;box-shadow:0 0 0 .5mm #153a3a}
-            .ticket-part{height:100%;padding:7mm 5mm;position:relative;overflow:hidden;background:#f7f3e9;color:#153a3a}
+            html,body{margin:0;width:210mm;height:297mm;font-family:Arial,sans-serif}
+            body{display:flex;align-items:center;justify-content:flex-start;flex-direction:column;padding-top:8mm;background:#fff;color:#153a3a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+            .ticket-strip{flex:0 0 auto;width:198mm;height:91.7mm;display:flex;flex-direction:row;overflow:hidden;border:1mm solid #b8794c;border-radius:2mm;background:#f7f3e9;box-shadow:0 0 0 .5mm #153a3a}
+            .ticket-part{height:100%;padding:4mm 3.2mm;position:relative;overflow:hidden;background:#f7f3e9;color:#153a3a}
             .ticket-part.left,.ticket-part.right{width:27%;background:#e9eee8}
-            .ticket-part.center{width:46%;background:#153a3a;color:#fff;padding:8mm 7mm}
+            .ticket-part.center{width:46%;background:#153a3a;color:#fff;padding:4.5mm 4mm}
             .ticket-part:not(:last-child){border-right:1mm dashed #b8794c}
             .part-head{display:flex;align-items:center;gap:2.5mm;padding-bottom:3mm;border-bottom:.4mm solid #b8794c}
             .brand-mark{width:10mm;height:10mm;border:.5mm solid #b8794c;border-radius:2mm;display:grid;place-items:center;font-size:19pt;font-weight:900;color:#b8794c}
@@ -1861,24 +1861,24 @@ async function appendBookingSeatPicker(trip,card) {
             .brand-name small{display:block;font-size:6pt;letter-spacing:1pt;font-weight:600}
             .copy-label{margin-left:auto;font-size:7pt;color:#9b613e;letter-spacing:.5pt;text-align:right}
             .center .copy-label{color:#f3d7b7}
-            .status{font-size:8pt;text-align:center;margin:4mm 0;color:#f3d7b7;letter-spacing:.6pt;font-weight:bold}
-            .main-passenger{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin:5mm 0}
+            .status{font-size:8pt;text-align:center;margin:2mm 0;color:#f3d7b7;letter-spacing:.6pt;font-weight:bold}
+            .main-passenger{display:flex;justify-content:space-between;align-items:center;gap:2.5mm;margin:2.5mm 0}
             .main-passenger small,.journey-line small{display:block;font-size:7pt;letter-spacing:1pt;color:#b9c8c1}
             .main-passenger strong{display:block;font-size:20pt;margin:1.5mm 0;color:#fff}
             .main-passenger span{font-size:9pt;color:#d9e2dc}
             .seat-box{min-width:25mm;text-align:center;background:#f3d7b7;color:#153a3a;border-radius:2mm;padding:2.5mm}
             .seat-box small{color:#76543e}.seat-box b{display:block;font-size:27pt}
-            .journey-line{display:flex;align-items:center;gap:3mm;padding:4mm 0;border-top:.3mm solid #ffffff45;border-bottom:.3mm solid #ffffff45}
+            .journey-line{display:flex;align-items:center;gap:3mm;padding:2.5mm 0;border-top:.3mm solid #ffffff45;border-bottom:.3mm solid #ffffff45}
             .journey-line>div{flex:1;min-width:0}.journey-line b{display:block;font-size:13pt;margin-top:1.5mm;overflow-wrap:anywhere;color:#fff}
             .journey-line i{font-style:normal;color:#f3d7b7;font-size:19pt}
-            .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:3mm 5mm;margin-top:4mm}
+            .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:2mm 3mm;margin-top:2.5mm}
             .detail-grid span,.side-info span{font-size:7pt;color:#b9c8c1}
             .detail-grid strong,.side-info strong{display:block;font-size:9pt;color:inherit;margin-top:1mm;overflow-wrap:anywhere}
-            .issued{font-size:7pt;margin-top:4mm;padding-top:2mm;border-top:.3mm dashed #ffffff55;color:#f3d7b7}
-            .side-info{display:flex;flex-direction:column;gap:3mm;margin-top:5mm}
+            .issued{font-size:7pt;margin-top:2.5mm;padding-top:1.5mm;border-top:.3mm dashed #ffffff55;color:#f3d7b7}
+            .side-info{display:flex;flex-direction:column;gap:1.8mm;margin-top:3mm}
             .side-info span{font-size:7.5pt;color:#526b64}
             .side-info strong{font-size:9pt;color:#153a3a}
-            .side-foot{position:absolute;bottom:5mm;left:5mm;right:5mm;padding-top:2mm;border-top:.3mm solid #b8794c;font-size:6pt;letter-spacing:.5pt;color:#9b613e}
+            .side-foot{position:absolute;bottom:3mm;left:3mm;right:3mm;padding-top:1.5mm;border-top:.3mm solid #b8794c;font-size:6pt;letter-spacing:.5pt;color:#9b613e}
             @media print{html,body{width:297mm;height:210mm}.ticket-strip{box-shadow:none}}
           </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
           printWindow.document.close();
