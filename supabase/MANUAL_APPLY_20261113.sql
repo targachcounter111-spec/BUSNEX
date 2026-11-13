@@ -816,10 +816,23 @@ BEGIN
     END IF;
   END LOOP;
 
-  UPDATE public.ticket_reservations
-  SET status = 'expired', updated_at = now()
-  WHERE trip_id = p_trip_id AND status = 'active'
-    AND expires_at IS NOT NULL AND expires_at <= now();
+  -- Expire old reservations and release every linked inventory row atomically.
+  WITH expired_reservations AS (
+    UPDATE public.ticket_reservations AS r
+    SET status = 'expired',
+        updated_at = now()
+    WHERE r.trip_id = p_trip_id
+      AND r.status = 'active'
+      AND r.expires_at IS NOT NULL
+      AND r.expires_at <= now()
+    RETURNING r.id
+  )
+  UPDATE public.trip_seats AS ts
+  SET reservation_id = NULL
+  WHERE ts.reservation_id IN (
+    SELECT er.id
+    FROM expired_reservations AS er
+  );
 
   INSERT INTO public.ticket_reservations
     (trip_id, counter_id, reserved_by, reservation_type, status, expires_at, created_at, updated_at)
