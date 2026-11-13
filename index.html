@@ -243,6 +243,9 @@ th{color:#52647b;background:#f8fafc}
       <button class="nav-btn admin-only" data-page="trips">⇄ Trip Management</button>
       <button class="nav-btn" data-page="seats">▤ Seat Layout</button>
       <button class="nav-btn" data-page="sheet">☷ Trip Sheet</button>
+      <button class="nav-btn" data-page="reservations">▣ Reservations</button>
+      <button class="nav-btn manager-only" data-page="counters">♙ Counters & Access</button>
+      <button class="nav-btn" data-page="billing">৳ Billing</button>
     </aside>
 
     <main class="main">
@@ -419,6 +422,19 @@ th{color:#52647b;background:#f8fafc}
         </div>
       </section>
 
+      <section id="page-reservations" class="page hidden">
+        <div class="page-head"><div><h1>Reservations</h1><div class="muted small">আপনার অনুমোদিত Company/Counter-এর Reservation</div></div><button id="reservationRefresh" class="secondary" type="button">↻ Refresh</button></div>
+        <div class="card"><div class="notice">এখানে Reservation-এর বর্তমান Database Record দেখা যাবে। নতুন Reservation, Confirm, Cancel এবং Expiry পরিবর্তনের জন্য নিরাপদ server-side RPC সংযুক্ত করা প্রয়োজন—সরাসরি Database write করা হচ্ছে না।</div><div id="reservationMessage" class="message section">তথ্য লোড করতে Reservations খুলুন।</div><div id="reservationList" class="table-wrap"><div class="empty">Reservation তালিকা লোড হয়নি।</div></div></div>
+      </section>
+      <section id="page-counters" class="page hidden">
+        <div class="page-head"><div><h1>Counters & Access</h1><div class="muted small">Company Counter Directory ও Reservation Permission</div></div><button id="counterRefresh" class="secondary" type="button">↻ Refresh</button></div>
+        <div class="card"><h2>Counter List</h2><div id="counterDirectoryMessage" class="message">Counter তালিকা লোড করতে Refresh করুন।</div><div id="counterDirectory" class="table-wrap"><div class="empty">কোনো তথ্য লোড হয়নি।</div></div></div>
+        <div class="card section"><h2>Reservation Permission</h2><div class="notice">Permission Grant/Revoke-এর নিরাপদ RPC এখনো যুক্ত হয়নি। তাই এই অংশে শুধু বিদ্যমান Permission দেখা যাবে; কোনো অনুমতি পরিবর্তন করা হবে না।</div><div id="permissionMessage" class="message">Permission তালিকা লোড হয়নি।</div><div id="permissionList" class="table-wrap"><div class="empty">তথ্য লোড হয়নি।</div></div></div>
+      </section>
+      <section id="page-billing" class="page hidden">
+        <div class="page-head"><div><h1>Billing</h1><div class="muted small">মাসিক Ticket Sale হিসাব</div></div><button id="billingRefresh" class="secondary" type="button">↻ হিসাব Refresh</button></div>
+        <div class="card"><div class="notice">বর্তমান নীতিমালা অনুযায়ী প্রতি Sold Ticket ৳০.৫০ ধরে হিসাব দেখানো হবে। এটি বিক্রির আনুমানিক Service Charge; Payment Received, Due Settlement বা Invoice History দেখানোর জন্য Payment Ledger এখনো Database-এ নেই।</div><div class="form-row"><div class="field"><label>মাস নির্বাচন</label><input id="billingMonth" type="month"></div></div><div id="billingMessage" class="message">মাস নির্বাচন করে হিসাব দেখুন।</div><div class="grid"><div class="card"><div class="stat-label">Sold Ticket</div><div id="billingSoldCount" class="stat-value">—</div></div><div class="card"><div class="stat-label">Service Charge</div><div id="billingCharge" class="stat-value">—</div></div></div><div id="billingCompanyList" class="table-wrap section"></div></div>
+      </section>
       <div class="footer">BUSNEX • Bus Counter Management System</div>
     </main>
   </div>
@@ -1450,6 +1466,9 @@ document.querySelectorAll(".nav-btn").forEach(button => {
     if (button.dataset.page === "sheet") {
       await loadTripSheetTrips();
     }
+    if (button.dataset.page === "reservations") await loadReservationsPage();
+    if (button.dataset.page === "counters") await loadCounterDirectory();
+    if (button.dataset.page === "billing") await loadBillingPage();
   });
 });
 
@@ -1519,6 +1538,101 @@ async function loadSeatTrips() {
     seatMessage("Trip লোড হয়নি: " + error.message,"error");
   }
 }
+
+function safeTable(rows,columns) {
+  if (!rows?.length) return '<div class="empty">কোনো Record পাওয়া যায়নি।</div>';
+  return '<table><thead><tr>'+columns.map(c=>'<th>'+escapeHtml(c.label)+'</th>').join('')+'</tr></thead><tbody>'+
+    rows.map(row=>'<tr>'+columns.map(c=>'<td>'+escapeHtml(c.value(row) ?? "—")+'</td>').join('')+'</tr>').join('')+
+    '</tbody></table>';
+}
+
+async function loadReservationsPage() {
+  $("reservationMessage").textContent = "Reservation লোড হচ্ছে...";
+  try {
+    const {data,error} = await supabase.from("ticket_reservations").select("*").order("created_at",{ascending:false}).limit(300);
+    if (error) throw error;
+    const rows = data || [];
+    $("reservationList").innerHTML = safeTable(rows,[
+      {label:"Reservation ID",value:r=>r.id},
+      {label:"Trip",value:r=>r.trip_id},
+      {label:"Type",value:r=>r.reservation_type},
+      {label:"Status",value:r=>r.status},
+      {label:"Expiry",value:r=>r.expires_at ? new Date(r.expires_at).toLocaleString("en-GB") : "VIP / নির্দিষ্ট নয়"},
+      {label:"Created",value:r=>r.created_at ? new Date(r.created_at).toLocaleString("en-GB") : "—"}
+    ]);
+    $("reservationMessage").textContent = rows.length+"টি Reservation Record পাওয়া গেছে।";
+    $("reservationMessage").className = "message section ok";
+  } catch(error) {
+    $("reservationMessage").textContent = "Reservation লোড হয়নি: "+error.message;
+    $("reservationMessage").className = "message section error";
+    $("reservationList").innerHTML = '<div class="empty">RLS/Database Error-এর কারণে তথ্য পাওয়া যায়নি।</div>';
+  }
+}
+
+async function loadCounterDirectory() {
+  $("counterDirectoryMessage").textContent = "Counter লোড হচ্ছে...";
+  $("permissionMessage").textContent = "Permission লোড হচ্ছে...";
+  try {
+    let query=supabase.from("counters").select("id,company_id,name,address,created_at").order("name");
+    if(currentProfile.role!=="super_admin") query=query.eq("company_id",currentProfile.company_id);
+    const {data,error}=await query;
+    if(error) throw error;
+    $("counterDirectory").innerHTML=safeTable(data||[],[
+      {label:"Counter",value:r=>r.name},{label:"Address",value:r=>r.address},{label:"Counter ID",value:r=>r.id}
+    ]);
+    $("counterDirectoryMessage").textContent=(data||[]).length+"টি Counter পাওয়া গেছে।";
+  } catch(error) {
+    $("counterDirectoryMessage").textContent="Counter লোড হয়নি: "+error.message;
+    $("counterDirectory").innerHTML='<div class="empty">Counter তালিকা পাওয়া যায়নি।</div>';
+  }
+  try {
+    const {data,error}=await supabase.from("counter_reservation_permissions").select("*").order("created_at",{ascending:false}).limit(300);
+    if(error) throw error;
+    $("permissionList").innerHTML=safeTable(data||[],[
+      {label:"Counter ID",value:r=>r.counter_id},{label:"Type",value:r=>r.reservation_type},
+      {label:"Active",value:r=>r.is_active ? "হ্যাঁ" : "না"},{label:"Granted",value:r=>r.created_at ? new Date(r.created_at).toLocaleString("en-GB") : "—"}
+    ]);
+    $("permissionMessage").textContent=(data||[]).length+"টি Permission Record পাওয়া গেছে।";
+  } catch(error) {
+    $("permissionMessage").textContent="Permission লোড হয়নি: "+error.message;
+    $("permissionList").innerHTML='<div class="empty">Permission তথ্য পাওয়া যায়নি।</div>';
+  }
+}
+
+async function loadBillingPage() {
+  const month=$("billingMonth").value;
+  if(!month) { $("billingMessage").textContent="একটি মাস নির্বাচন করুন।"; return; }
+  const start=new Date(month+"-01T00:00:00");
+  const end=new Date(start.getFullYear(),start.getMonth()+1,1);
+  $("billingMessage").textContent="Sold Ticket হিসাব হচ্ছে...";
+  try {
+    let q=supabase.from("tickets").select("id,trip_id,ticket_price,created_at,trips!inner(company_id)").eq("status","sold").gte("created_at",start.toISOString()).lt("created_at",end.toISOString());
+    if(currentProfile.role!=="super_admin") {
+      if(!currentProfile.company_id) throw new Error("Company Assignment পাওয়া যায়নি।");
+      q=q.eq("trips.company_id",currentProfile.company_id);
+    }
+    const {data,error}=await q;
+    if(error) throw error;
+    const tickets=data||[];
+    const charge=tickets.length*0.5;
+    $("billingSoldCount").textContent=String(tickets.length);
+    $("billingCharge").textContent="৳"+charge.toFixed(2);
+    $("billingCompanyList").innerHTML=safeTable([{company:currentProfile.role==="super_admin"?"সব Company":currentProfile.company_id,count:tickets.length,charge:"৳"+charge.toFixed(2)}],[
+      {label:"Company",value:r=>r.company},{label:"Sold Ticket",value:r=>r.count},{label:"Service Charge",value:r=>r.charge}
+    ]);
+    $("billingMessage").textContent="হিসাব সম্পন্ন। শুধু status='sold' Ticket গণনা করা হয়েছে; এটি Payment/Due Status নয়।";
+    $("billingMessage").className="message section ok";
+  } catch(error) {
+    $("billingMessage").textContent="Billing হিসাব করা যায়নি: "+error.message;
+    $("billingMessage").className="message section error";
+  }
+}
+
+$("reservationRefresh").addEventListener("click",loadReservationsPage);
+$("counterRefresh").addEventListener("click",loadCounterDirectory);
+$("billingRefresh").addEventListener("click",loadBillingPage);
+$("billingMonth").value=new Date().toISOString().slice(0,7);
+$("billingMonth").addEventListener("change",loadBillingPage);
 
 async function loadTripSheetTrips() {
   const select = $("tripSheetTrip");
