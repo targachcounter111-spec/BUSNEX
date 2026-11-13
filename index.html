@@ -1348,6 +1348,10 @@ document.querySelectorAll(".nav-btn").forEach(button => {
       await prepareTripManagement();
     }
 
+    if (button.dataset.page === "booking") {
+      await loadBookingStopsForSelectedDate();
+    }
+
     if (button.dataset.page === "seats") {
       await loadSeatTrips();
     }
@@ -1552,12 +1556,12 @@ function bookingMessage(message,type = "") {
 }
 
 function localDateRange(dateValue) {
-  const start = new Date(dateValue + "T00:00:00");
-  if (Number.isNaN(start.getTime())) {
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateValue || "")) {
     throw new Error("সঠিক যাত্রার তারিখ নির্বাচন করুন।");
   }
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  // বাংলাদেশ সময় (UTC+06:00) অনুযায়ী নির্বাচিত দিনের শুরু ও শেষ।
+  const start = new Date(dateValue + "T00:00:00+06:00");
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return {start:start.toISOString(),end:end.toISOString()};
 }
 
@@ -2088,11 +2092,15 @@ $("tripDate").value = new Date().toLocaleDateString("en-CA");
 $("fromStop").disabled = true;
 $("toStop").disabled = true;
 
-$("journeyDate").addEventListener("change",async() => {
+let bookingDateLoadRequest = 0;
+
+async function loadBookingStopsForSelectedDate() {
   const date = $("journeyDate").value;
+  const requestId = ++bookingDateLoadRequest;
   $("fromStop").disabled = true;
   $("toStop").disabled = true;
   fillBookingStopOptions([]);
+
   if (!date) {
     bookingMessage("যাত্রার তারিখ নির্বাচন করুন।");
     return;
@@ -2101,15 +2109,20 @@ $("journeyDate").addEventListener("change",async() => {
   bookingMessage("এই তারিখের Trip ও Stop লোড হচ্ছে...");
   try {
     const trips = await fetchBookingTrips(date);
+    // দ্রুত তারিখ বদলালে পুরোনো Request-এর ফল নতুন তারিখের Option মুছে ফেলবে না।
+    if (requestId !== bookingDateLoadRequest || date !== $("journeyDate").value) return;
     fillBookingStopOptions(trips);
     bookingMessage(trips.length
       ? "এই তারিখে " + trips.length + "টি Trip পাওয়া গেছে। FROM ও TO নির্বাচন করুন।"
       : "এই তারিখে কোনো সক্রিয় Scheduled Trip পাওয়া যায়নি।");
   } catch(error) {
+    if (requestId !== bookingDateLoadRequest) return;
     console.error("BOOKING STOP LOAD ERROR:",error);
     bookingMessage("Trip/Stop লোড হয়নি: " + error.message,"error");
   }
-});
+}
+
+$("journeyDate").addEventListener("change",loadBookingStopsForSelectedDate);
 
 $("searchTripButton").addEventListener("click",async() => {
   const from = $("fromStop").value;
