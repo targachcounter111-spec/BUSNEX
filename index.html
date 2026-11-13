@@ -1720,6 +1720,15 @@ async function appendBookingSeatPicker(trip,card) {
           .busnex-ticket-field{background:#f6f9fc;border:1px solid #e3eaf2;border-radius:9px;padding:11px;min-width:0}
           .busnex-ticket-field small{display:block;color:#64748b;margin-bottom:5px}
           .busnex-ticket-field b{overflow-wrap:anywhere;color:#172b43}
+          .busnex-premium-ticket{position:relative;overflow:hidden;background:#101d2d;color:#f7f4eb;border-radius:16px;padding:24px 28px;border:1px solid #c7a66a;box-shadow:0 14px 36px rgba(13,27,43,.18);font-family:Arial,sans-serif}
+          .bpt-top,.bpt-brand,.bpt-route,.bpt-main,.bpt-bottom{display:flex;align-items:center;justify-content:space-between;gap:18px;position:relative;z-index:1}
+          .bpt-brand{justify-content:flex-start}.bpt-mark{width:44px;height:44px;display:grid;place-items:center;border:1px solid #c7a66a;border-radius:12px;color:#e2c58d;font-size:27px;font-weight:900}
+          .bpt-brand strong{display:block;letter-spacing:4px;font-size:23px;color:#f1d7a4}.bpt-brand small,.bpt-status,.bpt-route small,.bpt-passenger small,.bpt-seat small,.bpt-facts small{display:block;font-size:9px;letter-spacing:1.5px;color:#b9c5d1}
+          .bpt-status{border:1px solid #477e69;border-radius:30px;padding:8px 12px;color:#a9e0c2;white-space:nowrap}.bpt-status i{display:inline-block;width:7px;height:7px;background:#69d49b;border-radius:50%;margin-right:6px}
+          .bpt-route{margin:28px 0 22px;padding:18px 0;border-top:1px solid #ffffff25;border-bottom:1px solid #ffffff25}.bpt-route>div{flex:1}.bpt-route strong{display:block;font-size:23px;margin-top:7px;color:#fff}.bpt-route>span{color:#e3c58d;font-size:24px}
+          .bpt-main{align-items:stretch}.bpt-passenger{flex:1}.bpt-passenger>strong{display:block;font-size:24px;margin:8px 0}.bpt-passenger>span{color:#d3dce5;font-size:13px}.bpt-seat{min-width:130px;text-align:center;background:#e8d4aa;color:#152438;border-radius:12px;padding:12px}.bpt-seat small{color:#5d523f}.bpt-seat strong{display:block;font-size:38px;line-height:1.2;margin:5px}.bpt-seat span{font-size:11px;font-weight:bold}
+          .bpt-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:24px;padding-top:18px;border-top:1px dashed #ffffff55}.bpt-facts>div{min-width:0}.bpt-facts strong{display:block;margin-top:7px;font-size:13px;overflow-wrap:anywhere;color:#fff}
+          .bpt-bottom{margin-top:22px;padding-top:12px;border-top:1px solid #ffffff25;font-size:10px;letter-spacing:.5px;color:#d5c49f}.bpt-watermark{position:absolute;right:25%;top:20%;font-size:230px;font-weight:900;color:#ffffff08;pointer-events:none}
           .busnex-ticket-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
           .busnex-sold-tooltip{position:fixed;z-index:10000;background:#171923;color:#fff;padding:14px 16px;border-radius:8px;box-shadow:0 10px 28px #0005;font-size:14px;line-height:1.55;pointer-events:none;width:330px;max-width:calc(100vw - 16px);text-align:center;font-weight:600;border:1px solid #343844}
           @media(max-width:760px){.busnex-ticket-modal{padding:15px}.busnex-ticket-details{grid-template-columns:repeat(2,minmax(0,1fr))}.busnex-ticket-modal-head h2{font-size:17px}} @media(max-width:430px){.busnex-ticket-details{grid-template-columns:1fr}}
@@ -1784,28 +1793,30 @@ async function appendBookingSeatPicker(trip,card) {
         const busName = trip.buses?.bus_name || "—";
         const coach = trip.coach_number || "—";
         const journey = trip.departure_time ? new Date(trip.departure_time).toLocaleString("en-GB") : "—";
-        const values = [
-          ["Ticket ID",ticket.id],["যাত্রীর নাম",ticket.passenger_name],
-          ["মোবাইল",ticket.passenger_phone],["Gender",ticket.passenger_gender || "—"],
-          ["Seat Number",ticket.seat_number],["Coach",coach],["Bus",busName],
-          ["যাত্রার সময়",journey],["Boarding",stopName(ticket.boarding_stop_id)],
-          ["Dropping",stopName(ticket.dropping_stop_id)],["ভাড়া","৳" + ticket.ticket_price],
-          ["বিক্রির সময়",created],["বিক্রেতা",sellerText]
-        ];
+        const safe = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+        const ticketPreview = document.createElement("div");
+        ticketPreview.className = "busnex-premium-ticket";
+        ticketPreview.innerHTML = `
+          <div class="bpt-top">
+            <div class="bpt-brand"><span class="bpt-mark">B</span><div><strong>BUSNEX</strong><small>TRAVEL • VERIFIED JOURNEY</small></div></div>
+            <div class="bpt-status"><i></i> SOLD & ACTIVE</div>
+          </div>
+          <div class="bpt-route"><div><small>BOARDING FROM</small><strong>${safe(stopName(ticket.boarding_stop_id))}</strong></div><span>✦</span><div><small>DESTINATION</small><strong>${safe(stopName(ticket.dropping_stop_id))}</strong></div></div>
+          <div class="bpt-main">
+            <div class="bpt-passenger"><small>PASSENGER NAME</small><strong>${safe(ticket.passenger_name)}</strong><span>${safe(ticket.passenger_phone)} · ${safe(ticket.passenger_gender || "—")}</span></div>
+            <div class="bpt-seat"><small>YOUR SEAT</small><strong>${safe(ticket.seat_number)}</strong><span>COACH ${safe(coach)}</span></div>
+          </div>
+          <div class="bpt-facts">
+            <div><small>JOURNEY DATE & TIME</small><strong>${safe(journey)}</strong></div>
+            <div><small>BUS / COACH</small><strong>${safe(busName)} / ${safe(coach)}</strong></div>
+            <div><small>TICKET FARE</small><strong>৳${safe(ticket.ticket_price)}</strong></div>
+            <div><small>TICKET REFERENCE</small><strong>${safe(String(ticket.id).slice(0,13).toUpperCase())}</strong></div>
+          </div>
+          <div class="bpt-bottom"><span>ISSUED BY · ${safe(sellerText)}</span><span>KEEP THIS TICKET SAFE</span></div>
+          <div class="bpt-watermark">B</div>
+        `;
         body.innerHTML = "";
-        const details = document.createElement("div");
-        details.className = "busnex-ticket-details";
-        values.forEach(([label,value]) => {
-          const field = document.createElement("div");
-          field.className = "busnex-ticket-field";
-          const small = document.createElement("small");
-          small.textContent = label;
-          const strong = document.createElement("b");
-          strong.textContent = String(value ?? "—");
-          field.append(small,strong);
-          details.appendChild(field);
-        });
-        body.appendChild(details);
+        body.appendChild(ticketPreview);
 
         const actions = document.createElement("div");
         actions.className = "busnex-ticket-actions";
@@ -1817,36 +1828,28 @@ async function appendBookingSeatPicker(trip,card) {
           const esc = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
           const copy = label => `
             <section class="copy">
-              <header><strong>BUSNEX</strong><b>${label}</b></header>
-              <div class="route">${esc(stopName(ticket.boarding_stop_id))} → ${esc(stopName(ticket.dropping_stop_id))}</div>
-              <div class="grid">
-                <span>Ticket ID<strong>${esc(ticket.id)}</strong></span>
-                <span>Passenger<strong>${esc(ticket.passenger_name)}</strong></span>
-                <span>Phone<strong>${esc(ticket.passenger_phone)}</strong></span>
-                <span>Journey<strong>${esc(journey)}</strong></span>
-                <span>Coach<strong>${esc(coach)}</strong></span>
-                <span>Seat<strong>${esc(ticket.seat_number)}</strong></span>
-                <span>Fare<strong>৳${esc(ticket.ticket_price)}</strong></span>
-                <span>Counter / Seller<strong>${esc(sellerText)}</strong></span>
-              </div>
-              <div class="barcode">|||| || ||| || |||| ||| || ||||</div>
-              <footer>BUSNEX • নিরাপদ ও সহজ বাস টিকিট ব্যবস্থাপনা</footer>
+              <div class="pt-head"><div class="pt-brand"><b>B</b><span><strong>BUSNEX</strong><small>TRAVEL • VERIFIED JOURNEY</small></span></div><em>${label}</em></div>
+              <div class="pt-route"><div><small>BOARDING FROM</small><strong>${esc(stopName(ticket.boarding_stop_id))}</strong></div><i>✦</i><div><small>DESTINATION</small><strong>${esc(stopName(ticket.dropping_stop_id))}</strong></div></div>
+              <div class="pt-person"><div><small>PASSENGER NAME</small><strong>${esc(ticket.passenger_name)}</strong><span>${esc(ticket.passenger_phone)} · ${esc(ticket.passenger_gender || "—")}</span></div><aside><small>YOUR SEAT</small><b>${esc(ticket.seat_number)}</b><span>COACH ${esc(coach)}</span></aside></div>
+              <div class="pt-facts"><span>JOURNEY<strong>${esc(journey)}</strong></span><span>BUS / COACH<strong>${esc(busName)} / ${esc(coach)}</strong></span><span>FARE<strong>৳${esc(ticket.ticket_price)}</strong></span><span>REFERENCE<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span></div>
+              <div class="pt-foot"><span>ISSUED BY · ${esc(sellerText)}</span><span>KEEP THIS TICKET SAFE</span></div>
             </section>`;
           const printWindow = window.open("","_blank","width=1100,height=800");
           if (!printWindow) { alert("Print window খোলা যায়নি। Browser-এর popup permission চালু করুন।"); return; }
           printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BUSNEX Ticket ${esc(ticket.seat_number)}</title><style>
-            @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172b43;margin:0}
-            .copy{height:85mm;border:1.5px solid #243449;padding:8mm 10mm;margin:0 0 5mm;page-break-inside:avoid;position:relative}
-            .copy:not(:last-child){border-bottom:2px dashed #64748b}
-            header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1769aa;padding-bottom:7px}
-            header strong{font-size:25px;letter-spacing:2px;color:#1769aa}header b{font-size:16px}
-            .route{text-align:center;font-size:22px;font-weight:bold;margin:12px 0}
-            .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-            .grid span{font-size:11px;color:#64748b;border:1px solid #dbe3ed;padding:7px}
-            .grid strong{display:block;color:#172b43;font-size:13px;margin-top:4px;overflow-wrap:anywhere}
-            .barcode{text-align:center;font-family:monospace;font-size:20px;letter-spacing:4px;margin-top:9px}
-            footer{text-align:center;font-size:10px;color:#64748b;margin-top:5px}
-            @media print{.copy{break-inside:avoid}}
+            @page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172b43;margin:0}
+            .copy{height:88mm;background:#101d2d;color:#f7f4eb;border:1px solid #c7a66a;border-radius:12px;padding:8mm 10mm;margin:0 0 4mm;page-break-inside:avoid;position:relative;overflow:hidden}
+            .copy:not(:last-child){border-bottom:2px dashed #c7a66a}
+            .pt-head,.pt-brand,.pt-route,.pt-person,.pt-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;position:relative;z-index:1}
+            .pt-brand{justify-content:flex-start}.pt-brand>b{width:38px;height:38px;display:grid;place-items:center;border:1px solid #c7a66a;border-radius:10px;color:#e8d3a8;font-size:23px}
+            .pt-brand strong{display:block;font-size:21px;letter-spacing:4px;color:#f1d7a4}.pt-brand small,.pt-route small,.pt-person small{display:block;font-size:9px;letter-spacing:1.2px;color:#b9c5d1}
+            .pt-head em{font-style:normal;border:1px solid #477e69;border-radius:20px;padding:7px 12px;color:#a9e0c2;font-size:11px}
+            .pt-route{margin:12px 0;padding:12px 0;border-top:1px solid #ffffff35;border-bottom:1px solid #ffffff35}.pt-route>div{flex:1}.pt-route strong{display:block;font-size:19px;color:#fff;margin-top:5px}.pt-route i{font-style:normal;color:#e3c58d;font-size:22px}
+            .pt-person>div{flex:1}.pt-person>div>strong{display:block;font-size:21px;margin:5px 0}.pt-person>div>span{font-size:12px;color:#d3dce5}
+            .pt-person aside{min-width:100px;text-align:center;background:#e8d4aa;color:#152438;border-radius:10px;padding:7px 12px}.pt-person aside small{color:#5d523f}.pt-person aside b{display:block;font-size:31px}.pt-person aside span{font-size:10px;font-weight:bold}
+            .pt-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:13px;padding-top:11px;border-top:1px dashed #ffffff55}.pt-facts span{font-size:9px;letter-spacing:1px;color:#b9c5d1}.pt-facts strong{display:block;color:#fff;font-size:12px;letter-spacing:0;margin-top:5px;overflow-wrap:anywhere}
+            .pt-foot{margin-top:12px;padding-top:8px;border-top:1px solid #ffffff25;font-size:9px;color:#d5c49f}
+            @media print{.copy{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
           </style></head><body>${copy("COUNTER COPY")}${copy("PASSENGER COPY")}${copy("GUIDE COPY")}<script>window.onload=()=>{window.print();};<\/script></body></html>`);
           printWindow.document.close();
         });
