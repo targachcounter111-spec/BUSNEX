@@ -354,8 +354,12 @@ th{color:#52647b;background:#f8fafc}
               <input id="tripPrice" type="number" min="0" step="1" placeholder="ভাড়া">
             </div>
             <div class="field">
-              <label>Supervisor</label>
-              <input id="tripSupervisor" placeholder="সুপারভাইজারের নাম">
+              <label>Supervisor Name</label>
+              <input id="tripSupervisor" placeholder="সুপারভাইজারের নাম" autocomplete="name">
+            </div>
+            <div class="field">
+              <label>Supervisor Phone</label>
+              <input id="tripSupervisorPhone" type="tel" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" autocomplete="tel">
             </div>
           </div>
 
@@ -1038,6 +1042,7 @@ $("tripSaveButton").addEventListener("click",async() => {
   const price = Number($("tripPrice").value);
   const coachNumber = $("coachNumber").value.trim();
   const supervisor = $("tripSupervisor").value.trim();
+  const supervisorPhone = $("tripSupervisorPhone").value.trim();
 
   const button = $("tripSaveButton");
   const isEditing = Boolean(editingTripId);
@@ -1092,6 +1097,8 @@ $("tripSaveButton").addEventListener("click",async() => {
       departure_time:departureDateTime.toISOString(),
       ticket_price:price,
       supervisor:supervisor || null,
+      supervisor_name:supervisor || null,
+      supervisor_phone:supervisorPhone || null,
       coach_number:coachNumber || selectedBus.registration_number || null
     };
 
@@ -1191,7 +1198,7 @@ async function loadTrips() {
     .from("trips")
     .select(`
       id,company_id,bus_id,route_id,departure_time,
-      ticket_price,status,supervisor,coach_number,
+      ticket_price,status,supervisor,supervisor_name,supervisor_phone,coach_number,
       buses(bus_name),
       routes(starting_point,ending_point),
       trip_boarding_points(point_name,boarding_time,point_order)
@@ -1252,7 +1259,8 @@ async function loadTrips() {
         <span><b>Date:</b> ${escapeHtml(dateText)}</span>
         <span><b>Time:</b> ${escapeHtml(timeText)}</span>
         <span><b>Fare:</b> ৳${escapeHtml(String(trip.ticket_price))}</span>
-        <span><b>Supervisor:</b> ${escapeHtml(trip.supervisor || "—")}</span>
+        <span><b>Supervisor:</b> ${escapeHtml(trip.supervisor_name || trip.supervisor || "—")}</span>
+        <span><b>Supervisor Phone:</b> ${escapeHtml(trip.supervisor_phone || "—")}</span>
         <span class="status ${escapeHtml(status)}">${escapeHtml(status)}</span>
       </div>
 
@@ -1317,7 +1325,7 @@ async function editTrip(id) {
       .from("trips")
       .select(`
         id,company_id,bus_id,route_id,departure_time,
-        ticket_price,status,supervisor,coach_number,
+        ticket_price,status,supervisor,supervisor_name,supervisor_phone,coach_number,
         routes(starting_point,ending_point),
         trip_boarding_points(point_name,boarding_time,point_order)
       `)
@@ -1338,7 +1346,8 @@ async function editTrip(id) {
     $("tripDate").value = localDateValue(trip.departure_time);
     $("tripTime").value = localTimeValue(trip.departure_time);
     $("tripPrice").value = trip.ticket_price ?? "";
-    $("tripSupervisor").value = trip.supervisor || "";
+    $("tripSupervisor").value = trip.supervisor_name || trip.supervisor || "";
+    $("tripSupervisorPhone").value = trip.supervisor_phone || "";
 
     const points = (trip.trip_boarding_points || [])
       .sort((a,b) => a.point_order - b.point_order);
