@@ -150,7 +150,11 @@ BEGIN
   FROM unnest(p_seat_numbers) AS s(seat);
 
   UPDATE public.trip_seats
-  SET reservation_id=v_reservation_id
+  SET reservation_id=v_reservation_id,
+      status='available',
+      hold_until=NULL,
+      held_by=NULL,
+      held_counter_id=NULL
   WHERE trip_id=p_trip_id AND seat_number IN (
     SELECT btrim(s.seat) FROM unnest(p_seat_numbers) AS s(seat)
   );
