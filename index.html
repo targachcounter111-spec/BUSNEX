@@ -2422,6 +2422,29 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         print.textContent = "🖨 Print Ticket";
         print.addEventListener("click",() => {
           const esc = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+          const code39Patterns = {
+            "0":"nnnwwnwnn","1":"wnnwnnnnw","2":"nnwwnnnnw","3":"wnwwnnnnn",
+            "4":"nnnwwnnnw","5":"wnnwwnnnn","6":"nnwwwnnnn","7":"nnnwnnwnw",
+            "8":"wnnwnnwnn","9":"nnwwnnwnn","A":"wnnnnwnnw","B":"nnwnnwnnw",
+            "C":"wnwnnwnnn","D":"nnnnwwnnw","E":"wnnnwwnnn","F":"nnwnwwnnn",
+            "*":"nwnnwnwnn"
+          };
+          const code39Svg = value => {
+            const encoded = "*" + String(value).toUpperCase().replace(/[^0-9A-F]/g,"") + "*";
+            let x = 0;
+            const bars = [];
+            for (const character of encoded) {
+              const pattern = code39Patterns[character];
+              if (!pattern) continue;
+              for (let index=0; index<pattern.length; index++) {
+                const width = pattern[index] === "w" ? 3 : 1;
+                if (index % 2 === 0) bars.push('<rect x="' + x + '" y="0" width="' + width + '" height="30"/>');
+                x += width;
+              }
+              x += 1;
+            }
+            return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ticket barcode" viewBox="0 0 ' + x + ' 30" preserveAspectRatio="none">' + bars.join("") + '</svg>';
+          };
           const ticketPanel = (kind,label) => {
             const center = kind === "center";
             return `
@@ -2432,6 +2455,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
                   <div class="main-passenger"><div><small>PASSENGER NAME</small><strong>${esc(ticket.passenger_name)}</strong><span>${esc(ticket.passenger_phone)} · ${esc(ticket.passenger_gender || "—")}</span></div><div class="seat-box"><small>SEAT</small><b>${esc(ticket.seat_number)}</b></div></div>
                   <div class="journey-line"><div><small>FROM</small><b>${esc(stopName(ticket.boarding_stop_id))}</b></div><i>→</i><div><small>TO</small><b>${esc(stopName(ticket.dropping_stop_id))}</b></div></div>
                   <div class="detail-grid"><span>Journey Date<strong>${esc(journey)}</strong></span><span>Coach<strong>${esc(coach)}</strong></span><span>Seat Fare<strong>৳${esc(ticket.ticket_price)}</strong></span><span>Total Fare<strong>৳${esc(ticket.ticket_price)}</strong></span><span>PNR<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span><span>Issued On<strong>${esc(created)}</strong></span></div>
+                  <div class="barcode-wrap">${code39Svg(String(ticket.id).replace(/-/g,"").slice(0,13))}<small>BARCODE · ${esc(String(ticket.id).slice(0,13).toUpperCase())}</small></div>
                   <div class="issued">Issued By: ${esc(sellerText)}</div>
                 ` : `
                   <div class="side-info"><span>Passenger<strong>${esc(ticket.passenger_name)}</strong></span><span>Mobile<strong>${esc(ticket.passenger_phone)}</strong></span><span>Coach<strong>${esc(coach)}</strong></span><span>Seat<strong>${esc(ticket.seat_number)}</strong></span><span>Date<strong>${esc(journey)}</strong></span><span>Fare<strong>৳${esc(ticket.ticket_price)}</strong></span><span>PNR<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span><span>From<strong>${esc(stopName(ticket.boarding_stop_id))}</strong></span><span>To<strong>${esc(stopName(ticket.dropping_stop_id))}</strong></span></div>
@@ -2474,6 +2498,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             .journey-line{display:flex;align-items:center;gap:3mm;padding:2.5mm 0;border-top:.3mm solid #ffffff45;border-bottom:.3mm solid #ffffff45}
             .journey-line>div{flex:1;min-width:0}.journey-line b{display:block;font-size:13pt;margin-top:1.5mm;overflow-wrap:anywhere;color:#fff}
             .journey-line i{font-style:normal;color:#f3d7b7;font-size:19pt}
+            .barcode-wrap{margin:2mm auto 0;text-align:center;width:100%;max-width:100%;overflow:hidden}.barcode-wrap svg{display:block;width:100%;height:8mm;fill:#fff}.barcode-wrap small{display:block;font-size:5pt;letter-spacing:.4pt;color:#d9e2dc;margin-top:1mm}
             .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:2mm 3mm;margin-top:2.5mm}
             .detail-grid span,.side-info span{font-size:7pt;color:#b9c8c1}
             .detail-grid strong,.side-info strong{display:block;font-size:9pt;color:inherit;margin-top:1mm;overflow-wrap:anywhere}
