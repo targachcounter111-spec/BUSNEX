@@ -650,6 +650,8 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
             <div class="card"><div class="stat-label">মোট Invoice Amount</div><div id="billingCharge" class="stat-value">—</div></div>
           </div>
           <div id="billingCompanyList" class="table-wrap section"></div>
+          <h2 class="section">Payment History</h2>
+          <div id="billingPaymentHistory" class="table-wrap"><div class="empty">Payment History লোড হয়নি।</div></div>
         </div>
       </section>
       <div class="footer">BUSNEX • Bus Counter Management System</div>
@@ -727,7 +729,7 @@ async function loadBillingDashboardNotice() {
     if(due<=0||count<=0)return;
     notice.textContent="Billing Notice: আপনার Company-এর "+count+"টি Invoice-এর মোট বকেয়া ৳"+due.toFixed(2)+
       (summary?.earliest_due?"। নিকটতম Due Date: "+summary.earliest_due:"")+
-      "। বিস্তারিত দেখতে Manager-কে Billing পেজ দেখুন।";
+      +(currentProfile.role==="company_manager"?"। বিস্তারিত দেখতে Billing পেজ খুলুন।":"। বকেয়া Invoice-এর বিস্তারিত জানতে Company Manager-এর সঙ্গে যোগাযোগ করুন।");
     notice.classList.remove("hidden");
   }catch(error){
     console.warn("BILLING NOTICE LOAD:",error.message);
@@ -2120,6 +2122,17 @@ async function loadBillingPage() {
         });
       }
     }
+    const {data:payments,error:paymentHistoryError}=await supabase
+      .from("company_billing_payments")
+      .select("id,invoice_id,amount,payment_reference,note,received_at,company_billing_invoices(company_id,companies(name))")
+      .order("received_at",{ascending:false}).limit(300);
+    if(paymentHistoryError) throw paymentHistoryError;
+    const history=payments||[];
+    $("billingPaymentHistory").innerHTML=history.length
+      ? '<table><thead><tr><th>Company</th><th>Payment Date</th><th>Amount</th><th>Reference</th><th>Note</th></tr></thead><tbody>'+
+        history.map(p=>'<tr><td>'+esc(p.company_billing_invoices?.companies?.name)+'</td><td>'+esc(p.received_at?new Date(p.received_at).toLocaleString("en-GB"):"—")+'</td><td>৳'+Number(p.amount||0).toFixed(2)+'</td><td>'+esc(p.payment_reference)+'</td><td>'+esc(p.note)+'</td></tr>').join("")+
+        '</tbody></table>'
+      : '<div class="empty">এখনো কোনো Payment Record নেই।</div>';
     $("billingMessage").textContent = invoices.length+"টি Invoice পাওয়া গেছে।";
     $("billingMessage").className = "message section ok";
   } catch(error) {
