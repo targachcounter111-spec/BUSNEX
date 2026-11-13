@@ -1880,8 +1880,18 @@ async function appendBookingSeatPicker(trip,card) {
             .side-info strong{font-size:9pt;color:#153a3a}
             .side-foot{position:absolute;bottom:5mm;left:5mm;right:5mm;padding-top:2mm;border-top:.3mm solid #b8794c;font-size:6pt;letter-spacing:.5pt;color:#9b613e}
             @media print{html,body{width:297mm;height:210mm}.ticket-strip{box-shadow:none}}
-          </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main><script>window.onload=()=>{window.focus();setTimeout(()=>window.print(),350);};<\\/script></body></html>`);
+          </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
           printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => {
+            try {
+              printWindow.focus();
+              printWindow.print();
+            } catch(printError) {
+              console.error("BUSNEX PRINT ERROR:",printError);
+              alert("Print চালু করা যায়নি। আবার Print Ticket চাপুন।");
+            }
+          },800);
         });
         actions.appendChild(print);
         body.appendChild(actions);
