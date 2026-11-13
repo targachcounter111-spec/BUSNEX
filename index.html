@@ -1371,7 +1371,7 @@ async function loadTrips() {
     .from("trips")
     .select(`
       id,company_id,bus_id,route_id,departure_time,
-      ticket_price,status,supervisor,supervisor_name,supervisor_phone,coach_number,
+      ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,
       buses(bus_name),
       routes(starting_point,ending_point),
       trip_boarding_points(point_name,boarding_time,point_order)
@@ -1419,6 +1419,7 @@ async function loadTrips() {
     card.className = "trip-card";
 
     const status = trip.status || "scheduled";
+    const busIsOff = trip.is_active === false;
 
     card.innerHTML = `
       <h3>
@@ -1435,6 +1436,7 @@ async function loadTrips() {
         <span><b>Supervisor:</b> ${escapeHtml(trip.supervisor_name || trip.supervisor || "—")}</span>
         <span><b>Supervisor Phone:</b> ${escapeHtml(trip.supervisor_phone || "—")}</span>
         <span class="status ${escapeHtml(status)}">${escapeHtml(status)}</span>
+        ${busIsOff ? '<strong class="status cancelled">BUS OFF — TICKET SALE STOPPED</strong>' : ''}
       </div>
 
       <div class="boarding-list">
@@ -1451,6 +1453,12 @@ async function loadTrips() {
         <button class="secondary edit-trip" data-id="${escapeHtml(trip.id)}">
           Edit Trip
         </button>
+
+        ${status === "scheduled" ? `
+          <button class="${busIsOff ? 'secondary' : 'danger'} toggle-bus-off" data-id="${escapeHtml(trip.id)}" data-active="${busIsOff ? 'false' : 'true'}">
+            ${busIsOff ? 'BUS ON — চালু করুন' : 'BUS OFF — Ticket বন্ধ করুন'}
+          </button>
+        ` : ''}
 
         ${status !== "cancelled" ? `
           <button class="danger cancel-trip" data-id="${escapeHtml(trip.id)}">
@@ -1473,6 +1481,10 @@ async function loadTrips() {
 
   document.querySelectorAll(".cancel-trip").forEach(button => {
     button.addEventListener("click",() => cancelTrip(button.dataset.id,button));
+  });
+
+  document.querySelectorAll(".toggle-bus-off").forEach(button => {
+    button.addEventListener("click",() => toggleBusOff(button.dataset.id,button));
   });
 
   document.querySelectorAll(".delete-trip").forEach(button => {
@@ -1547,6 +1559,36 @@ async function editTrip(id) {
   } catch(error) {
     console.error("EDIT TRIP ERROR:",error);
     tripMessage("Trip Edit লোড হয়নি: " + error.message,"error");
+  }
+}
+
+async function toggleBusOff(id,button) {
+  if (!isAdmin()) return;
+  const turningOff = button.dataset.active === "true";
+  const promptText = turningOff
+    ? "এই Bus OFF করলে এই Trip-এর বাকি Ticket বিক্রি বন্ধ হবে। ইতিমধ্যে বিক্রি হওয়া Ticket ও যাত্রীদের তথ্য অক্ষত থাকবে। নিশ্চিত?"
+    : "এই Bus আবার চালু করলে বাকি Seat-এ Ticket বিক্রি শুরু হবে। নিশ্চিত?";
+  if (!confirm(promptText)) return;
+
+  button.disabled = true;
+  try {
+    const {error} = await supabase
+      .from("trips")
+      .update({is_active: !turningOff})
+      .eq("id", id)
+      .eq("status", "scheduled");
+    if (error) throw error;
+    tripMessage(
+      turningOff
+        ? "BUS OFF হয়েছে। এই Trip-এর Ticket Sale বন্ধ; Sold Ticket অক্ষত আছে।"
+        : "BUS ON হয়েছে। Trip আবার সক্রিয় করা হয়েছে।",
+      "ok"
+    );
+    await loadTrips();
+  } catch(error) {
+    tripMessage("Bus-এর অবস্থা পরিবর্তন হয়নি: " + error.message, "error");
+  } finally {
+    button.disabled = false;
   }
 }
 
