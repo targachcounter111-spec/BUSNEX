@@ -1780,7 +1780,9 @@ async function appendBookingSeatPicker(trip,card) {
           "busnex_get_ticket_seller",
           {p_ticket_id:ticket.id}
         );
-        if (sellerError) throw sellerError;
+        if (sellerError) {
+          console.warn("Ticket seller details unavailable for this role:",sellerError);
+        }
         const seller = Array.isArray(sellerRows) ? sellerRows[0] : sellerRows;
         if (seller) {
           sellerText = (seller.seller_name || "নাম নেই") +
@@ -2061,9 +2063,20 @@ async function appendBookingSeatPicker(trip,card) {
               seatButton.classList.remove("selected","available");
               seatButton.classList.add("sold");
               seatButton.textContent = p.seatNumber;
-              seatButton.title = "টিকিট বিক্রি সম্পন্ন";
-              seatButton.removeAttribute("role");
-              seatButton.removeAttribute("tabindex");
+              seatButton.title = "বিক্রিত Ticket-এর বিস্তারিত দেখতে ক্লিক করুন";
+              seatButton.setAttribute("role","button");
+              seatButton.setAttribute("tabindex","0");
+              if (!seatButton.dataset.ticketDetailsBound) {
+                const openSoldDetails = () => showSoldTicketDetails(p.seatNumber);
+                seatButton.addEventListener("click",openSoldDetails);
+                seatButton.addEventListener("keydown",event => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openSoldDetails();
+                  }
+                });
+                seatButton.dataset.ticketDetailsBound = "true";
+              }
             }
           }
           selectedInfo.textContent = sold.length + "টি Seat-এর Ticket সফলভাবে বিক্রি হয়েছে: " +
