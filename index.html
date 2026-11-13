@@ -2663,19 +2663,28 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         submit.textContent = "টিকিট বিক্রি হচ্ছে...";
         const sold = [];
         try {
-          for (const p of passengers) {
-            const {data,error} = await supabase.rpc("busnex_sell_ticket",{
-              p_trip_id:trip.id,
-              p_seat_number:p.seatNumber,
-              p_passenger_name:groupPassenger.name.trim(),
-              p_passenger_phone:groupPassenger.phone.trim(),
-              p_boarding_stop_id:groupPassenger.boarding,
-              p_dropping_stop_id:groupPassenger.dropping,
-              p_passenger_gender:groupPassenger.gender,
-              p_confirm_past_date:confirmPastDate
-            });
-            if (error) throw error;
-            sold.push({seatNumber:p.seatNumber,data});
+          const {data:batchData,error:batchError} = await supabase.rpc("busnex_sell_tickets_batch",{
+            p_trip_id:trip.id,
+            p_seat_numbers:seatsToSell,
+            p_passenger_name:groupPassenger.name.trim(),
+            p_passenger_phone:groupPassenger.phone.trim(),
+            p_boarding_stop_id:groupPassenger.boarding,
+            p_dropping_stop_id:groupPassenger.dropping,
+            p_passenger_gender:groupPassenger.gender,
+            p_confirm_past_date:confirmPastDate
+          });
+          if (batchError) throw batchError;
+          if (!Array.isArray(batchData) || batchData.length !== seatsToSell.length) {
+            throw new Error("Batch Ticket Sale-এর সম্পূর্ণ ফলাফল পাওয়া যায়নি।");
+          }
+          batchData.forEach(item => {
+            const seatNumber = String(item.seat_number || "");
+            if (!seatsToSell.includes(seatNumber)) {
+              throw new Error("অজানা Seat-এর ফলাফল পাওয়া গেছে।");
+            }
+            sold.push({seatNumber,data:item.result});
+          });
+          sold.forEach(p => {
             selectedSeats.delete(p.seatNumber);
             passengerData.delete(p.seatNumber);
             const seatButton = seatButtons.get(p.seatNumber);
@@ -2698,8 +2707,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
                 seatButton.dataset.ticketDetailsBound = "true";
               }
             }
-          }
-          selectedInfo.textContent = sold.length + "টি Seat-এর Ticket সফলভাবে বিক্রি হয়েছে: " +
+          });
+          selectedInfo.textContent = sold.length + "টি Seat-এর Ticket একসঙ্গে সফলভাবে বিক্রি হয়েছে: " +
             sold.map(x => x.seatNumber).join(", ");
           renderTicketReceipt(sold,groupPassenger);
           if (!selectedSeats.size) {
@@ -2713,8 +2722,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           alert(sold.length + "টি Ticket সফলভাবে বিক্রি হয়েছে।");
         } catch(error) {
           selectedInfo.textContent = sold.length
-            ? sold.length + "টি Ticket বিক্রি হয়েছে। পরের Seat-এ সমস্যা: " + error.message
-            : "Ticket বিক্রি হয়নি: " + error.message;
+            ? sold.length + "টি Ticket বিক্রি হয়েছে। ফলাফল যাচাই করুন: " + error.message
+            : "কোনো Ticket বিক্রি হয়নি। Batch Sale বাতিল হয়েছে: " + error.message;
           alert(selectedInfo.textContent);
           renderPassengerFields();
         } finally {
