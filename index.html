@@ -2099,36 +2099,29 @@ async function appendBookingSeatPicker(trip,card) {
       document.addEventListener("keydown",onEscape);
 
       try {
-        const {data:ticket,error:ticketError} = await supabase
-          .from("tickets")
-          .select("id,seat_number,passenger_name,passenger_phone,passenger_gender,ticket_price,status,created_at,sold_by,counter_id,boarding_stop_id,dropping_stop_id")
-          .eq("trip_id",trip.id)
-          .eq("seat_number",seatNumber)
-          .eq("status","sold")
-          .maybeSingle();
-        if (ticketError) throw ticketError;
-        if (!ticket) throw new Error("বিক্রিত Ticket-এর রেকর্ড পাওয়া যায়নি।");
-
-        let sellerText = "বিক্রেতার তথ্য পাওয়া যায়নি";
-        const {data:sellerRows,error:sellerError} = await supabase.rpc(
-          "busnex_get_ticket_seller",
-          {p_ticket_id:ticket.id}
+        const {data:details,error:detailsError} = await supabase.rpc(
+          "busnex_get_ticket_details",
+          {p_trip_id:trip.id,p_seat_number:seatNumber}
         );
-        if (sellerError) {
-          console.warn("Ticket seller details unavailable for this role:",sellerError);
-        }
-        const seller = Array.isArray(sellerRows) ? sellerRows[0] : sellerRows;
-        if (seller) {
-          sellerText = (seller.seller_name || "নাম নেই") +
-            " (" + (seller.seller_role || "Role নেই") + ")" +
-            (seller.counter_name ? " | Counter: " + seller.counter_name : "");
-        }
+        if (detailsError) throw detailsError;
+        if (!details || !details.ticket) throw new Error("বিক্রিত Ticket-এর রেকর্ড পাওয়া যায়নি।");
 
-        const stopName = id => (trip.trip_stops || []).find(stop => stop.id === id)?.stop_name || "—";
+        const ticket = details.ticket;
+        const seller = details.seller || {};
+        const tripDetails = details.trip || {};
+        const sellerText = (seller.seller_name || "নাম নেই") +
+          " (" + (seller.seller_role || "Role নেই") + ")" +
+          (seller.counter_name ? " | Counter: " + seller.counter_name : "");
+
+        const stopName = id => {
+          if (id && id === ticket.boarding_stop_id) return details.boarding_stop_name || "—";
+          if (id && id === ticket.dropping_stop_id) return details.dropping_stop_name || "—";
+          return "—";
+        };
         const created = ticket.created_at ? new Date(ticket.created_at).toLocaleString("en-GB") : "—";
-        const busName = trip.buses?.bus_name || "—";
-        const coach = trip.coach_number || "—";
-        const journey = trip.departure_time ? new Date(trip.departure_time).toLocaleString("en-GB") : "—";
+        const busName = tripDetails.bus_name || "—";
+        const coach = tripDetails.coach_number || "—";
+        const journey = tripDetails.departure_time ? new Date(tripDetails.departure_time).toLocaleString("en-GB") : "—";
         const safe = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
         const ticketPreview = document.createElement("div");
         ticketPreview.className = "busnex-premium-ticket";
