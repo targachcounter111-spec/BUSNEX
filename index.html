@@ -1886,7 +1886,7 @@ async function appendBookingSeatPicker(trip,card) {
             .side-info span{font-size:7.5pt;color:#526b64}
             .side-info strong{font-size:9pt;color:#153a3a}
             .side-foot{position:absolute;bottom:3mm;left:3mm;right:3mm;padding-top:1.5mm;border-top:.3mm solid #b8794c;font-size:6pt;letter-spacing:.5pt;color:#9b613e}
-            @media print{html,body{width:297mm;height:210mm}.ticket-strip{box-shadow:none}}
+            @media print{@page{size:A4 portrait;margin:0}html,body{width:210mm!important;height:297mm!important;min-width:210mm!important;min-height:297mm!important;margin:0!important;padding:0!important}.ticket-strip{width:198mm!important;height:91.7mm!important;flex:0 0 198mm!important;transform:none!important;box-shadow:none!important;page-break-inside:avoid;break-inside:avoid}.ticket-part{min-width:0;flex-shrink:0}}
           </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
           printWindow.document.close();
           printWindow.focus();
