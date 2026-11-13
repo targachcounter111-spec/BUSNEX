@@ -1730,28 +1730,16 @@ async function appendBookingSeatPicker(trip,card) {
         }
 
         let sellerText = "বিক্রেতার তথ্য পাওয়া যায়নি";
-        if (ticket.sold_by) {
-          const {data:profile,error:profileError} = await supabase
-            .from("profiles")
-            .select("full_name,role,counter_id")
-            .eq("id",ticket.sold_by)
-            .maybeSingle();
-          if (profileError) throw profileError;
-          if (profile) {
-            let counterName = "";
-            if (ticket.counter_id || profile.counter_id) {
-              const {data:counter,error:counterError} = await supabase
-                .from("counters")
-                .select("name")
-                .eq("id",ticket.counter_id || profile.counter_id)
-                .maybeSingle();
-              if (counterError) throw counterError;
-              counterName = counter?.name || "";
-            }
-            sellerText = (profile.full_name || "নাম নেই") +
-              " (" + (profile.role || "Role নেই") + ")" +
-              (counterName ? " | Counter: " + counterName : "");
-          }
+        const {data:sellerRows,error:sellerError} = await supabase.rpc(
+          "busnex_get_ticket_seller",
+          {p_ticket_id:ticket.id}
+        );
+        if (sellerError) throw sellerError;
+        const seller = Array.isArray(sellerRows) ? sellerRows[0] : sellerRows;
+        if (seller) {
+          sellerText = (seller.seller_name || "নাম নেই") +
+            " (" + (seller.seller_role || "Role নেই") + ")" +
+            (seller.counter_name ? " | Counter: " + seller.counter_name : "");
         }
 
         const stopName = id => (trip.trip_stops || []).find(stop => stop.id === id)?.stop_name || "—";
