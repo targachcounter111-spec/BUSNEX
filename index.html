@@ -790,6 +790,7 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
               <div class="field"><label for="reservationTrip">Trip</label><select id="reservationTrip"><option value="">Trip নির্বাচন করুন</option></select></div>
               <div class="field"><label for="reservationType">Type</label><select id="reservationType"><option value="standard">Standard</option><option value="vip">VIP</option></select></div>
               <div class="field"><label for="reservationSeats">Seat Number (কমা দিয়ে, সর্বোচ্চ ৮টি)</label><input id="reservationSeats" placeholder="যেমন: A1,A2"></div>
+              <div class="field"><label for="reservationValidTill">Valid Till (তারিখ ও সময়)</label><input id="reservationValidTill" type="datetime-local" required></div>
             </div>
             <div class="form-row">
               <div class="field"><label for="reservationPassengerName">Passenger Name</label><input id="reservationPassengerName" autocomplete="off"></div>
@@ -2364,7 +2365,8 @@ $("reservationCreateButton").addEventListener("click",async()=>{
   const gender=$("reservationPassengerGender").value;
   const boarding=$("reservationBoarding").value;
   const dropping=$("reservationDropping").value;
-  if(!tripId||!seats.length||seats.length>8||!name||!phone||!gender||!boarding||!dropping){
+  const validTillValue=$("reservationValidTill").value;
+  if(!tripId||!seats.length||seats.length>8||!name||!phone||!gender||!boarding||!dropping||!validTillValue){
     $("reservationMessage").textContent="Trip, ১–৮টি Seat, Passenger তথ্য এবং Boarding/Dropping Stop পূরণ করুন।";
     $("reservationMessage").className="message section error";return;
   }
@@ -2375,12 +2377,17 @@ $("reservationCreateButton").addEventListener("click",async()=>{
     $("reservationMessage").textContent="Boarding Stop অবশ্যই Dropping Stop-এর আগে হতে হবে।";
     $("reservationMessage").className="message section error";return;
   }
+  const validTillDate=new Date(validTillValue);
+  if(!Number.isFinite(validTillDate.getTime())||validTillDate.getTime()<=Date.now()||validTillDate.getTime()>=new Date(trip.departure_time).getTime()){
+    $("reservationMessage").textContent="Valid Till বর্তমান সময়ের পরে এবং Trip Departure-এর আগে হতে হবে।";
+    $("reservationMessage").className="message section error";return;
+  }
   const button=$("reservationCreateButton");button.disabled=true;
   try{
     const {data,error}=await supabase.rpc("busnex_create_reservation",{
       p_trip_id:tripId,p_reservation_type:$("reservationType").value,p_seat_numbers:seats,
       p_passenger_name:name,p_passenger_phone:phone,p_passenger_gender:gender,
-      p_boarding_stop_id:boarding,p_dropping_stop_id:dropping
+      p_boarding_stop_id:boarding,p_dropping_stop_id:dropping,p_valid_till:validTillDate.toISOString()
     });
     if(error)throw error;
     $("reservationMessage").textContent="Reservation তৈরি হয়েছে। ID: "+data;
@@ -3826,6 +3833,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           alert("Boarding Stop অবশ্যই Dropping Stop-এর আগে হতে হবে।");
           return;
         }
+        const validTillInput = passengerPanel.querySelector(".booking-reservation-valid-till");
+        const validTillDate = validTillInput?.value ? new Date(validTillInput.value) : null;
+        const departureMs = new Date(trip.departure_time).getTime();
+        if (!validTillDate || !Number.isFinite(validTillDate.getTime()) || validTillDate.getTime() <= Date.now() || validTillDate.getTime() >= departureMs) {
+          alert("Valid Till বর্তমান সময়ের পরে এবং Trip Departure-এর আগে নির্বাচন করুন।");
+          return;
+        }
         const seatsToReserve = [...selectedSeats];
         button.disabled = true;
         const oldText = button.textContent;
@@ -3839,7 +3853,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             p_passenger_phone:groupPassenger.phone.trim(),
             p_passenger_gender:groupPassenger.gender,
             p_boarding_stop_id:groupPassenger.boarding,
-            p_dropping_stop_id:groupPassenger.dropping
+            p_dropping_stop_id:groupPassenger.dropping,
+            p_valid_till:validTillDate.toISOString()
           });
           if (error) throw error;
           seatsToReserve.forEach(seatNumber => {
