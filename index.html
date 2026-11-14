@@ -998,7 +998,7 @@ async function loadDashboardStats() {
     $("dashboardTickets").textContent = String(ticketCount);
     $("dashboardSeats").textContent = String(availableCount);
     $("dashboardCounters").textContent = String(counterCount || 0);
-    message.textContent = "সর্বশেষ আপডেট: " + new Date().toLocaleTimeString("bn-BD",{hour:"2-digit",minute:"2-digit"});
+    message.textContent = "সর্বশেষ আপডেট: " + formatDhakaTime(new Date());
     message.className = "message section ok";
   } catch(error) {
     console.error("DASHBOARD LOAD ERROR:",error);
@@ -1834,10 +1834,7 @@ async function loadTrips() {
     const departure = new Date(trip.departure_time);
     const dateText = departure.toLocaleDateString("en-GB");
 
-    const timeText = departure.toLocaleTimeString("en-US",{
-      hour:"2-digit",
-      minute:"2-digit"
-    });
+    const timeText = formatDhakaTime(departure);
 
     const card = document.createElement("div");
     card.className = "trip-card";
@@ -1914,6 +1911,18 @@ async function loadTrips() {
   document.querySelectorAll(".delete-trip").forEach(button => {
     button.addEventListener("click",() => deleteTrip(button.dataset.id,button));
   });
+}
+
+function formatDhakaDateTime(value, options = {}) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-GB", {timeZone:"Asia/Dhaka",day:"2-digit",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true,...options}).format(date);
+}
+
+function formatDhakaTime(value, options = {}) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {timeZone:"Asia/Dhaka",hour:"numeric",minute:"2-digit",hour12:true,...options}).format(date);
 }
 
 function escapeHtml(value) {
@@ -2145,10 +2154,7 @@ function formatTripOption(trip) {
   const departure = new Date(trip.departure_time);
   const dateText = Number.isNaN(departure.getTime())
     ? "তারিখ নেই"
-    : departure.toLocaleString("en-GB",{
-        day:"2-digit",month:"short",year:"numeric",
-        hour:"2-digit",minute:"2-digit"
-      });
+    : formatDhakaDateTime(departure);
   return (route.starting_point || "—") + " → " +
     (route.ending_point || "—") + " | " +
     (bus.bus_name || "Bus") + " | " + dateText +
@@ -2236,7 +2242,7 @@ async function loadReservationTripOptions() {
   reservationTripCache.forEach(trip=>{
     const option=document.createElement("option");
     option.value=trip.id;
-    option.textContent=(trip.routes?.starting_point||"—")+" → "+(trip.routes?.ending_point||"—")+" · "+new Date(trip.departure_time).toLocaleString("en-GB");
+    option.textContent=(trip.routes?.starting_point||"—")+" → "+(trip.routes?.ending_point||"—")+" · "+formatDhakaDateTime(trip.departure_time);
     select.appendChild(option);
   });
   select.disabled=!reservationTripCache.length;
@@ -2279,7 +2285,7 @@ async function loadReservationsPage() {
       $("reservationList").innerHTML='<table><thead><tr><th>Trip / Counter</th><th>Seat & Passenger</th><th>Type</th><th>Status</th><th>Expiry</th><th>Action</th></tr></thead><tbody>'+
         rows.map(row=>{
           const seats=(row.ticket_reservation_seats||[]).map(x=>escapeHtml(x.seat_number)+" · "+escapeHtml(x.passenger_name)).join("<br>");
-          const expiry=row.expires_at?new Date(row.expires_at).toLocaleString("en-GB"):"কোনো Expiry নেই";
+          const expiry=row.expires_at?formatDhakaDateTime(row.expires_at):"কোনো Expiry নেই";
           const active=row.status==="active";
           const reservationStatus=row.status==="active"&&row.confirmed_at?"confirmed":row.status;
           return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(row.status)+'</td><td>'+escapeHtml(expiry)+'</td><td>'+(active?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'" '+(row.status==="confirmed"?'disabled':'')+'>Confirm</button> <button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+(canManageExpiry&&row.reservation_type==="vip"&&row.status==="active"?' <button type="button" class="secondary reservation-expiry" data-id="'+escapeHtml(row.id)+'">Expiry সেট</button>':'')+'</td></tr>';
@@ -2413,7 +2419,7 @@ async function loadCounterDirectory() {
     (counterRows || []).forEach(counter => counterNames.set(counter.id,counter.name));
     $("permissionList").innerHTML=safeTable(data||[],[
       {label:"Counter",value:r=>counterNames.get(r.counter_id) || r.counter_id},{label:"Type",value:r=>String(r.reservation_type || "").toUpperCase()},
-      {label:"Active",value:r=>r.is_active ? "হ্যাঁ" : "না"},{label:"Granted",value:r=>r.created_at ? new Date(r.created_at).toLocaleString("en-GB") : "—"}
+      {label:"Active",value:r=>r.is_active ? "হ্যাঁ" : "না"},{label:"Granted",value:r=>r.created_at ? formatDhakaDateTime(r.created_at) : "—"}
     ]);
     $("permissionMessage").textContent=(data||[]).length+"টি Permission Record পাওয়া গেছে।";
   } catch(error) {
@@ -2516,7 +2522,7 @@ async function loadBillingPage() {
     const history=payments||[];
     $("billingPaymentHistory").innerHTML=history.length
       ? '<table><thead><tr><th>Company</th><th>Payment Date</th><th>Amount</th><th>Reference</th><th>Note</th></tr></thead><tbody>'+
-        history.map(p=>'<tr><td>'+esc(p.company_billing_invoices?.companies?.name)+'</td><td>'+esc(p.received_at?new Date(p.received_at).toLocaleString("en-GB"):"—")+'</td><td>৳'+Number(p.amount||0).toFixed(2)+'</td><td>'+esc(p.payment_reference)+'</td><td>'+esc(p.note)+'</td></tr>').join("")+
+        history.map(p=>'<tr><td>'+esc(p.company_billing_invoices?.companies?.name)+'</td><td>'+esc(p.received_at?formatDhakaDateTime(p.received_at):"—")+'</td><td>৳'+Number(p.amount||0).toFixed(2)+'</td><td>'+esc(p.payment_reference)+'</td><td>'+esc(p.note)+'</td></tr>').join("")+
         '</tbody></table>'
       : '<div class="empty">এখনো কোনো Payment Record নেই।</div>';
     $("billingMessage").textContent = invoices.length+"টি Invoice পাওয়া গেছে।";
@@ -2663,7 +2669,7 @@ async function loadTripSheet(tripId) {
     const stopNames=new Map(stops.map(x=>[x.id,x.stop_name]));
     const esc=v=>escapeHtml(v??"—");
     const dt=trip.departure_time?new Date(trip.departure_time):null;
-    const journey=dt&&!Number.isNaN(dt.getTime())?dt.toLocaleString("en-GB"):"—";
+    const journey=dt&&!Number.isNaN(dt.getTime())?formatDhakaDateTime(dt):"—";
     const total=tickets.reduce((n,x)=>n+(Number(x.ticket_price)||0),0);
     const rows=tickets.map((x,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+esc(x.seat_number)+'</b></td><td>'+esc(x.passenger_name)+'</td><td>'+esc(x.passenger_phone)+'</td><td>'+esc(x.passenger_gender)+'</td><td>'+esc(stopNames.get(x.boarding_stop_id)||"—")+'</td><td>'+esc(stopNames.get(x.dropping_stop_id)||"—")+'</td><td>৳'+esc(x.ticket_price)+'</td></tr>').join("");
     const pointRows=points.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.point_name)+'</td><td>'+esc(x.boarding_time)+'</td></tr>').join("");
@@ -2779,7 +2785,7 @@ async function loadSeatInventory(tripId) {
       div.textContent = seat.seat_number;
       if (state === "held") {
         const expiry = record?.hold_until
-          ? new Date(record.hold_until).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"})
+          ? formatDhakaTime(record.hold_until,{second:"2-digit"})
           : "সময় পাওয়া যায়নি";
         div.title = "সাময়িক Hold | Counter ID: " +
           (record?.held_counter_id || "তথ্য নেই") +
@@ -2975,7 +2981,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   coachSummary.innerHTML = "<small>Coach No</small><strong></strong><span></span>";
   coachSummary.querySelector("strong").textContent = trip.coach_number || trip.buses?.registration_number || "—";
   coachSummary.querySelector("span").textContent = trip.departure_time
-    ? new Date(trip.departure_time).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})
+    ? formatDhakaDateTime(trip.departure_time)
     : "—";
   const destinationWrap = document.createElement("label");
   destinationWrap.className = "booking-trip-destination";
@@ -3109,6 +3115,17 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       .booking-seat-summary{margin:0 0 7px;padding:7px 9px;background:#fff;border:1px solid #bbb;border-radius:0;color:#222;font-weight:800;line-height:1.5}
       .booking-seat-panel .seat{border-radius:3px;box-shadow:none;transition:filter .12s}
       .booking-seat-panel .seat.available:hover{filter:brightness(.94)}
+      .booking-seat-legend{display:flex;flex-wrap:wrap;gap:7px 10px;margin:7px 0 10px;padding:9px;background:#f8fafc;border:1px solid #dbe2ea;font-size:10px;color:#263449}
+      .booking-seat-legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+      .booking-seat-legend .legend-dot{display:inline-block;width:13px;height:13px;border:1px solid transparent;border-radius:3px}
+      .booking-seat-legend .available{background:#fff;border-color:#bbb}
+      .booking-seat-legend .selected{background:#146b36;border-color:#0d5729}
+      .booking-seat-legend .sold-male{background:#ef4444;border-color:#b91c1c}
+      .booking-seat-legend .sold-female{background:#d946ef;border-color:#a21caf}
+      .booking-seat-legend .reserved{background:#ffb020;border-color:#e69a0c}
+      .booking-seat-legend .held{background:#ede9fe;border-color:#8b5cf6}
+      .booking-seat-legend .blocked{background:#e5e5e5;border-color:#aaa}
+      .booking-seat-panel .seat.held{background:#ede9fe!important;color:#5b21b6!important;border-color:#8b5cf6!important}
       .booking-seat-panel .seat.selected{background:#146b36;border-color:#0d5729;color:#fff;box-shadow:none}
       .booking-seat-panel>p.small:not(.booking-seat-summary){padding:6px 8px;background:#fff;border:1px solid #bbb;border-radius:0;color:#222;font-weight:700}
       .booking-passenger-panel .btn.btn-primary{display:block;width:100%;min-height:48px;margin-top:10px;padding:11px 16px;background:#ed1010;border:1px solid #bd0000;border-radius:3px;color:#fff;font-size:15px;font-weight:900;letter-spacing:.02em;box-shadow:none}
@@ -3120,6 +3137,19 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     `;
     document.head.appendChild(style);
   }
+
+  const seatLegend = document.createElement("div");
+  seatLegend.className = "booking-seat-legend";
+  seatLegend.setAttribute("aria-label","Seat colour legend");
+  seatLegend.innerHTML = [
+    '<span><i class="legend-dot available"></i>Available / খালি</span>',
+    '<span><i class="legend-dot selected"></i>Selected / নির্বাচিত</span>',
+    '<span><i class="legend-dot sold-male"></i>Male Sold / পুরুষ</span>',
+    '<span><i class="legend-dot sold-female"></i>Female Sold / নারী</span>',
+    '<span><i class="legend-dot reserved"></i>Reserved / সংরক্ষিত</span>',
+    '<span><i class="legend-dot held"></i>Temporary Hold / সাময়িক Hold</span>',
+    '<span><i class="legend-dot blocked"></i>Blocked / বন্ধ</span>'
+  ].join("");
 
   const summary = document.createElement("p");
   summary.className = "small muted booking-seat-summary";
@@ -3139,7 +3169,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   selectedInfo.className = "small";
   selectedInfo.textContent = "এখনো কোনো Seat নির্বাচন করা হয়নি।";
 
-  seatPanel.append(summary,grid,selectedInfo);
+  seatPanel.append(seatLegend,summary,grid,selectedInfo);
   workspace.append(seatPanel,passengerPanel);
   card.appendChild(workspace);
 
@@ -3352,10 +3382,10 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           if (id && id === ticket.dropping_stop_id) return details.dropping_stop_name || "—";
           return "—";
         };
-        const created = ticket.created_at ? new Date(ticket.created_at).toLocaleString("en-GB") : "—";
+        const created = ticket.created_at ? formatDhakaDateTime(ticket.created_at) : "—";
         const busName = tripDetails.bus_name || "—";
         const coach = tripDetails.coach_number || "—";
-        const journey = tripDetails.departure_time ? new Date(tripDetails.departure_time).toLocaleString("en-GB") : "—";
+        const journey = tripDetails.departure_time ? formatDhakaDateTime(tripDetails.departure_time) : "—";
         const safe = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
         const ticketPreview = document.createElement("div");
         ticketPreview.className = "busnex-premium-ticket";
@@ -3876,7 +3906,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       div.className = "seat " + (
         isAvailable ? "available" :
         state === "sold" ? "sold" + genderClass :
-        (state === "reserved" || isReservation || activeTemporaryHold) ? "reserved" :
+        activeTemporaryHold ? "held" :
+        (state === "reserved" || isReservation) ? "reserved" :
         state === "blocked" ? "blocked" : "unknown"
       );
       div.textContent = seat.seat_number;
@@ -3943,7 +3974,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               }
               if (hoverTooltip === tip && tip.isConnected) {
                 const when = quickTicket?.created_at
-                  ? new Date(quickTicket.created_at).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"2-digit",hour:"2-digit",minute:"2-digit",hour12:true})
+                  ? formatDhakaDateTime(quickTicket.created_at,{year:"2-digit"})
                   : "সময় পাওয়া যায়নি";
                 tip.textContent = quickTicket
                   ? "Booked by " + sellerText + " on " + when +
@@ -4083,7 +4114,7 @@ async function renderBookingResults(trips,from="",to="") {
   const body=table.querySelector("tbody"),ids=matches.map(t=>t.id);let seatRows=[];
   try{const {data,error}=await supabase.from("trip_seats").select("trip_id,status").in("trip_id",ids);if(error)throw error;seatRows=data||[];}catch(e){console.warn("Trip seat counts unavailable:",e);}
   const counts=new Map();seatRows.forEach(x=>{const c=counts.get(x.trip_id)||{available:0,reserved:0,sold:0};const st=String(x.status||"").toLowerCase();if(st==="available")c.available++;else if(st==="reserved"||st==="held")c.reserved++;else if(st==="sold")c.sold++;counts.set(x.trip_id,c);});
-  matches.forEach((trip,i)=>{const bus=trip.buses||{},route=trip.routes||{},d=new Date(trip.departure_time),dt=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}),tm=d.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}),c=counts.get(trip.id)||{available:0,reserved:0,sold:0};
+  matches.forEach((trip,i)=>{const bus=trip.buses||{},route=trip.routes||{},d=new Date(trip.departure_time),dt=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}),tm=formatDhakaTime(d),c=counts.get(trip.id)||{available:0,reserved:0,sold:0};
     const row=document.createElement("tr");row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td>'+escapeHtml((route.starting_point||"—")+"–"+(route.ending_point||"—"))+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">▣ Challan</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
     const action=row.lastElementChild,open=action.querySelector(".counter-open-button"),challan=action.querySelector(".counter-challan-button"),expanded=document.createElement("tr");expanded.className="counter-expanded-row hidden";const td=document.createElement("td");td.colSpan=10;const workspace=document.createElement("div");workspace.className="counter-inline-workspace";td.appendChild(workspace);expanded.appendChild(td);
     open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";return;}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});challan.addEventListener("click",()=>open.click());body.append(row,expanded);
