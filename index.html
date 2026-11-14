@@ -3216,16 +3216,37 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 <body>${printMarkup}</body>
 </html>`);
           printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => {
+          const startTicketPrint = async () => {
+            if (printWindow.__busnexPrintStarted) return;
+            printWindow.__busnexPrintStarted = true;
             try {
+              if (printWindow.closed) return;
+              if (printWindow.document.fonts && printWindow.document.fonts.ready) {
+                await Promise.race([
+                  printWindow.document.fonts.ready,
+                  new Promise(resolve => setTimeout(resolve,4000))
+                ]);
+              }
+              await new Promise(resolve => setTimeout(resolve,500));
+              if (printWindow.closed) return;
               printWindow.focus();
               printWindow.print();
             } catch(printError) {
               console.error("BUSNEX PRINT ERROR:",printError);
-              alert("Print চালু করা যায়নি। আবার Print Ticket চাপুন।");
+              alert("Print চালু করা যায়নি। Print window বন্ধ না করে আবার Print Ticket চাপুন।");
             }
-          },700);
+          };
+          if (printWindow.document.readyState === "complete") {
+            startTicketPrint();
+          } else {
+            printWindow.addEventListener("load",startTicketPrint,{once:true});
+            setTimeout(() => {
+              if (!printWindow.closed && !printWindow.__busnexPrintStarted) {
+                printWindow.__busnexPrintStarted = true;
+                startTicketPrint();
+              }
+            },1800);
+          }
         });
         actions.appendChild(print);
         const closeFooter = document.createElement("button");
