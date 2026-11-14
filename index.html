@@ -458,6 +458,20 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
  #appScreen #page-booking .counter-day-button{min-width:0;flex:1}
 }
 </style>
+<style id="busnex-day-navigation-fix">
+/* Day navigation: stable three-button row at every viewport size */
+#appScreen #page-booking .counter-control-row{grid-template-columns:minmax(0,1.15fr) minmax(190px,.9fr) minmax(145px,.6fr)!important}
+#appScreen #page-booking .counter-day-controls{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch!important;gap:8px!important;width:100%!important;min-width:0!important}
+#appScreen #page-booking .counter-day-controls .counter-day-button{display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:48px!important;height:auto!important;padding:8px 9px!important;white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important;line-height:1.2!important;font-size:14px!important;flex:none!important}
+#appScreen #page-booking .counter-day-controls small{grid-column:1/-1!important;width:100%!important;display:block!important;margin-top:1px!important;white-space:normal!important}
+#appScreen #page-booking .counter-day-button:focus-visible{outline:3px solid rgba(96,54,191,.25);outline-offset:2px}
+#appScreen #page-booking .counter-day-button:disabled{opacity:.55;cursor:wait}
+@media(max-width:650px){
+ #appScreen #page-booking .counter-control-row{grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+ #appScreen #page-booking .counter-day-controls{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+ #appScreen #page-booking .counter-day-controls .counter-day-button{font-size:clamp(11px,3.1vw,13px)!important;min-height:46px!important;padding:7px 3px!important;border-width:1.5px!important}
+}
+</style>
 </head>
 
 <body>
@@ -3592,14 +3606,40 @@ $("journeyDate").addEventListener("change",loadBookingStopsForSelectedDate);
   });
 });
 
+function bookingDateToISO(date) {
+  return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");
+}
+function syncBookingDayButtons() {
+  const selected = $("journeyDate").value;
+  if (!selected) return;
+  const parts = selected.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return;
+  const selectedDate = new Date(parts[0],parts[1]-1,parts[2],12);
+  const today = new Date();
+  today.setHours(12,0,0,0);
+  const offset = Math.round((selectedDate-today)/86400000);
+  document.querySelectorAll("[data-day-offset]").forEach(item => {
+    item.classList.toggle("active",Number(item.dataset.dayOffset)===offset && offset>=-1 && offset<=1);
+    item.setAttribute("aria-pressed",String(Number(item.dataset.dayOffset)===offset && offset>=-1 && offset<=1));
+  });
+}
 document.querySelectorAll("[data-day-offset]").forEach(button=>button.addEventListener("click",()=>{
-  const date=new Date(($("journeyDate").value||new Date().toLocaleDateString("en-CA"))+"T12:00:00");
+  const current = $("journeyDate").value;
+  let date;
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(current)) {
+    const [year,month,day] = current.split("-").map(Number);
+    date = new Date(year,month-1,day,12);
+  } else {
+    date = new Date();
+    date.setHours(12,0,0,0);
+  }
   date.setDate(date.getDate()+Number(button.dataset.dayOffset));
-  $("journeyDate").value=[date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");
-  document.querySelectorAll("[data-day-offset]").forEach(item=>item.classList.toggle("active",item===button));
-  $("bookingDateCaption").textContent="Showing result for: "+date.toLocaleDateString("en-US",{month:"short",day:"2-digit",year:"numeric"});
+  $("journeyDate").value=bookingDateToISO(date);
+  syncBookingDayButtons();
   loadBookingStopsForSelectedDate();
 }));
+$("journeyDate").addEventListener("change",syncBookingDayButtons);
+syncBookingDayButtons();
 
 $("searchTripButton").addEventListener("click",async() => {
   const from = $("fromStop").value;
