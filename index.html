@@ -1103,7 +1103,7 @@ $("saveNewPassword").addEventListener("click", async () => {
 $("loginForm").addEventListener("submit",async event => {
   event.preventDefault();
 
-  const login_id = $("loginId").value.trim().toUpperCase();
+  const login_id = $("loginId").value.trim();
   const password = $("password").value;
 
   if (!login_id || !password) {
@@ -1116,10 +1116,26 @@ $("loginForm").addEventListener("submit",async event => {
   showMessage("","");
 
   try {
-    const {data,error} = await supabase.functions.invoke(
-      FUNCTION_NAME,
-      {body:{login_id,password}}
-    );
+    // Edge Function উত্তর না দিলে Login যেন অনির্দিষ্টকাল Loading-এ না থাকে।
+    let loginTimeoutId;
+    let loginResponse;
+    try {
+      loginResponse = await Promise.race([
+        supabase.functions.invoke(
+          FUNCTION_NAME,
+          {body:{login_id,password}}
+        ),
+        new Promise((_,reject) => {
+          loginTimeoutId = setTimeout(
+            () => reject(new Error("Login Server ২০ সেকেন্ডেও উত্তর দেয়নি। Edge Function-এর অবস্থা পরীক্ষা করতে হবে।")),
+            20000
+          );
+        })
+      ]);
+    } finally {
+      clearTimeout(loginTimeoutId);
+    }
+    const {data,error} = loginResponse;
 
     if (error) throw error;
     if (!data) throw new Error("সার্ভার থেকে উত্তর পাওয়া যায়নি।");
