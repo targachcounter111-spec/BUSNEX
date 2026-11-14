@@ -2813,6 +2813,11 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       .booking-action-row>.btn.btn-primary{margin:0;min-height:44px;background:#5cb85c;border:1px solid #4cae4c}
       .booking-reservation-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
       .booking-reservation-mobile{display:flex;align-items:center;gap:18px;padding:13px 16px;margin:10px 0 18px;background:#eee;border:1px solid #ddd;font-size:13px}
+      .booking-action-row.booking-mode-paid .booking-reservation-actions{display:none}
+      .booking-action-row.booking-mode-reservation{grid-template-columns:1fr}
+      .booking-action-row.booking-mode-reservation>.btn.btn-primary{display:none}
+      .booking-action-row.booking-mode-reservation .booking-reservation-actions{display:grid;grid-template-columns:1fr 1fr}
+      .booking-action-row.booking-mode-reservation .booking-vip-reserve{grid-column:1/-1}
       .booking-reservation-mobile label{min-width:210px;color:#333}
       .booking-reservation-mobile strong{font-weight:500;color:#26364a}
       .booking-reservation-payment{border:1px solid #d8d8d8;margin:0 0 16px;background:#fff}
@@ -3527,7 +3532,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       paidTag.textContent = "✓ Paid";
       bookingActions.append(paidLabel,paidTag);
       const actionRow = document.createElement("div");
-      actionRow.className = "booking-action-row";
+      actionRow.className = "booking-action-row booking-mode-" + bookingMode;
       actionRow.append(submit,reservationActions);
       passengerPanel.append(bookingActions,actionRow);
     }
