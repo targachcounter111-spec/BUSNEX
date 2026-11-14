@@ -22,6 +22,19 @@ const json = (status: number, body: Record<string, unknown>, origin: string | nu
 const normalizeLoginId = (value: unknown) =>
   typeof value === "string" ? value.trim().toUpperCase() : "";
 
+function getSecret(primary: string, legacy: string): string {
+  const raw = Deno.env.get(primary) ?? Deno.env.get(legacy) ?? "";
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "string") return parsed;
+    if (parsed && typeof parsed.default === "string") return parsed.default;
+    return raw;
+  } catch {
+    return raw;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("Origin");
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(origin) });
@@ -29,7 +42,7 @@ Deno.serve(async (req: Request) => {
   if (origin && !allowedOrigins.has(origin)) return json(403, { success: false, message: "Origin অনুমোদিত নয়।" }, origin);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SECRET_KEYS") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = getSecret("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) {
     return json(500, { success: false, message: "Backend environment configuration অসম্পূর্ণ।" }, origin);
   }
