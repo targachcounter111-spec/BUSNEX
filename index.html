@@ -2935,7 +2935,12 @@ async function loadSeatInventory(tripId) {
       throw new Error("এই Trip-এর Bus তথ্য পাওয়া যায়নি।");
     }
 
-    const [layoutResult,inventoryResult] = await Promise.all([
+    const [tripLayoutResult,layoutResult,inventoryResult] = await Promise.all([
+      supabase
+        .from("trip_seat_layouts")
+        .select("seat_number,row_label,seat_position,seat_order")
+        .eq("trip_id",tripId)
+        .order("seat_order",{ascending:true}),
       supabase
         .from("bus_seat_layouts")
         .select("seat_number,row_label,seat_position,seat_order")
