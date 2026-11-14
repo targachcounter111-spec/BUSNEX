@@ -2162,11 +2162,13 @@ async function loadSeatTrips() {
   seatMessage("","");
 
   try {
-    const {data,error} = await supabase
+    let seatTripQuery = supabase
       .from("trips")
       .select("id,bus_id,departure_time,status,buses(bus_name),routes(starting_point,ending_point)")
       .order("departure_time",{ascending:true})
       .limit(100);
+    if (currentProfile?.role === "super_admin" && activeCompanyId) seatTripQuery = seatTripQuery.eq("company_id",activeCompanyId);
+    const {data,error} = await seatTripQuery;
 
     if (error) throw error;
 
@@ -2448,6 +2450,9 @@ async function loadBillingPage() {
         throw new Error("এই Account-এর Billing দেখার অনুমতি নেই।");
       }
       query = query.eq("company_id",currentProfile.company_id);
+    } else if (activeCompanyId) {
+      query = query.eq("company_id",activeCompanyId);
+      $("billingCompanySelect").value = activeCompanyId;
     }
     const {data,error} = await query;
     if (error) throw error;
@@ -2608,6 +2613,8 @@ async function loadTripSheetTrips() {
     if (currentProfile.role !== "super_admin") {
       if (!currentProfile.company_id) throw new Error("আপনার Company Assignment পাওয়া যায়নি।");
       query = query.eq("company_id",currentProfile.company_id);
+    } else if (activeCompanyId) {
+      query = query.eq("company_id",activeCompanyId);
     }
     const {data,error} = await query;
     if (error) throw error;
