@@ -931,6 +931,12 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
           </form>
           <div id="operatorCreateMessage" class="message" aria-live="polite">Counter নির্বাচন করে Operator ID তৈরি করুন।</div>
         </div>
+        <div class="card section" id="operatorDirectoryPanel">
+          <h2>Counter Operator ID পরিচালনা</h2>
+          <div class="notice">এখান থেকে নিজের Company-র Operator Login ID Active বা Deactivate করতে পারবেন। Deactivated ID দিয়ে Login করা যাবে না।</div>
+          <div id="operatorDirectoryMessage" class="message">Operator তালিকা লোড হয়নি।</div>
+          <div id="operatorDirectory" class="table-wrap"><div class="empty">তথ্য লোড হয়নি।</div></div>
+        </div>
         <div class="card section"><h2>Reservation Permission</h2>
           <div class="notice">Company Manager নিজের Company-এর Counter-এ এবং Super Admin যেকোনো Counter-এ Standard বা VIP Reservation Permission দিতে বা বন্ধ করতে পারবেন। Database RPC Migration চালু না থাকলে পরিবর্তন সংরক্ষণ হবে না।</div>
           <div id="permissionControls" class="form-row section">
@@ -2975,6 +2981,69 @@ async function createCounter() {
   }
 }
 
+
+async function loadOperatorDirectory(counterRows = null) {
+  const message = $("operatorDirectoryMessage");
+  const wrap = $("operatorDirectory");
+  if (!isAdmin()) {
+    $("operatorDirectoryPanel").classList.add("hidden");
+    return;
+  }
+  const companyId = currentProfile.role === "super_admin" ? activeCompanyId : currentProfile.company_id;
+  if (!companyId) {
+    message.textContent = "Company Workspace নির্বাচন করুন।";
+    wrap.innerHTML = '<div class="empty">Company নির্বাচন করা হয়নি।</div>';
+    return;
+  }
+  message.textContent = "Operator Login তালিকা লোড হচ্ছে...";
+  try {
+    const {data,error} = await supabase.from("profiles")
+      .select("id,login_id,full_name,counter_id,is_active")
+      .eq("company_id",companyId)
+      .eq("role","counter_operator")
+      .order("full_name");
+    if (error) throw error;
+    const operators = data || [];
+    const counters = counterRows || [];
+    const counterNames = new Map(counters.map(counter => [counter.id,counter.name]));
+    if (!operators.length) {
+      wrap.innerHTML = '<div class="empty">এই Company-তে এখনো কোনো Counter Operator Login তৈরি হয়নি।</div>';
+    } else {
+      wrap.innerHTML = '<table><thead><tr><th>Operator</th><th>Login ID</th><th>Counter</th><th>Status</th><th>Action</th></tr></thead><tbody>' +
+        operators.map(operator => '<tr><td>' + escapeHtml(operator.full_name || "—") + '</td><td><strong>' + escapeHtml(operator.login_id || "—") + '</strong></td><td>' + escapeHtml(counterNames.get(operator.counter_id) || "Counter unavailable") + '</td><td>' + (operator.is_active ? '<span class="status-badge">Active</span>' : '<span class="status-badge">Inactive</span>') + '</td><td><button type="button" class="' + (operator.is_active ? 'danger' : 'secondary') + ' toggle-operator-active" data-id="' + escapeHtml(operator.id) + '" data-active="' + (operator.is_active ? 'true' : 'false') + '">' + (operator.is_active ? 'Deactivate' : 'Activate') + '</button></td></tr>').join('') +
+        '</tbody></table>';
+      wrap.querySelectorAll(".toggle-operator-active").forEach(button => {
+        button.addEventListener("click", async () => {
+          const nextActive = button.dataset.active !== "true";
+          if (!confirm((nextActive ? "এই Operator ID আবার Active" : "এই Operator ID Deactivate") + " করবেন?")) return;
+          button.disabled = true;
+          message.textContent = "Operator status পরিবর্তন হচ্ছে...";
+          try {
+            const {data,error} = await supabase.functions.invoke("manage-company-users", {
+              body: {action:"set_operator_active",profile_id:button.dataset.id,is_active:nextActive}
+            });
+            if (error) throw new Error(data?.message || error.message || "Backend request failed");
+            if (!data?.success) throw new Error(data?.message || "Status পরিবর্তন হয়নি।");
+            message.textContent = data.message;
+            message.className = "message ok";
+            await loadOperatorDirectory(counters);
+          } catch(error) {
+            message.textContent = "Operator status পরিবর্তন হয়নি: " + error.message;
+            message.className = "message error";
+            button.disabled = false;
+          }
+        });
+      });
+    }
+    message.textContent = operators.length + "টি Operator Login পাওয়া গেছে।";
+    message.className = "message ok";
+  } catch(error) {
+    message.textContent = "Operator তালিকা লোড হয়নি: " + error.message;
+    message.className = "message error";
+    wrap.innerHTML = '<div class="empty">Operator তালিকা পাওয়া যায়নি।</div>';
+  }
+}
+
 async function loadCounterDirectory() {
   $("counterDirectoryMessage").textContent = "Counter লোড হচ্ছে...";
   $("permissionMessage").textContent = "Permission লোড হচ্ছে...";
@@ -3006,6 +3075,8 @@ async function loadCounterDirectory() {
       operatorCounterSelect.appendChild(option);
     });
     $("operatorCreatePanel").classList.toggle("hidden", !isAdmin());
+    $("operatorDirectoryPanel").classList.toggle("hidden", !isAdmin());
+    await loadOperatorDirectory(counters);
     const counterSelect = $("permissionCounter");
     counterSelect.innerHTML = '<option value="">Counter নির্বাচন করুন</option>';
     counters.forEach(counter => {
