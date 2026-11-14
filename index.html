@@ -692,6 +692,42 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
             </select>
           </div>
 
+          <div class="trip-builder-section"><h3>✦ Saved Route Library</h3><p>আগের সংরক্ষিত Route ব্যবহার করুন অথবা নতুন Route তৈরি করুন। Route একবার তৈরি হলে কোম্পানির Library-তে থাকবে।</p></div>
+          <div class="field">
+            <label>Route নির্বাচন</label>
+            <select id="tripRouteSelect">
+              <option value="__new__">＋ নতুন Route তৈরি করুন</option>
+            </select>
+          </div>
+          <div id="newRouteFields">
+            <div class="form-row">
+              <div class="field">
+                <label>Route Name</label>
+                <input id="tripRouteName" placeholder="যেমন: Dhaka–Bogura Express">
+              </div>
+              <div class="field">
+                <label>Region</label>
+                <select id="tripRouteRegion">
+                  <option value="NB">NB — উত্তরবঙ্গ</option>
+                  <option value="SB">SB — দক্ষিণবঙ্গ</option>
+                  <option value="DHAKA">Dhaka</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Direction</label>
+                <select id="tripRouteDirection">
+                  <option value="OUTBOUND">Dhaka থেকে বাইরে (OUTBOUND)</option>
+                  <option value="INBOUND">অন্য জায়গা থেকে Dhaka (INBOUND)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Route Stops / মাঝের স্টপেজ</label>
+              <textarea id="routeStopsInput" placeholder="Gazipur|22:30|BOTH|Boarding point&#10;Tangail|00:30|BOTH|&#10;Bogura|04:00|DROP|Final stop"></textarea>
+              <div class="small muted">প্রতি লাইনে: জায়গার নাম|সময়|BOTH / BOARD / DROP / NONE|নোট। সময় না থাকলে ফাঁকা রাখুন। যেকোনো জায়গার নাম লিখতে পারবেন।</div>
+            </div>
+          </div>
+
           <div class="form-row">
             <div class="field">
               <label>FROM / যাত্রা শুরু</label>
@@ -1550,6 +1586,7 @@ async function prepareTripManagement() {
     }
 
     await loadBuses();
+    await loadSavedRoutes();
     await loadTrips();
 
   } catch(error) {
@@ -1561,8 +1598,17 @@ async function prepareTripManagement() {
 $("tripCompany").addEventListener("change",async() => {
   try {
     await loadBuses();
+    await loadSavedRoutes();
   } catch(error) {
-    tripMessage("Bus লোড হয়নি: " + error.message,"error");
+    tripMessage("Bus/Route লোড হয়নি: " + error.message,"error");
+  }
+});
+
+$("tripRouteSelect").addEventListener("change",async() => {
+  try {
+    await chooseSavedRoute($("tripRouteSelect").value);
+  } catch(error) {
+    tripMessage("নির্বাচিত Route লোড হয়নি: " + error.message,"error");
   }
 });
 
@@ -1619,6 +1665,127 @@ function parseCustomTripLayout() {
   });
 }
 
+let savedRouteCache = [];
+
+function parseRouteStopsInput() {
+  const raw = $("routeStopsInput").value.trim();
+  if (!raw) return [];
+  return raw.split(/\r?\n/).filter(line => line.trim()).map((line,index) => {
+    const parts = line.split("|");
+    const stopName = (parts[0] || "").trim();
+    const time = (parts[1] || "").trim();
+    const access = (parts[2] || "BOTH").trim().toUpperCase();
+    const notes = parts.slice(3).join("|").trim();
+    if (!stopName) throw new Error("Route Stop-এর নাম খালি রাখা যাবে না।");
+    if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      throw new Error("Route Stop-এর সময় HH:MM ফরম্যাটে দিন।");
+    }
+    if (!["BOTH","BOARD","DROP","NONE"].includes(access)) {
+      throw new Error("Stop-এর ধরন BOTH, BOARD, DROP অথবা NONE হতে হবে।");
+    }
+    return {
+      stop_name:stopName,
+      stop_order:index+1,
+      stop_time:time || null,
+      can_board:access === "BOTH" || access === "BOARD",
+      can_drop:access === "BOTH" || access === "DROP",
+      stop_notes:notes || null
+    };
+  });
+}
+
+async function loadSavedRoutes() {
+  const companyId = selectedCompanyId();
+  const select = $("tripRouteSelect");
+  select.innerHTML = '<option value="__new__">＋ নতুন Route তৈরি করুন</option>';
+  savedRouteCache = [];
+  if (!companyId) return;
+
+  const {data,error} = await supabase
+    .from("routes")
+    .select("id,route_name,starting_point,ending_point,region,direction,distance_km")
+    .eq("company_id",companyId)
+    .order("created_at",{ascending:false});
+  if (error) throw error;
+  savedRouteCache = data || [];
+
+  savedRouteCache.forEach(route => {
+    const option = document.createElement("option");
+    option.value = route.id;
+    const label = route.route_name || (route.starting_point + " → " + route.ending_point);
+    option.textContent = label + " • " + (route.region || "Region নেই");
+    select.appendChild(option);
+  });
+  select.value = "__new__";
+  $("newRouteFields").classList.remove("hidden");
+  $("tripFrom").readOnly = false;
+  $("tripTo").readOnly = false;
+}
+
+async function chooseSavedRoute(routeId) {
+  const route = savedRouteCache.find(item => item.id === routeId);
+  if (!route) {
+    $("newRouteFields").classList.remove("hidden");
+    $("tripFrom").readOnly = false;
+    $("tripTo").readOnly = false;
+    $("tripFrom").value = "";
+    $("tripTo").value = "";
+    $("tripRouteName").value = "";
+    $("routeStopsInput").value = "";
+    return;
+  }
+  $("newRouteFields").classList.add("hidden");
+  $("tripFrom").readOnly = true;
+  $("tripTo").readOnly = true;
+  $("tripFrom").value = route.starting_point || "";
+  $("tripTo").value = route.ending_point || "";
+  const {data,error} = await supabase
+    .from("route_stops")
+    .select("stop_name,stop_time,can_board,can_drop,stop_notes,stop_order")
+    .eq("route_id",route.id)
+    .order("stop_order",{ascending:true});
+  if (error) throw error;
+  $("routeStopsInput").value = (data || []).map(stop => {
+    const access = stop.can_board && stop.can_drop ? "BOTH" :
+      stop.can_board ? "BOARD" : stop.can_drop ? "DROP" : "NONE";
+    const time = stop.stop_time ? String(stop.stop_time).slice(0,5) : "";
+    return [stop.stop_name,time,access,stop.stop_notes || ""].join("|");
+  }).join("\n");
+}
+
+async function createSavedRoute(companyId,from,to) {
+  const routeName = $("tripRouteName").value.trim();
+  const region = $("tripRouteRegion").value;
+  const direction = $("tripRouteDirection").value;
+  if (!routeName) throw new Error("নতুন Route-এর একটি নাম দিন।");
+  if (!["NB","SB","DHAKA"].includes(region)) throw new Error("Route-এর Region নির্বাচন করুন।");
+  if (!["OUTBOUND","INBOUND"].includes(direction)) throw new Error("Route-এর Direction নির্বাচন করুন।");
+
+  const stops = parseRouteStopsInput();
+  const {data:route,error} = await supabase
+    .from("routes")
+    .insert({
+      company_id:companyId,
+      route_name:routeName,
+      starting_point:from,
+      ending_point:to,
+      region,
+      direction
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  if (stops.length) {
+    const rows = stops.map(stop => ({route_id:route.id,...stop}));
+    const {error:stopError} = await supabase.from("route_stops").insert(rows);
+    if (stopError) {
+      throw new Error("Route তৈরি হয়েছে, কিন্তু Route Stops সংরক্ষণ হয়নি: " + stopError.message + "। Route Library-তে Route-টি রয়েছে; Edit করে Stops যোগ করুন।");
+    }
+  }
+  return route.id;
+}
+
 async function getOrCreateRoute(companyId,from,to) {
   const {data:existing,error:searchError} = await supabase
     .from("routes")
@@ -1660,6 +1827,12 @@ function localDateValue(dateValue) {
 }
 
 function clearTripFormFields() {
+  $("tripRouteSelect").value = "__new__";
+  $("newRouteFields").classList.remove("hidden");
+  $("tripFrom").readOnly = false;
+  $("tripTo").readOnly = false;
+  $("tripRouteName").value = "";
+  $("routeStopsInput").value = "";
   $("tripFrom").value = "";
   $("tripTo").value = "";
   $("coachNumber").value = "";
@@ -1761,7 +1934,22 @@ $("tripSaveButton").addEventListener("click",async() => {
       throw new Error("নির্বাচিত Bus পাওয়া যায়নি। আবার Bus নির্বাচন করুন।");
     }
 
-    const routeId = await getOrCreateRoute(companyId,from,to);
+    let routeId;
+    const selectedRouteId = $("tripRouteSelect").value;
+    if (isEditing) {
+      const {data:currentTrip,error:currentTripError} = await supabase
+        .from("trips").select("route_id").eq("id",editingTripId).single();
+      if (currentTripError) throw currentTripError;
+      routeId = currentTrip.route_id;
+    } else if (selectedRouteId && selectedRouteId !== "__new__") {
+      const selectedRoute = savedRouteCache.find(route => route.id === selectedRouteId);
+      if (!selectedRoute || selectedRoute.starting_point !== from || selectedRoute.ending_point !== to) {
+        throw new Error("নির্বাচিত Route-এর Starting ও Ending Point মিলছে না।");
+      }
+      routeId = selectedRouteId;
+    } else {
+      routeId = await createSavedRoute(companyId,from,to);
+    }
     const departureDateTime = new Date(date + "T" + time + ":00");
 
     if (Number.isNaN(departureDateTime.getTime())) {
@@ -2076,6 +2264,11 @@ async function editTrip(id) {
     }
 
     $("tripBus").value = trip.bus_id;
+    await loadSavedRoutes();
+    $("tripRouteSelect").value = "__new__";
+    $("newRouteFields").classList.remove("hidden");
+    $("tripFrom").readOnly = false;
+    $("tripTo").readOnly = false;
     $("tripFrom").value = trip.routes?.starting_point || "";
     $("tripTo").value = trip.routes?.ending_point || "";
     $("coachNumber").value = trip.coach_number || "";
