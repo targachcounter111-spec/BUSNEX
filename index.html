@@ -3178,7 +3178,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         print.className = "primary";
         print.textContent = "🖨 Print Ticket";
         print.addEventListener("click",() => {
-          const printWindow = window.open("","_blank","width=1200,height=700");
+          const printWindow = window.open("","_blank","width=700,height=1200");
           if (!printWindow) {
             alert("Print window খোলা যায়নি। Browser-এর popup permission চালু করুন।");
             return;
@@ -3192,12 +3192,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BUSNEX Group Ticket</title>
 <style>
-  @page{size:8.50in 3.66in;margin:0}
+  @page{size:3.66in 8.50in;margin:0}
   *{box-sizing:border-box}
-  html,body{margin:0!important;padding:0!important;width:8.50in!important;height:3.66in!important;min-width:8.50in!important;min-height:3.66in!important;font-family:Arial,sans-serif;background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  body{display:flex;align-items:stretch;justify-content:center;overflow:hidden}
-  .busnex-premium-ticket{position:relative!important;display:block!important;width:8.50in!important;height:3.66in!important;min-height:3.66in!important;max-height:3.66in!important;overflow:hidden!important;margin:0!important;padding:10mm 7mm!important;background:#fff!important;color:#111!important;border:1px solid #777!important;border-radius:0!important;box-shadow:none!important;font-family:Arial,sans-serif!important}
-  .bpt-status-line{text-align:center;font-size:11pt;font-weight:700;color:#333;margin:0 auto 13mm}
+  html,body{margin:0!important;padding:0!important;width:3.66in!important;height:8.50in!important;min-width:3.66in!important;min-height:8.50in!important;font-family:Arial,sans-serif;background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{display:block;overflow:hidden}
+  .busnex-premium-ticket{position:relative!important;display:block!important;width:3.66in!important;height:8.50in!important;min-height:8.50in!important;max-height:8.50in!important;overflow:hidden!important;margin:0!important;padding:0!important;background:#fff!important;color:#111!important;border:1px solid #777!important;border-radius:0!important;box-shadow:none!important;font-family:Arial,sans-serif!important}
+  .bpt-status-line{text-align:center;font-size:11pt;font-weight:700;color:#333;margin:0 auto 8mm}
   .bpt-three-copy{display:grid;grid-template-columns:21% 58% 21%;align-items:start;min-height:0;color:#222;font-family:Arial,sans-serif}
   .bpt-copy{min-width:0;padding:0 3mm;font-size:8pt;line-height:1.45;font-weight:500;color:#222;overflow-wrap:anywhere}
   .bpt-copy-side{font-size:7.2pt;line-height:1.42;text-align:center;padding:0 2mm}
@@ -3206,9 +3206,9 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   .bpt-copy-bottom{font-size:7pt;text-align:center;margin-top:3mm}
   .bpt-copy-note{text-align:center;font-size:8pt;font-weight:700;margin-top:3mm}
   @media print{
-    @page{size:8.50in 3.66in;margin:0}
-    html,body{width:8.50in!important;height:3.66in!important;min-width:8.50in!important;min-height:3.66in!important;margin:0!important;padding:0!important}
-    .busnex-premium-ticket{width:8.50in!important;height:3.66in!important;min-height:3.66in!important;max-height:3.66in!important;page-break-inside:avoid;break-inside:avoid}
+    @page{size:3.66in 8.50in;margin:0}
+    html,body{width:3.66in!important;height:8.50in!important;min-width:3.66in!important;min-height:8.50in!important;margin:0!important;padding:0!important}
+    .busnex-premium-ticket{width:3.66in!important;height:8.50in!important;min-height:8.50in!important;max-height:8.50in!important;margin:0!important;padding:0!important;page-break-inside:avoid;break-inside:avoid}
   }
 </style>
 </head>
