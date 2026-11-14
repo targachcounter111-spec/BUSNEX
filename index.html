@@ -2559,11 +2559,7 @@ function fillBookingStopOptions(trips) {
 
   setOptions(fromSelect,"যাত্রা শুরুর স্থান নির্বাচন",boardingNames,previousFrom);
   setOptions(toSelect,"গন্তব্য নির্বাচন",droppingNames,previousTo);
-  const operatorSelect=$("bookingOperator"),previousOperator=operatorSelect.value;
-  operatorSelect.innerHTML='<option value="">All Operators</option>';
-  const operators=[...new Set(trips.map(t=>String(t.buses?.bus_name||"").trim()).filter(Boolean))].sort();
-  operators.forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;operatorSelect.appendChild(o);});
-  if(operators.includes(previousOperator))operatorSelect.value=previousOperator;
+
 }
 
 async function appendBookingSeatPicker(trip,card,confirmPastDate) {
@@ -3465,6 +3461,12 @@ async function loadBookingStopsForSelectedDate() {
 }
 
 $("journeyDate").addEventListener("change",loadBookingStopsForSelectedDate);
+["bookingCoach","bookingReg","bookingAcFilter","bookingNonAcFilter","bookingOrder","fromStop","toStop"].forEach(id=>{
+  $(id).addEventListener("change",async()=>{
+    try{const trips=await fetchBookingTrips($("journeyDate").value);renderBookingResults(trips,$("fromStop").value,$("toStop").value);}
+    catch(error){bookingMessage("Trip লোড হয়নি: "+error.message,"error");}
+  });
+});
 
 document.querySelectorAll("[data-day-offset]").forEach(button=>button.addEventListener("click",()=>{
   const date=new Date(($("journeyDate").value||new Date().toLocaleDateString("en-CA"))+"T12:00:00");
@@ -3496,7 +3498,7 @@ $("searchTripButton").addEventListener("click",async() => {
     bookingMessage("Trip খুঁজে পাওয়া যায়নি: " + error.message,"error");
   } finally {
     button.disabled = false;
-    button.textContent = "ট্রিপ খুঁজুন";
+    button.textContent = "Search";
   }
 });
 
