@@ -2744,7 +2744,36 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const style = document.createElement("style");
     style.id = "busnex-booking-workspace-style";
     style.textContent = `
-      .booking-trip-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:7px 9px;margin:8px 0 10px;background:#f1e4e4;border:1px solid #c5b3b3;border-radius:0;box-shadow:none}
+      .booking-trip-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 14px;margin:8px 0 10px;background:#f0f0f0;border-left:3px solid #18a34a;border-top:1px solid #ddd;border-bottom:1px solid #ddd;border-radius:0;box-shadow:none}
+      .booking-trip-toolbar:before{content:"Coach No";font-size:12px;color:#333;flex:0 0 100%}
+      .booking-trip-toolbar .booking-trip-status{display:none}
+      .booking-trip-toolbar:after{content:"";display:block}
+      .booking-trip-toolbar button{border-radius:0}
+      .booking-action-choice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 14px;padding:9px 12px;background:#f1f1f1;border-left:3px solid #1aa34a}
+      .booking-action-choice span{font-size:12px;color:#333;margin-right:auto}
+      .booking-action-choice b{display:inline-flex;align-items:center;justify-content:center;min-width:145px;min-height:38px;background:#5cb85c;color:white;font-size:14px}
+      .booking-action-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+      .booking-action-row>.btn.btn-primary{margin:0;min-height:44px;background:#5cb85c;border:1px solid #4cae4c}
+      .booking-reservation-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .booking-standard-reserve,.booking-vip-reserve{min-height:44px;padding:9px 12px;border:1px solid #bbb;border-radius:0;background:#fff;color:#222;font-weight:700}
+      .booking-vip-reserve{grid-column:1/-1;background:#fff7e8;border-color:#e5a000;color:#8a5300}
+      .booking-trip-toolbar{position:relative}
+      .booking-trip-toolbar .booking-trip-status{display:inline-block}
+      .booking-trip-toolbar .booking-trip-status:before{content:"";display:none}
+      .booking-trip-toolbar{min-height:84px}
+      .booking-trip-toolbar .booking-trip-status{order:0}
+      .booking-workspace{grid-template-columns:minmax(280px,.30fr) minmax(0,.70fr)}
+      .booking-seat-panel .seats{background:#fff;border:0}
+      .booking-seat-panel .seat.available{background:#fff;color:#222;border:1px solid #bbb}
+      .booking-seat-panel .seat.sold{background:#f04438;color:#fff;border-color:#e23c32}
+      .booking-seat-panel .seat.reserved{background:#ffb020;color:#222;border-color:#e69a0c}
+      .booking-seat-panel .seat.selected{background:#58b45b;color:#fff;border-color:#399641}
+      .booking-seat-panel .seat.blocked{background:#e5e5e5;color:#333;border-color:#aaa}
+      .booking-seat-summary{font-size:12px}
+      .booking-passenger-panel{padding:12px}
+      .booking-passenger-panel h4{background:#f5f5f5;border:0;border-bottom:1px solid #ddd;font-size:13px;padding:10px}
+      .booking-passenger-panel .field input,.booking-passenger-panel .field select{min-height:38px}
+      @media(max-width:760px){.booking-action-row{grid-template-columns:1fr}.booking-reservation-actions{grid-template-columns:1fr 1fr}}
       .booking-trip-status{margin-right:auto;color:#fff;background:#2d6656;padding:8px 13px;border-radius:4px;font-size:12px;font-weight:900;letter-spacing:.04em}
       .booking-trip-status.cancelled{background:#a64238}.booking-trip-status.departed{background:#526d78}
       .booking-trip-toolbar button{border-radius:4px;padding:9px 14px;font-size:11px;font-weight:900;letter-spacing:.04em}
@@ -3327,7 +3356,90 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           submit.textContent = "নির্বাচিত Seat-এর টিকিট বিক্রি করুন";
         }
       });
-      passengerPanel.appendChild(submit);
+      const reservationActions = document.createElement("div");
+      reservationActions.className = "booking-reservation-actions";
+      const standardReserve = document.createElement("button");
+      standardReserve.type = "button";
+      standardReserve.className = "booking-standard-reserve";
+      standardReserve.textContent = "Reservation";
+      const vipReserve = document.createElement("button");
+      vipReserve.type = "button";
+      vipReserve.className = "booking-vip-reserve";
+      vipReserve.textContent = "VIP Reserve";
+      async function createInlineReservation(type,button) {
+        if (button.disabled) return;
+        if (!groupPassenger.name.trim() || !groupPassenger.phone.trim() ||
+            !groupPassenger.gender || !groupPassenger.boarding || !groupPassenger.dropping) {
+          alert("Reservation-এর জন্য নাম, মোবাইল, Gender, Boarding ও Dropping Stop পূরণ করুন।");
+          return;
+        }
+        const boarding = stops.find(x => x.id === groupPassenger.boarding);
+        const dropping = stops.find(x => x.id === groupPassenger.dropping);
+        if (!boarding || !dropping || boarding.stop_order >= dropping.stop_order) {
+          alert("Boarding Stop অবশ্যই Dropping Stop-এর আগে হতে হবে।");
+          return;
+        }
+        const seatsToReserve = [...selectedSeats];
+        button.disabled = true;
+        const oldText = button.textContent;
+        button.textContent = "Reservation হচ্ছে...";
+        try {
+          const {data,error} = await supabase.rpc("busnex_create_reservation",{
+            p_trip_id:trip.id,
+            p_reservation_type:type,
+            p_seat_numbers:seatsToReserve,
+            p_passenger_name:groupPassenger.name.trim(),
+            p_passenger_phone:groupPassenger.phone.trim(),
+            p_passenger_gender:groupPassenger.gender,
+            p_boarding_stop_id:groupPassenger.boarding,
+            p_dropping_stop_id:groupPassenger.dropping
+          });
+          if (error) throw error;
+          seatsToReserve.forEach(seatNumber => {
+            selectedSeats.delete(seatNumber);
+            const seatButton = seatButtons.get(seatNumber);
+            if (seatButton) {
+              seatButton.classList.remove("selected","available");
+              seatButton.classList.add("reserved");
+              seatButton.textContent = seatNumber;
+              seatButton.title = type.toUpperCase() + " Reservation";
+              seatButton.removeAttribute("role");
+              seatButton.removeAttribute("tabindex");
+            }
+          });
+          selectedInfo.textContent = seatsToReserve.length + "টি Seat-এর " +
+            (type === "vip" ? "VIP" : "Standard") + " Reservation তৈরি হয়েছে। ID: " + data;
+          if (!selectedSeats.size) {
+            groupPassenger.name = "";
+            groupPassenger.phone = "";
+            groupPassenger.gender = "";
+            groupPassenger.boarding = "";
+            groupPassenger.dropping = "";
+          }
+          renderPassengerFields();
+          alert((type === "vip" ? "VIP" : "Standard") + " Reservation সফল হয়েছে।");
+        } catch(error) {
+          selectedInfo.textContent = "Reservation তৈরি হয়নি: " + error.message;
+          alert(selectedInfo.textContent);
+        } finally {
+          button.disabled = false;
+          button.textContent = oldText;
+        }
+      }
+      standardReserve.addEventListener("click",() => createInlineReservation("standard",standardReserve));
+      vipReserve.addEventListener("click",() => createInlineReservation("vip",vipReserve));
+      reservationActions.append(standardReserve,vipReserve);
+      const bookingActions = document.createElement("div");
+      bookingActions.className = "booking-action-choice";
+      const paidLabel = document.createElement("span");
+      paidLabel.textContent = "Booking Type";
+      const paidTag = document.createElement("b");
+      paidTag.textContent = "✓ Paid";
+      bookingActions.append(paidLabel,paidTag);
+      const actionRow = document.createElement("div");
+      actionRow.className = "booking-action-row";
+      actionRow.append(submit,reservationActions);
+      passengerPanel.append(bookingActions,actionRow);
     }
 
     layout.forEach(seat => {
