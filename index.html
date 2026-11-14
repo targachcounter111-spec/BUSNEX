@@ -2214,12 +2214,14 @@ async function loadReservationTripOptions() {
   }
   $("reservationCreatePanel").classList.remove("hidden");
   const date = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  let bookingQuery = supabase
+  let reservationQuery = supabase
     .from("trips")
     .select("id,departure_time,ticket_price,status,is_active,buses(bus_name),routes(starting_point,ending_point),trip_stops(id,stop_name,stop_type,stop_order,is_active)")
     .eq("is_active",true).eq("status","scheduled")
     .gte("departure_time",localDateRange(date).start)
     .order("departure_time",{ascending:true});
+  if (currentProfile?.role === "super_admin" && activeCompanyId) reservationQuery = reservationQuery.eq("company_id",activeCompanyId);
+  const {data,error} = await reservationQuery;
   if (error) throw error;
   reservationTripCache = (data || []).map(trip=>({
     ...trip,
@@ -2845,7 +2847,7 @@ function localDateRange(dateValue) {
 
 async function fetchBookingTrips(dateValue) {
   const range = localDateRange(dateValue);
-  const {data,error} = await supabase
+  let bookingQuery = supabase
     .from("trips")
     .select(`
       id,departure_time,ticket_price,status,is_active,coach_number,supervisor,supervisor_name,supervisor_phone,
