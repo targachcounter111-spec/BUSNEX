@@ -2826,6 +2826,16 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       .booking-reservation-payment-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#eee;border-bottom:1px solid #ddd;color:#333}
       .booking-reservation-payment-head b{font-size:19px;color:#666}
       .booking-reservation-payment p{padding:12px 16px;margin:0;color:#555;font-size:12px;line-height:1.6}
+      .booking-reservation-fields{padding:10px 16px 14px}
+      .booking-reservation-field-row{display:grid;grid-template-columns:minmax(120px,22%) minmax(0,1fr);align-items:center;gap:12px;padding:7px 0;border-top:1px solid #ddd;font-size:13px}
+      .booking-reservation-field-row>label{color:#333}
+      .booking-reservation-field-row input:not([type=radio]){width:100%;min-height:34px;padding:6px 9px;border:1px solid #ccc;border-radius:0;background:#fff;color:#222}
+      .booking-reservation-method{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+      .booking-reservation-method>span{display:none}
+      .booking-reservation-method label{display:inline-flex;align-items:center;gap:5px}
+      .booking-reservation-field-row output{display:inline-block;padding:7px 12px;background:#eee;color:#d22;font-weight:700}
+      .booking-reservation-field-row strong{font-size:16px;color:#222}
+      @media(max-width:600px){.booking-reservation-field-row{grid-template-columns:1fr;gap:5px}.booking-reservation-mobile{align-items:flex-start;flex-direction:column;gap:5px}}
       .booking-type-choice button{cursor:pointer}
       .booking-type-choice button.active{box-shadow:inset 0 0 0 1px #368b3c}
       
@@ -3264,9 +3274,49 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         const paymentAmount = document.createElement("b");
         paymentAmount.textContent = "৳0.00";
         paymentHead.append(paymentTitle,paymentAmount);
-        const paymentNote = document.createElement("p");
-        paymentNote.textContent = "BUSNEX-এর বর্তমান Reservation নিয়ম অনুযায়ী Reservation Fee ৳0। Seat-এর Reservation নিশ্চিত করতে নিচের Passenger তথ্য পূরণ করে Confirm Reservation চাপুন।";
-        paymentBox.append(paymentHead,paymentNote);
+        const reservationFields = document.createElement("div");
+        reservationFields.className = "booking-reservation-fields";
+        const validTillLabel = document.createElement("label");
+        validTillLabel.textContent = "Valid Till:";
+        const validTill = document.createElement("input");
+        validTill.type = "datetime-local";
+        validTill.className = "booking-reservation-valid-till";
+        validTill.required = true;
+        const methodWrap = document.createElement("div");
+        methodWrap.className = "booking-reservation-method";
+        const methodLabel = document.createElement("span");
+        methodLabel.textContent = "Payment Method:";
+        methodWrap.append(methodLabel);
+        ["Cash","bKash","Card"].forEach((method,index)=>{
+          const label=document.createElement("label");
+          const radio=document.createElement("input");
+          radio.type="radio";radio.name="bookingReservationPaymentMethod";radio.value=method;radio.checked=index===0;
+          label.append(radio,document.createTextNode(" "+method));methodWrap.append(label);
+        });
+        const remarksLabel = document.createElement("label");
+        remarksLabel.textContent = "Remarks:";
+        const remarks = document.createElement("input");
+        remarks.type="text";remarks.placeholder="Comments";remarks.maxLength=250;
+        const advanceLabel = document.createElement("label");
+        advanceLabel.textContent = "Advance:";
+        const advance = document.createElement("input");
+        advance.type="number";advance.min="0";advance.step="0.01";advance.value="0";
+        const dueLabel = document.createElement("label");
+        dueLabel.textContent = "Amount Due:";
+        const due = document.createElement("output");
+        due.textContent="৳0.00";
+        const priceLabel = document.createElement("label");
+        priceLabel.textContent = "Total Price:";
+        const price = document.createElement("strong");
+        price.textContent="৳0.00";
+        advance.addEventListener("input",()=>{
+          const paid=Math.max(0,Number(advance.value)||0);
+          due.textContent="৳"+Math.max(0,0-paid).toFixed(2);
+        });
+        [[validTillLabel,validTill],[methodLabel,methodWrap],[remarksLabel,remarks],[priceLabel,price],[advanceLabel,advance],[dueLabel,due]].forEach(([label,field])=>{
+          const row=document.createElement("div");row.className="booking-reservation-field-row";row.append(label,field);reservationFields.append(row);
+        });
+        paymentBox.append(paymentHead,reservationFields);
         passengerPanel.append(mobileInfo,paymentBox);
       }
 
