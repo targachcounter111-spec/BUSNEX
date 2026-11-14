@@ -2700,6 +2700,8 @@ function fillBookingStopOptions(trips) {
 }
 
 async function appendBookingSeatPicker(trip,card,confirmPastDate) {
+  let bookingMode = "paid";
+  let refreshPassengerFields = () => {};
   const title = document.createElement("h4");
   title.textContent = "এক বা একাধিক Seat নির্বাচন করুন";
   card.appendChild(title);
@@ -2769,12 +2771,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   paidChoice.addEventListener("click",()=>{
     bookingMode="paid";
     paidChoice.classList.add("active");reservationChoice.classList.remove("active");
-    if (typeof renderPassengerFields === "function") renderPassengerFields();
+    refreshPassengerFields();
   });
   reservationChoice.addEventListener("click",()=>{
     bookingMode="reservation";
     reservationChoice.classList.add("active");paidChoice.classList.remove("active");
-    if (typeof renderPassengerFields === "function") renderPassengerFields();
+    refreshPassengerFields();
   });
   destinationWrap.append(destinationLabel,destinationSelect);
   bookingTypeWrap.append(bookingTypeLabel,paidChoice,reservationChoice);
@@ -2945,7 +2947,6 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const passengerData = new Map();
     const seatButtons = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
-    let bookingMode = "paid";
 
     async function showSoldTicketDetails(seatNumber, groupSeatNumbers = [seatNumber]) {
       const styleId = "busnex-ticket-popup-style";
@@ -3536,6 +3537,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       actionRow.append(submit,reservationActions);
       passengerPanel.append(bookingActions,actionRow);
     }
+    refreshPassengerFields = renderPassengerFields;
 
     layout.forEach(seat => {
       const record = inventoryBySeat.get(seat.seat_number);
