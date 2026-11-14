@@ -3767,7 +3767,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           div.style.pointerEvents = "none";
           div.textContent = "…";
           try {
-            const {error:holdError} = await supabase.rpc("busnex_hold_seat",{
+            const {data:holdResult,error:holdError} = await supabase.rpc("busnex_hold_seat",{
               p_trip_id:trip.id,
               p_seat_number:seat.seat_number,
               p_confirm_past_date:confirmPastDate
@@ -3777,12 +3777,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             selectedSeats.add(seat.seat_number);
             div.classList.remove("available");
             div.classList.add("selected");
-            div.title = "আপনার Counter-এর জন্য ৫০ সেকেন্ড Hold করা হয়েছে";
+            div.title = "আপনার Counter-এর জন্য ১ মিনিট ৪৫ সেকেন্ড Hold করা হয়েছে";
             div.textContent = seat.seat_number;
             selectedInfo.textContent =
               "নির্বাচিত Seat (" + selectedSeats.size + "/8): " +
               [...selectedSeats].join(", ") +
-              " — Hold ৫০ সেকেন্ডের জন্য।";
+              " — Hold ১ মিনিট ৪৫ সেকেন্ডের জন্য।";
             renderPassengerFields();
 
             localHoldTimer = setTimeout(() => {
@@ -3792,9 +3792,9 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               div.classList.add("available");
               div.title = "Hold-এর সময় শেষ। আবার নির্বাচন করতে ক্লিক করুন।";
               selectedInfo.textContent =
-                "Seat " + seat.seat_number + "-এর ৫০ সেকেন্ড Hold শেষ হয়েছে।";
+                "Seat " + seat.seat_number + "-এর ১ মিনিট ৪৫ সেকেন্ড Hold শেষ হয়েছে।";
               renderPassengerFields();
-            },50000);
+            },Math.max(0,Date.parse(holdResult?.hold_until)-Date.now()) || 105000);
           } catch(error) {
             alert("Seat Hold করা যায়নি: " + error.message);
             div.textContent = seat.seat_number;
