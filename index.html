@@ -3110,7 +3110,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         const safe = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
         const ticketPreview = document.createElement("div");
         ticketPreview.className = "busnex-premium-ticket";
-        ticketPreview.innerHTML = \`
+        ticketPreview.innerHTML = `
           <div class="bpt-status-line">Ticket Status: Sold and Active</div>
           <div class="bpt-three-copy">
             <section class="bpt-copy bpt-copy-side">
@@ -3143,7 +3143,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> ${safe(created)}</div><div><b>Issued By :</b> ${safe(sellerText)}</div>
             </section>
           </div>
-        \`;
+        `;
         body.innerHTML = "";
         if (!overlay.isConnected) return;
         body.appendChild(ticketPreview);
