@@ -3392,9 +3392,9 @@ async function renderBookingResults(trips,from,to) {
     const ti=stops.findIndex(s=>String(s.stop_name||"").toLowerCase()===to.toLowerCase()&&["dropping","both"].includes(String(s.stop_type).toLowerCase()));
     if(!(fi>=0&&ti>fi))return false;
     if(operator&&String(trip.buses?.bus_name||"")!==operator)return false;
-    const type=String(trip.buses?.bus_type||"").toLowerCase();
-    if(busType==="ac"&&!type.includes("ac"))return false;
-    if(busType==="non-ac"&&(type.includes("ac")||!type))return false;
+    const type=String(trip.buses?.bus_type||"").toLowerCase().replace(/[\\s_-]/g,"");
+    if(busType==="ac"&&(!type.includes("ac")||type.startsWith("non")))return false;
+    if(busType==="non-ac"&&!(type.startsWith("non")&&type.includes("ac")))return false;
     return true;
   });
   $("bookingResultsMeta").textContent=matches.length+"টি Trip পাওয়া গেছে · "+from+" → "+to;
