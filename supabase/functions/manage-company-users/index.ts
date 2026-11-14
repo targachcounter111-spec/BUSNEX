@@ -30,9 +30,7 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SECRET_KEYS") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const publishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? Deno.env.get("SUPABASE_ANON_KEY");
-
-  if (!supabaseUrl || !serviceKey || !publishableKey) {
+  if (!supabaseUrl || !serviceKey) {
     return json(500, { success: false, message: "Backend environment configuration অসম্পূর্ণ।" }, origin);
   }
 
