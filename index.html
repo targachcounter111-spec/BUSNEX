@@ -1101,6 +1101,7 @@ function openCompanyWorkspace(company) {
   $("topbarCompany").textContent = activeCompanyName;
   $("counterCompanyBrand").classList.remove("hidden");
   $("counterCompanyBrandName").textContent = activeCompanyName.toUpperCase();
+  $("counterCompanyBrand").querySelector(".company-logo-mark").textContent = /shamol/i.test(activeCompanyName) ? "S" : activeCompanyName.trim().charAt(0).toUpperCase();
   $("counterCompanyBrandMeta").textContent = "Super Admin • Company Workspace";
   $("counterCompanyBrandId").textContent = "Global Management Access";
   document.querySelectorAll(".page").forEach(page => page.classList.add("hidden"));
@@ -1126,6 +1127,7 @@ async function loadCompanyBranding() {
     const name = data?.name || "BUSNEX Bus Counter";
     $("topbarCompany").textContent = name;
     $("counterCompanyBrandName").textContent = name.toUpperCase();
+    $("counterCompanyBrand").querySelector(".company-logo-mark").textContent = /shamol/i.test(name) ? "S" : name.trim().charAt(0).toUpperCase();
     $("counterCompanyBrandMeta").textContent = roleText(currentProfile.role);
     $("counterCompanyBrandId").textContent = (currentProfile.role === "counter_operator" ? "Counter ID: " : "Manager ID: ") + (currentProfile.login_id || "—");
     $("counterCompanyBrand").classList.remove("hidden");
