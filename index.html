@@ -2983,6 +2983,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 
     const passengerData = new Map();
     const seatButtons = new Map();
+    const soldTicketGroups = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
 
     async function showSoldTicketDetails(seatNumber, groupSeatNumbers = [seatNumber]) {
@@ -3155,120 +3156,42 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         print.className = "primary";
         print.textContent = "🖨 Print Ticket";
         print.addEventListener("click",() => {
-          const esc = value => String(value ?? "—").replace(/[&<>"']/g,ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-          const code39Patterns = {
-            "0":"nnnwwnwnn","1":"wnnwnnnnw","2":"nnwwnnnnw","3":"wnwwnnnnn",
-            "4":"nnnwwnnnw","5":"wnnwwnnnn","6":"nnwwwnnnn","7":"nnnwnnwnw",
-            "8":"wnnwnnwnn","9":"nnwwnnwnn","A":"wnnnnwnnw","B":"nnwnnwnnw",
-            "C":"wnwnnwnnn","D":"nnnnwwnnw","E":"wnnnwwnnn","F":"nnwnwwnnn",
-            "*":"nwnnwnwnn"
-          };
-          const code39Svg = value => {
-            const encoded = "*" + String(value).toUpperCase().replace(/[^0-9A-F]/g,"") + "*";
-            let x = 0;
-            const bars = [];
-            for (const character of encoded) {
-              const pattern = code39Patterns[character];
-              if (!pattern) continue;
-              for (let index=0; index<pattern.length; index++) {
-                const width = pattern[index] === "w" ? 3 : 1;
-                if (index % 2 === 0) bars.push('<rect x="' + x + '" y="0" width="' + width + '" height="30"/>');
-                x += width;
-              }
-              x += 1;
-            }
-            return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ticket barcode" viewBox="0 0 ' + x + ' 30" preserveAspectRatio="none">' + bars.join("") + '</svg>';
-          };
-          const ticketPanel = (kind,label) => {
-            const center = kind === "center";
-            return `
-              <section class="ticket-part ${kind}">
-                <div class="part-head"><div class="brand-mark">B</div><div class="brand-name">BUSNEX<small>TRAVEL TICKET</small></div><b class="copy-label">${label}</b></div>
-                ${center ? `
-                  <div class="status">● TICKET STATUS: SOLD & ACTIVE</div>
-                  <div class="main-passenger"><div><small>PASSENGER NAME</small><strong>${esc(ticket.passenger_name)}</strong><span>${esc(ticket.passenger_phone)} · ${esc(ticket.passenger_gender || "—")}</span></div><div class="seat-box"><small>SEATS (${allSeatNumbers.length})</small><b>${esc(seatLabel)}</b></div></div>
-                  <div class="journey-line"><div><small>FROM</small><b>${esc(stopName(ticket.boarding_stop_id))}</b></div><i>→</i><div><small>TO</small><b>${esc(stopName(ticket.dropping_stop_id))}</b></div></div>
-                  <div class="detail-grid"><span>Journey Date<strong>${esc(journey)}</strong></span><span>Coach<strong>${esc(coach)}</strong></span><span>Seat Fare<strong>৳${esc(ticket.ticket_price)}</strong></span><span>Total Fare<strong>৳${esc(groupFare.toFixed(2))}</strong></span><span>PNR<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span><span>Issued On<strong>${esc(created)}</strong></span></div>
-                  <div class="barcode-wrap">${code39Svg(String(ticket.id).replace(/-/g,"").slice(0,13))}<small>BARCODE · ${esc(String(ticket.id).slice(0,13).toUpperCase())}</small></div>
-                  <div class="issued">Issued By: ${esc(sellerText)}</div>
-                ` : `
-                  <div class="side-info"><span>Passenger<strong>${esc(ticket.passenger_name)}</strong></span><span>Mobile<strong>${esc(ticket.passenger_phone)}</strong></span><span>Coach<strong>${esc(coach)}</strong></span><span>Seats<strong>${esc(seatLabel)}</strong></span><span>Date<strong>${esc(journey)}</strong></span><span>Total Fare<strong>৳${esc(groupFare.toFixed(2))}</strong></span><span>PNR<strong>${esc(String(ticket.id).slice(0,13).toUpperCase())}</strong></span><span>From<strong>${esc(stopName(ticket.boarding_stop_id))}</strong></span><span>To<strong>${esc(stopName(ticket.dropping_stop_id))}</strong></span></div>
-                  <div class="side-foot">BUSNEX · KEEP YOUR TICKET SAFE</div>
-                `}
-              </section>`;
-          };
-          const printWindow = window.open("","_blank","width=1100,height=800");
-          if (!printWindow) { alert("Print window খোলা যায়নি। Browser-এর popup permission চালু করুন।"); return; }
-          printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BUSNEX Ticket ${esc(ticket.seat_number)}</title><style>
-            @page{size:3.66in 8.50in;margin:0}
-            *{box-sizing:border-box}
-            html,body{margin:0!important;padding:0!important;width:3.66in!important;height:8.50in!important;min-width:3.66in!important;min-height:8.50in!important;max-width:3.66in!important;max-height:8.50in!important;font-family:Arial,sans-serif}
-            body{display:flex;align-items:center;justify-content:center;flex-direction:row;background:#fff;color:#153a3a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-            .ticket-strip{box-sizing:border-box;flex:0 0 3.66in;width:3.66in;min-width:3.66in;max-width:3.66in;height:8.50in;min-height:8.50in;max-height:8.50in;display:flex;flex-direction:row;overflow:hidden;border:1mm solid #b8794c;border-radius:2mm;background:#fff;box-shadow:none}
-            .ticket-part{height:100%;min-width:0;flex-shrink:0;padding:4mm 3.2mm;position:relative;overflow:hidden;background:#fff;color:#111}
-            .ticket-part.left,.ticket-part.right{flex:0 0 30%;width:30%;background:#fff;padding:4mm 4mm}
-            .ticket-part.center{flex:0 0 40%;width:40%;background:#fff;color:#111;padding:4.5mm 4mm;border-left:1px dashed #777;border-right:1px dashed #777}
-            .ticket-part.left .part-head,.ticket-part.right .part-head{gap:2mm}
-            .ticket-part.left .brand-name,.ticket-part.right .brand-name{font-size:16pt}
-            .ticket-part.left .copy-label,.ticket-part.right .copy-label{font-size:7.5pt}
-            .ticket-part.left .side-info,.ticket-part.right .side-info{gap:2.3mm;margin-top:4mm}
-            .ticket-part.left .side-info span,.ticket-part.right .side-info span{font-size:8.5pt}
-            .ticket-part.left .side-info strong,.ticket-part.right .side-info strong{font-size:10pt}
-            .ticket-part.left .side-foot,.ticket-part.right .side-foot{font-size:7pt;left:4mm;right:4mm}
-            .ticket-part:not(:last-child){border-right:1mm dashed #b8794c}
-            .part-head{display:flex;align-items:center;gap:2.5mm;padding-bottom:3mm;border-bottom:.4mm solid #b8794c}
-            .brand-mark{width:10mm;height:10mm;border:.5mm solid #b8794c;border-radius:2mm;display:grid;place-items:center;font-size:19pt;font-weight:900;color:#b8794c}
-            .brand-name{font-size:15pt;font-weight:900;letter-spacing:1.5pt;color:#153a3a}.center .brand-name{color:#111}
-            .brand-name small{display:block;font-size:6pt;letter-spacing:1pt;font-weight:600}
-            .copy-label{margin-left:auto;font-size:7pt;color:#9b613e;letter-spacing:.5pt;text-align:right}
-            .center .copy-label{color:#444}
-            .status{font-size:8pt;text-align:center;margin:2mm 0;color:#222;letter-spacing:.6pt;font-weight:bold}
-            .main-passenger{display:flex;justify-content:space-between;align-items:center;gap:2.5mm;margin:2.5mm 0}
-            .main-passenger small,.journey-line small{display:block;font-size:7pt;letter-spacing:1pt;color:#555}
-            .main-passenger strong{display:block;font-size:20pt;margin:1.5mm 0;color:#111}
-            .main-passenger span{font-size:9pt;color:#333}
-            .seat-box{min-width:25mm;text-align:center;background:#fff;color:#111;border:1px solid #777;border-radius:2mm;padding:2.5mm}
-            .seat-box small{color:#444}.seat-box b{display:block;font-size:27pt}
-            .journey-line{display:flex;align-items:center;gap:3mm;padding:2.5mm 0;border-top:.3mm solid #aaa;border-bottom:.3mm solid #aaa}
-            .journey-line>div{flex:1;min-width:0}.journey-line b{display:block;font-size:13pt;margin-top:1.5mm;overflow-wrap:anywhere;color:#111}
-            .journey-line i{font-style:normal;color:#333;font-size:19pt}
-            .barcode-wrap{margin:2mm auto 0;text-align:center;width:100%;max-width:100%;overflow:hidden}.barcode-wrap svg{display:block;width:100%;height:8mm;fill:#111}.barcode-wrap small{display:block;font-size:5pt;letter-spacing:.4pt;color:#333;margin-top:1mm}
-            .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:2mm 3mm;margin-top:2.5mm}
-            .detail-grid span,.side-info span{font-size:7pt;color:#444}
-            .detail-grid strong,.side-info strong{display:block;font-size:9pt;color:#111;margin-top:1mm;overflow-wrap:anywhere}
-            .issued{font-size:7pt;margin-top:2.5mm;padding-top:1.5mm;border-top:.3mm dashed #999;color:#333}
-            .side-info{display:flex;flex-direction:column;gap:1.8mm;margin-top:3mm}
-            .side-info span{font-size:7.5pt;color:#526b64}
-            .side-info strong{font-size:9pt;color:#153a3a}
-            .side-foot{position:absolute;bottom:3mm;left:3mm;right:3mm;padding-top:1.5mm;border-top:.3mm solid #b8794c;font-size:6pt;letter-spacing:.5pt;color:#9b613e}
-            @media print{
-              @page{size:3.66in 8.50in;margin:0}
-              html,body{width:3.66in!important;height:8.50in!important;min-width:3.66in!important;min-height:8.50in!important;max-width:3.66in!important;max-height:8.50in!important;margin:0!important;padding:0!important}
-              .ticket-strip{box-sizing:border-box!important;width:3.66in!important;min-width:3.66in!important;max-width:3.66in!important;height:8.50in!important;min-height:8.50in!important;max-height:8.50in!important;flex:0 0 3.66in!important;box-shadow:none!important;page-break-inside:avoid;break-inside:avoid}
-              .ticket-part{min-width:0!important;flex-shrink:0!important}
-            }
-          
-/* BUSNEX Counter Dashboard — video-inspired workflow. */
-.busnex-counter-page{max-width:1600px;margin:0 auto}.counter-page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 18px}
-.counter-page-heading h1{font-size:25px;letter-spacing:-.5px;margin:4px 0;color:#1b2a3a}.counter-page-heading p{margin:4px 0 0;color:#788596;font-size:13px}.counter-eyebrow{font-size:10px;font-weight:900;letter-spacing:1.8px;color:#536d87}
-.counter-heading-actions{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #dce5ec;background:#fff;border-radius:7px;font-size:10px;font-weight:900;letter-spacing:1px;color:#617185}.counter-live-dot{width:8px;height:8px;border-radius:50%;background:#1eaa70;box-shadow:0 0 0 4px #e3f6ed}
-.counter-search-panel{background:#fff;border:1px solid #dce4ec;border-radius:9px;padding:17px 18px 12px;box-shadow:0 4px 15px rgba(25,45,70,.045)}.counter-filter-grid{display:grid;grid-template-columns:1.1fr 1.1fr 1fr .8fr 1fr auto;gap:11px;align-items:end}
-.counter-filter-grid .field{margin:0;min-width:0;gap:6px}.counter-filter-grid .field label{font-size:10px;letter-spacing:.8px;color:#718096;font-weight:900}.counter-filter-grid select,.counter-filter-grid input{height:40px;padding:8px 10px;border:1px solid #d6dee7;border-radius:6px;background:#fff;color:#26374a;font-size:12px;min-width:0}
-.counter-search-button{height:40px;white-space:nowrap;background:#2865b0;color:#fff;border-radius:6px;padding:0 18px;font-size:12px;font-weight:800}.counter-datebar{display:flex;align-items:center;gap:8px;border-top:1px solid #edf0f4;margin-top:14px;padding-top:12px}
-.counter-day-button{background:#fff;border:1px solid #d7e0e9;color:#536477;border-radius:6px;padding:8px 13px;font-size:11px}.counter-day-button.active{background:#eaf2ff;color:#225ea8;border-color:#8fb6ed}#bookingDateCaption{margin-left:auto;color:#7b8795;font-size:11px}
-.counter-results-heading{display:flex;align-items:center;justify-content:space-between;margin:21px 0 10px}.counter-results-heading h2{font-size:17px;margin:0;color:#26374a}.counter-results-heading p{font-size:11px;color:#7b8795;margin:4px 0 0}.counter-results-tag{font-size:9px;letter-spacing:1.2px;font-weight:900;color:#63768b;background:#edf2f7;padding:7px 10px;border-radius:4px}
-.counter-trip-results{display:grid;gap:9px}.counter-trip-row{background:#fff;border:1px solid #dce4ec;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(20,40,65,.035)}.counter-trip-main{display:grid;grid-template-columns:1.45fr 1fr .8fr .7fr auto;gap:12px;align-items:center;padding:13px 15px}
-.counter-trip-cell,.counter-route-cell,.counter-trip-fare{min-width:0}.counter-trip-cell span,.counter-route-cell span,.counter-trip-fare span{display:block;font-size:9px;letter-spacing:.7px;font-weight:900;color:#8491a0;margin-bottom:5px}.counter-trip-cell strong,.counter-route-cell strong,.counter-trip-fare strong{display:block;font-size:13px;color:#26374a;overflow-wrap:anywhere}.counter-route-cell strong i{font-style:normal;color:#2c70bd;padding:0 4px}
-.counter-route-cell small,.counter-trip-cell small,.counter-trip-fare small{display:block;margin-top:4px;color:#8a96a4;font-size:10px}.counter-trip-fare strong{color:#2265ad;font-size:16px}.counter-open-button{background:#2865b0;color:#fff;border-radius:6px;padding:10px 13px;white-space:nowrap;font-size:11px}
-.counter-inline-workspace{border-top:1px solid #e3e9ef;background:#f7f9fb;padding:12px}.counter-inline-workspace.hidden{display:none}.counter-workspace-loading,.counter-empty-state{padding:28px;text-align:center;background:#fff;border:1px dashed #cbd6e1;border-radius:7px;color:#718096;font-size:12px}
-.booking-workspace{grid-template-columns:minmax(310px,.38fr) minmax(0,.62fr);gap:12px}.booking-seat-panel,.booking-passenger-panel{border:1px solid #d8e1e9;border-radius:7px;box-shadow:0 2px 9px rgba(30,50,75,.035)}.booking-seat-panel .seats{max-width:100%;grid-template-columns:repeat(5,minmax(42px,1fr));gap:7px 6px;background:#f7f9fb;border:1px solid #e1e7ed;border-radius:7px;padding:12px}.booking-seat-panel .seat{min-height:44px;border-radius:5px;font-size:12px}
-.booking-passenger-panel h4{background:#edf3f9;border:0;border-left:3px solid #3476b9;border-radius:4px;padding:10px 12px;font-size:12px}.booking-passenger-panel .btn.btn-primary{background:#2567b2;border:0;border-radius:6px;box-shadow:0 4px 10px #2567b22b}
-@media(max-width:1120px){.counter-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.counter-trip-main{grid-template-columns:1.3fr 1fr .8fr auto}.counter-trip-fare{display:none}}
-@media(max-width:760px){.counter-page-heading{align-items:flex-start}.counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.counter-search-button{width:100%}.counter-trip-main{grid-template-columns:1fr 1fr;gap:10px}.counter-open-button{grid-column:1/-1}.booking-workspace{grid-template-columns:1fr}.booking-seat-panel .seats{max-width:440px}#bookingDateCaption{display:none}}
-@media(max-width:480px){.counter-filter-grid{grid-template-columns:1fr}.counter-heading-actions{display:none}.counter-datebar{flex-wrap:wrap}.counter-day-button{flex:1;padding:8px 6px}}
-
-
-</style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
+          const printWindow = window.open("","_blank","width=1200,height=700");
+          if (!printWindow) {
+            alert("Print window খোলা যায়নি। Browser-এর popup permission চালু করুন।");
+            return;
+          }
+          const printMarkup = ticketPreview.outerHTML;
+          printWindow.document.open();
+          printWindow.document.write(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BUSNEX Group Ticket</title>
+<style>
+  @page{size:8.50in 3.66in;margin:0}
+  *{box-sizing:border-box}
+  html,body{margin:0!important;padding:0!important;width:8.50in!important;height:3.66in!important;min-width:8.50in!important;min-height:3.66in!important;font-family:Arial,sans-serif;background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{display:flex;align-items:stretch;justify-content:center;overflow:hidden}
+  .busnex-premium-ticket{position:relative!important;display:block!important;width:8.50in!important;height:3.66in!important;min-height:3.66in!important;max-height:3.66in!important;overflow:hidden!important;margin:0!important;padding:10mm 7mm!important;background:#fff!important;color:#111!important;border:1px solid #777!important;border-radius:0!important;box-shadow:none!important;font-family:Arial,sans-serif!important}
+  .bpt-status-line{text-align:center;font-size:11pt;font-weight:700;color:#333;margin:0 auto 13mm}
+  .bpt-three-copy{display:grid;grid-template-columns:21% 58% 21%;align-items:start;min-height:0;color:#222;font-family:Arial,sans-serif}
+  .bpt-copy{min-width:0;padding:0 3mm;font-size:8pt;line-height:1.45;font-weight:500;color:#222;overflow-wrap:anywhere}
+  .bpt-copy-side{font-size:7.2pt;line-height:1.42;text-align:center;padding:0 2mm}
+  .bpt-copy-center{font-size:9pt;line-height:1.42;padding:0 5mm;border-left:1px solid #ddd;border-right:1px solid #ddd}
+  .bpt-copy-top{display:flex;justify-content:space-between;gap:3mm;margin-bottom:2mm;font-weight:700}
+  .bpt-copy-bottom{font-size:7pt;text-align:center;margin-top:3mm}
+  .bpt-copy-note{text-align:center;font-size:8pt;font-weight:700;margin-top:3mm}
+  @media print{
+    @page{size:8.50in 3.66in;margin:0}
+    html,body{width:8.50in!important;height:3.66in!important;min-width:8.50in!important;min-height:3.66in!important;margin:0!important;padding:0!important}
+    .busnex-premium-ticket{width:8.50in!important;height:3.66in!important;min-height:3.66in!important;max-height:3.66in!important;page-break-inside:avoid;break-inside:avoid}
+  }
+</style>
+</head>
+<body>${printMarkup}</body>
+</html>`);
           printWindow.document.close();
           printWindow.focus();
           setTimeout(() => {
@@ -3279,7 +3202,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               console.error("BUSNEX PRINT ERROR:",printError);
               alert("Print চালু করা যায়নি। আবার Print Ticket চাপুন।");
             }
-          },800);
+          },700);
         });
         actions.appendChild(print);
         const closeFooter = document.createElement("button");
@@ -3514,6 +3437,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             }
             sold.push({seatNumber,data:item.result});
           });
+          const soldGroupSeatNumbers = sold.map(item => item.seatNumber);
+          soldGroupSeatNumbers.forEach(number => soldTicketGroups.set(number,soldGroupSeatNumbers));
           sold.forEach(p => {
             selectedSeats.delete(p.seatNumber);
             passengerData.delete(p.seatNumber);
@@ -3526,7 +3451,10 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               seatButton.setAttribute("role","button");
               seatButton.setAttribute("tabindex","0");
               if (!seatButton.dataset.ticketDetailsBound) {
-                const openSoldDetails = () => showSoldTicketDetails(p.seatNumber);
+                const openSoldDetails = () => showSoldTicketDetails(
+                  p.seatNumber,
+                  soldTicketGroups.get(p.seatNumber) || [p.seatNumber]
+                );
                 seatButton.addEventListener("click",openSoldDetails);
                 seatButton.addEventListener("keydown",event => {
                   if (event.key === "Enter" || event.key === " ") {
