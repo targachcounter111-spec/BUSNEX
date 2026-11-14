@@ -2423,11 +2423,14 @@ async function toggleCounterActive(counterId,wasActive,button) {
   }
   button.disabled = true;
   try {
-    const {error} = await supabase.from("counters")
+    const {data,error} = await supabase.from("counters")
       .update({is_active:nextActive})
       .eq("id",counterId)
-      .eq("company_id",companyId);
+      .eq("company_id",companyId)
+      .select("id")
+      .single();
     if (error) throw error;
+    if (!data?.id) throw new Error("Counter পরিবর্তনের অনুমতি পাওয়া যায়নি।");
     $("counterDirectoryMessage").textContent = "Counter "+actionText+" করা হয়েছে।";
     $("counterDirectoryMessage").className = "message ok";
     await loadCounterDirectory();
