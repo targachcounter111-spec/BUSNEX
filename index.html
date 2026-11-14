@@ -2766,8 +2766,16 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   paidChoice.type="button";paidChoice.className="paid-choice active";paidChoice.textContent="✓ Paid";
   const reservationChoice = document.createElement("button");
   reservationChoice.type="button";reservationChoice.className="reservation-choice";reservationChoice.textContent="Reservation";
-  paidChoice.addEventListener("click",()=>{paidChoice.classList.add("active");reservationChoice.classList.remove("active");});
-  reservationChoice.addEventListener("click",()=>{reservationChoice.classList.add("active");paidChoice.classList.remove("active");});
+  paidChoice.addEventListener("click",()=>{
+    bookingMode="paid";
+    paidChoice.classList.add("active");reservationChoice.classList.remove("active");
+    if (typeof renderPassengerFields === "function") renderPassengerFields();
+  });
+  reservationChoice.addEventListener("click",()=>{
+    bookingMode="reservation";
+    reservationChoice.classList.add("active");paidChoice.classList.remove("active");
+    if (typeof renderPassengerFields === "function") renderPassengerFields();
+  });
   destinationWrap.append(destinationLabel,destinationSelect);
   bookingTypeWrap.append(bookingTypeLabel,paidChoice,reservationChoice);
   tripSummaryBar.append(coachSummary,destinationWrap,bookingTypeWrap);
@@ -2804,6 +2812,16 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       .booking-action-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
       .booking-action-row>.btn.btn-primary{margin:0;min-height:44px;background:#5cb85c;border:1px solid #4cae4c}
       .booking-reservation-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .booking-reservation-mobile{display:flex;align-items:center;gap:18px;padding:13px 16px;margin:10px 0 18px;background:#eee;border:1px solid #ddd;font-size:13px}
+      .booking-reservation-mobile label{min-width:210px;color:#333}
+      .booking-reservation-mobile strong{font-weight:500;color:#26364a}
+      .booking-reservation-payment{border:1px solid #d8d8d8;margin:0 0 16px;background:#fff}
+      .booking-reservation-payment-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#eee;border-bottom:1px solid #ddd;color:#333}
+      .booking-reservation-payment-head b{font-size:19px;color:#666}
+      .booking-reservation-payment p{padding:12px 16px;margin:0;color:#555;font-size:12px;line-height:1.6}
+      .booking-type-choice button{cursor:pointer}
+      .booking-type-choice button.active{box-shadow:inset 0 0 0 1px #368b3c}
+      
       .booking-standard-reserve,.booking-vip-reserve{min-height:44px;padding:9px 12px;border:1px solid #bbb;border-radius:0;background:#fff;color:#222;font-weight:700}
       .booking-vip-reserve{grid-column:1/-1;background:#fff7e8;border-color:#e5a000;color:#8a5300}
       .booking-trip-toolbar{position:relative}
@@ -2922,6 +2940,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const passengerData = new Map();
     const seatButtons = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
+    let bookingMode = "paid";
 
     async function showSoldTicketDetails(seatNumber, groupSeatNumbers = [seatNumber]) {
       const styleId = "busnex-ticket-popup-style";
@@ -3220,8 +3239,30 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       }
 
       const heading = document.createElement("h4");
-      heading.textContent = "একসঙ্গে নির্বাচিত সব Seat-এর যাত্রীর তথ্য";
+      heading.textContent = bookingMode === "reservation" ? "Passenger Details" : "একসঙ্গে নির্বাচিত সব Seat-এর যাত্রীর তথ্য";
       passengerPanel.appendChild(heading);
+      if (bookingMode === "reservation") {
+        const mobileInfo = document.createElement("div");
+        mobileInfo.className = "booking-reservation-mobile";
+        const mobileLabel = document.createElement("label");
+        mobileLabel.textContent = "Passenger Mobile Number";
+        const mobileValue = document.createElement("strong");
+        mobileValue.textContent = groupPassenger.phone || "মোবাইল নম্বর নিচের ফর্মে লিখুন";
+        mobileInfo.append(mobileLabel,mobileValue);
+        const paymentBox = document.createElement("section");
+        paymentBox.className = "booking-reservation-payment";
+        const paymentHead = document.createElement("div");
+        paymentHead.className = "booking-reservation-payment-head";
+        const paymentTitle = document.createElement("strong");
+        paymentTitle.textContent = "Payment Details";
+        const paymentAmount = document.createElement("b");
+        paymentAmount.textContent = "৳0.00";
+        paymentHead.append(paymentTitle,paymentAmount);
+        const paymentNote = document.createElement("p");
+        paymentNote.textContent = "BUSNEX-এর বর্তমান Reservation নিয়ম অনুযায়ী Reservation Fee ৳0। Seat-এর Reservation নিশ্চিত করতে নিচের Passenger তথ্য পূরণ করে Confirm Reservation চাপুন।";
+        paymentBox.append(paymentHead,paymentNote);
+        passengerPanel.append(mobileInfo,paymentBox);
+      }
 
       const commonCard = document.createElement("div");
       commonCard.className = "card";
