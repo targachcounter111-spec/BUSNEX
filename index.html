@@ -3087,53 +3087,36 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           <div class="bpt-status-line">Ticket Status: Sold and Active</div>
           <div class="bpt-three-copy">
             <section class="bpt-copy bpt-copy-side">
-              <div><b>Name :</b> \${safe(ticket.passenger_name)}</div><div><b>Mobile :</b> \${safe(ticket.passenger_phone)}</div>
-              <div><b>Coach :</b> [\${safe(coach)}]</div><div><b>Seats :</b> [\${safe(seatLabel)}]</div>
-              <div><b>Date :</b> \${safe(journey)}</div><div><b>Time :</b> \${safe(journey)}</div>
-              <div><b>Seat Fare :</b> BDT. \${safe(ticket.ticket_price)}</div><div><b>Total Fare :</b> BDT. \${safe(groupFare.toFixed(2))}</div>
-              <div><b>PNR :</b> \${safe(String(ticket.id).slice(0,13).toUpperCase())}</div><div><b>From :</b> \${safe(stopName(ticket.boarding_stop_id))}</div>
-              <div><b>To :</b> \${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Boarding :</b> \${safe(stopName(ticket.boarding_stop_id))}</div>
-              <div><b>Dropping :</b> \${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> \${safe(created)}</div><div><b>Issued By :</b> \${safe(sellerText)}</div>
+              <div><b>Name :</b> ${safe(ticket.passenger_name)}</div><div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div>
+              <div><b>Coach :</b> [${safe(coach)}]</div><div><b>Seats :</b> [${safe(seatLabel)}]</div>
+              <div><b>Date :</b> ${safe(journey)}</div><div><b>Time :</b> ${safe(journey)}</div>
+              <div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div>
+              <div><b>PNR :</b> ${safe(String(ticket.id).slice(0,13).toUpperCase())}</div><div><b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
+              <div><b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
+              <div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> ${safe(created)}</div><div><b>Issued By :</b> ${safe(sellerText)}</div>
             </section>
             <section class="bpt-copy bpt-copy-center">
-              <div class="bpt-copy-top"><span>Name : <b>\${safe(ticket.passenger_name)}</b></span><span>PNR : \${safe(String(ticket.id).slice(0,13).toUpperCase())}</span></div>
-              <div><b>Mobile :</b> \${safe(ticket.passenger_phone)}</div><div><b>Coach :</b> [\${safe(coach)}]</div>
-              <div><b>Journey Date :</b> \${safe(journey)}</div><div><b>Departure Time :</b> ◷ \${safe(journey)}</div>
-              <div><b>Reporting Time :</b> ◷ \${safe(journey)}</div><div><b>Seat Fare :</b> BDT. \${safe(ticket.ticket_price)}</div>
-              <div><b>Total Fare :</b> BDT. \${safe(groupFare.toFixed(2))}</div><div><b>Seats :</b> [\${safe(seatLabel)}]</div>
-              <div><b>From :</b> \${safe(stopName(ticket.boarding_stop_id))}</div><div><b>To :</b> \${safe(stopName(ticket.dropping_stop_id))}</div>
-              <div><b>Boarding :</b> \${safe(stopName(ticket.boarding_stop_id))}</div><div><b>Dropping :</b> \${safe(stopName(ticket.dropping_stop_id))}</div>
-              <div class="bpt-copy-bottom">Issued On : \${safe(created)}　　Issued By : \${safe(sellerText)}</div>
+              <div class="bpt-copy-top"><span>Name : <b>${safe(ticket.passenger_name)}</b></span><span>PNR : ${safe(String(ticket.id).slice(0,13).toUpperCase())}</span></div>
+              <div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div><div><b>Coach :</b> [${safe(coach)}]</div>
+              <div><b>Journey Date :</b> ${safe(journey)}</div><div><b>Departure Time :</b> ◷ ${safe(journey)}</div>
+              <div><b>Reporting Time :</b> ◷ ${safe(journey)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div>
+              <div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div><div><b>Seats :</b> [${safe(seatLabel)}]</div>
+              <div><b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}</div><div><b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
+              <div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}</div><div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
+              <div class="bpt-copy-bottom">Issued On : ${safe(created)}　　Issued By : ${safe(sellerText)}</div>
               <div class="bpt-copy-note">BUSNEX · আপনার যাত্রা শুভ হোক</div>
             </section>
             <section class="bpt-copy bpt-copy-side">
-              <div><b>Name :</b> \${safe(ticket.passenger_name)}</div><div><b>Mobile :</b> \${safe(ticket.passenger_phone)}</div>
-              <div><b>Coach :</b> [\${safe(coach)}]</div><div><b>Seats :</b> [\${safe(seatLabel)}]</div>
-              <div><b>Date :</b> \${safe(journey)}</div><div><b>Time :</b> \${safe(journey)}</div>
-              <div><b>Seat Fare :</b> BDT. \${safe(ticket.ticket_price)}</div><div><b>Total Fare :</b> BDT. \${safe(groupFare.toFixed(2))}</div>
-              <div><b>PNR :</b> \${safe(String(ticket.id).slice(0,13).toUpperCase())}</div><div><b>From :</b> \${safe(stopName(ticket.boarding_stop_id))}</div>
-              <div><b>To :</b> \${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Boarding :</b> \${safe(stopName(ticket.boarding_stop_id))}</div>
-              <div><b>Dropping :</b> \${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> \${safe(created)}</div><div><b>Issued By :</b> \${safe(sellerText)}</div>
+              <div><b>Name :</b> ${safe(ticket.passenger_name)}</div><div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div>
+              <div><b>Coach :</b> [${safe(coach)}]</div><div><b>Seats :</b> [${safe(seatLabel)}]</div>
+              <div><b>Date :</b> ${safe(journey)}</div><div><b>Time :</b> ${safe(journey)}</div>
+              <div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div>
+              <div><b>PNR :</b> ${safe(String(ticket.id).slice(0,13).toUpperCase())}</div><div><b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
+              <div><b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
+              <div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> ${safe(created)}</div><div><b>Issued By :</b> ${safe(sellerText)}</div>
             </section>
           </div>
         \`;
-            <div class="bpt-brand"><span class="bpt-mark">B</span><div><strong>BUSNEX</strong><small>TRAVEL • VERIFIED JOURNEY</small></div></div>
-            <div class="bpt-status"><i></i> SOLD & ACTIVE</div>
-          </div>
-          <div class="bpt-route"><div><small>BOARDING FROM</small><strong>${safe(stopName(ticket.boarding_stop_id))}</strong></div><span>✦</span><div><small>DESTINATION</small><strong>${safe(stopName(ticket.dropping_stop_id))}</strong></div></div>
-          <div class="bpt-main">
-            <div class="bpt-passenger"><small>PASSENGER NAME</small><strong>${safe(ticket.passenger_name)}</strong><span>${safe(ticket.passenger_phone)} · ${safe(ticket.passenger_gender || "—")}</span></div>
-            <div class="bpt-seat"><small>YOUR SEATS (${allSeatNumbers.length})</small><strong>${safe(seatLabel)}</strong><span>COACH ${safe(coach)}</span></div>
-          </div>
-          <div class="bpt-facts">
-            <div><small>JOURNEY DATE & TIME</small><strong>${safe(journey)}</strong></div>
-            <div><small>BUS / COACH</small><strong>${safe(busName)} / ${safe(coach)}</strong></div>
-            <div><small>TICKET FARE</small><strong>৳${safe(ticket.ticket_price)}</strong></div>
-            <div><small>TICKET REFERENCE</small><strong>${safe(String(ticket.id).slice(0,13).toUpperCase())}</strong></div>
-          </div>
-          <div class="bpt-bottom"><span>ISSUED BY · ${safe(sellerText)}</span><span>KEEP THIS TICKET SAFE</span></div>
-          <div class="bpt-watermark">B</div>
-        `;
         body.innerHTML = "";
         if (!overlay.isConnected) return;
         body.appendChild(ticketPreview);
