@@ -2262,10 +2262,12 @@ async function loadReservationsPage() {
     await loadReservationTripOptions();
     const {error:expiryError}=await supabase.rpc("busnex_expire_reservations");
     if(expiryError) console.warn("RESERVATION EXPIRY CLEANUP:",expiryError.message);
-    const {data,error} = await supabase
+    let reservationListQuery = supabase
       .from("ticket_reservations")
-      .select("id,trip_id,counter_id,reserved_by,reservation_type,status,expires_at,confirmed_at,created_at,updated_at,trips(departure_time,coach_number,routes(starting_point,ending_point)),counters(name),ticket_reservation_seats(seat_number,passenger_name,passenger_phone)")
+      .select("id,trip_id,counter_id,reserved_by,reservation_type,status,expires_at,confirmed_at,created_at,updated_at,trips!inner(company_id,departure_time,coach_number,routes(starting_point,ending_point)),counters(name),ticket_reservation_seats(seat_number,passenger_name,passenger_phone)")
       .order("created_at",{ascending:false}).limit(300);
+    if (currentProfile?.role === "super_admin" && activeCompanyId) reservationListQuery = reservationListQuery.eq("trips.company_id",activeCompanyId);
+    const {data,error} = await reservationListQuery;
     if (error) throw error;
     const rows=data||[];
     if (!rows.length) {
