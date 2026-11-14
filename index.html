@@ -2736,6 +2736,42 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       alert("Trip Sheet খোলা যায়নি: " + error.message);
     } finally { sheetButton.disabled = false; }
   });
+  const tripSummaryBar = document.createElement("div");
+  tripSummaryBar.className = "booking-trip-summarybar";
+  const coachSummary = document.createElement("div");
+  coachSummary.className = "booking-trip-coach";
+  coachSummary.innerHTML = "<small>Coach No</small><strong></strong><span></span>";
+  coachSummary.querySelector("strong").textContent = trip.coach_number || trip.buses?.registration_number || "—";
+  coachSummary.querySelector("span").textContent = trip.departure_time
+    ? new Date(trip.departure_time).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})
+    : "—";
+  const destinationWrap = document.createElement("label");
+  destinationWrap.className = "booking-trip-destination";
+  const destinationLabel = document.createElement("span");
+  destinationLabel.textContent = "Destination";
+  const destinationSelect = document.createElement("select");
+  const destinationStops = (trip.trip_stops || []).slice().sort((a,b)=>a.stop_order-b.stop_order);
+  destinationStops.filter(stop=>["dropping","both"].includes(String(stop.stop_type||"").toLowerCase())).forEach(stop=>{
+    const option=document.createElement("option");
+    option.value=stop.id;option.textContent=stop.stop_name;destinationSelect.appendChild(option);
+  });
+  if (!destinationSelect.options.length) {
+    const option=document.createElement("option");option.textContent=trip.routes?.ending_point||"Destination";destinationSelect.appendChild(option);
+  }
+  const bookingTypeWrap = document.createElement("div");
+  bookingTypeWrap.className = "booking-type-choice";
+  const bookingTypeLabel = document.createElement("span");
+  bookingTypeLabel.textContent = "Booking Type";
+  const paidChoice = document.createElement("button");
+  paidChoice.type="button";paidChoice.className="paid-choice active";paidChoice.textContent="✓ Paid";
+  const reservationChoice = document.createElement("button");
+  reservationChoice.type="button";reservationChoice.className="reservation-choice";reservationChoice.textContent="Reservation";
+  paidChoice.addEventListener("click",()=>{paidChoice.classList.add("active");reservationChoice.classList.remove("active");});
+  reservationChoice.addEventListener("click",()=>{reservationChoice.classList.add("active");paidChoice.classList.remove("active");});
+  destinationWrap.append(destinationLabel,destinationSelect);
+  bookingTypeWrap.append(bookingTypeLabel,paidChoice,reservationChoice);
+  tripSummaryBar.append(coachSummary,destinationWrap,bookingTypeWrap);
+  card.append(tripSummaryBar);
   tripToolbar.append(tripStatus,refreshButton,sheetButton);
   card.appendChild(tripToolbar);
 
@@ -2744,7 +2780,20 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const style = document.createElement("style");
     style.id = "busnex-booking-workspace-style";
     style.textContent = `
-      .booking-trip-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 14px;margin:8px 0 10px;background:#f0f0f0;border-left:3px solid #18a34a;border-top:1px solid #ddd;border-bottom:1px solid #ddd;border-radius:0;box-shadow:none}
+      .booking-trip-summarybar{display:grid;grid-template-columns:145px minmax(230px,1fr) minmax(300px,1fr);gap:18px;align-items:center;padding:13px 16px;background:#eee;border-left:3px solid #16a34a;color:#222}
+      .booking-trip-coach small,.booking-trip-destination span,.booking-type-choice>span{display:block;font-size:12px;color:#333;margin-bottom:4px}
+      .booking-trip-coach strong{display:block;font-size:23px;color:#ff8a00;line-height:1.25;overflow-wrap:anywhere}
+      .booking-trip-coach span{display:block;font-size:12px;margin-top:4px}
+      .booking-trip-destination select{width:100%;height:37px;padding:0 10px;background:#fff;border:1px solid #bbb;border-radius:0;font-weight:700}
+      .booking-type-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;align-items:end}
+      .booking-type-choice>span{grid-column:1/-1;margin:0}
+      .booking-type-choice button{height:37px;border:1px solid #bbb;border-radius:0;background:#fff;color:#222;font-weight:500}
+      .booking-type-choice button.active{background:#5cb85c;color:#fff;border-color:#4cae4c;font-weight:800}
+      .booking-trip-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 10px;margin:0 0 10px;background:#f8f8f8;border:1px solid #ddd;border-radius:0;box-shadow:none}
+      .booking-trip-toolbar .booking-trip-status{display:inline-block}
+      .booking-trip-toolbar button{border-radius:0}
+      @media(max-width:760px){.booking-trip-summarybar{grid-template-columns:1fr;gap:10px}.booking-type-choice{grid-template-columns:1fr 1fr}}
+      
       .booking-trip-toolbar:before{content:"Coach No";font-size:12px;color:#333;flex:0 0 100%}
       .booking-trip-toolbar .booking-trip-status{display:none}
       .booking-trip-toolbar:after{content:"";display:block}
