@@ -359,6 +359,36 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
 .counter-expanded-row td{padding:12px;background:#f7f7f7}.counter-inline-workspace{background:#fff;padding:10px}
 @media(max-width:900px){.counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.counter-control-row{grid-template-columns:1fr}.counter-type-controls{border:0;border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:12px}}
 @media(max-width:600px){.counter-filter-grid{grid-template-columns:1fr 1fr}.counter-filter-grid .field:nth-child(5){grid-column:1/-1}.counter-day-button{min-height:42px;font-size:12px;padding:7px 10px}}
+</style><style id="busnex-exact-counter-shell">
+:root{--counter-purple:#6500d6}
+.topbar{height:80px;background:#fff;color:#222;padding:0 26px;border-bottom:1px solid #e5e5e5;display:grid;grid-template-columns:minmax(330px,1fr) minmax(220px,270px) minmax(300px,1fr);gap:22px;position:sticky;top:0;z-index:20}
+.topbar-left{display:flex;align-items:center;gap:18px;min-width:0}
+.menu-toggle{background:transparent;color:#111;border:0;font-size:25px;padding:5px 0;line-height:1;cursor:pointer}
+.topbar .brand{font-size:0;width:55px;height:32px;display:flex;align-items:center;justify-content:center;color:#6500d6;font-weight:900}
+.topbar .brand:after{content:"BUSNEX";font-size:17px;letter-spacing:-.6px}
+.topbar .brand span{display:none}
+.topbar-company{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-search{display:flex;align-items:center;height:40px;border:1px solid #d7d7d7;border-radius:5px;padding:4px 6px 4px 10px;align-self:center}
+.topbar-search input{border:0!important;outline:0!important;box-shadow:none!important;min-width:0;width:100%;height:30px;padding:4px!important;font-size:14px}
+.topbar-search button{background:#6500d6;color:#fff;border:0;border-radius:6px;width:31px;height:30px;font-size:21px;line-height:1;flex:0 0 auto}
+.top-actions{justify-content:flex-end;gap:12px;min-width:0}
+.topbar-profile{display:flex;align-items:center;gap:9px;min-width:0;font-size:13px}
+.topbar-profile b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.topbar-profile small{display:block;color:#777;font-size:10px;margin-top:2px}
+.profile-avatar{width:40px;height:40px;border-radius:50%;background:#e3e4e7;color:#e3e4e7;display:grid;place-items:center;font-size:24px;flex:0 0 auto}
+#logoutButton{padding:8px 11px;font-size:11px}
+.layout{grid-template-columns:0 minmax(0,1fr);min-height:calc(100vh - 80px);transition:grid-template-columns .18s ease}
+.sidebar{position:fixed;z-index:19;left:0;top:80px;bottom:0;width:238px;overflow:auto;transform:translateX(-100%);transition:transform .18s ease;box-shadow:4px 0 16px #00000012}
+.app.menu-open .sidebar{transform:translateX(0)}
+.main{max-width:none;width:100%;margin:0;padding:10px 30px 32px}
+.page-head{margin-bottom:14px}
+#page-booking{padding-top:0}
+.counter-reference-heading h1{font-size:18px;margin:0 0 10px;color:#172b3b}
+.counter-search-panel{padding:16px;background:#fff;border-radius:11px}
+.counter-filter-grid{grid-template-columns:repeat(5,minmax(130px,1fr)) auto}
+.counter-reference-table{min-width:1120px}
+@media(max-width:1000px){.topbar{grid-template-columns:1fr auto;height:68px;padding:0 14px}.topbar-search{display:none}.topbar-company{display:none}.layout{min-height:calc(100vh - 68px)}.sidebar{top:68px}.main{padding:10px 14px 24px}.topbar-profile b{max-width:130px}}
+@media(max-width:650px){.topbar{height:62px}.sidebar{top:62px}.topbar .brand{width:60px}.top-actions{gap:5px}.profile-avatar{width:32px;height:32px}.topbar-profile{font-size:11px}#logoutButton{font-size:10px;padding:7px}.main{padding:9px 8px 20px}}
 </style></head>
 
 <body>
@@ -410,9 +440,14 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
 
 <div id="appScreen" class="app hidden">
   <header class="topbar">
-    <div class="brand">BUS<span>NEX</span></div>
+    <div class="topbar-left">
+      <button id="menuToggle" class="menu-toggle" type="button" aria-label="মেনু খুলুন" aria-expanded="false">☰</button>
+      <div class="brand">BUS<span>NEX</span></div>
+      <div class="topbar-company" id="topbarCompany">BUSNEX Bus Counter</div>
+    </div>
+    <div class="topbar-search"><input id="topbarTicketSearch" type="search" placeholder="PNR or mobile number" aria-label="PNR or mobile number"><button id="topbarSearchButton" type="button" aria-label="Search">⌕</button></div>
     <div class="top-actions">
-      <span id="userChip" class="user-chip">ব্যবহারকারী</span>
+      <div class="topbar-profile"><span class="profile-avatar">●</span><span><b id="topbarUserName">ব্যবহারকারী</b><small id="topbarUserRole">BUSNEX</small></span></div>
       <button id="logoutButton" class="secondary">লগআউট</button>
     </div>
   </header>
@@ -840,18 +875,26 @@ function showDashboard(profile) {
   const person = currentProfile.full_name ||
     currentProfile.login_id || "BUSNEX User";
 
-  $("userChip").textContent =
-    person + " • " + roleText(currentProfile.role);
-
+  $("userChip").textContent = person + " • " + roleText(currentProfile.role);
+  $("topbarUserName").textContent = person;
+  $("topbarUserRole").textContent = roleText(currentProfile.role);
+  $("topbarCompany").textContent = currentProfile.company_name || "BUSNEX Bus Counter";
   $("roleLabel").textContent = roleText(currentProfile.role);
+  $("counterRoleTag").textContent = roleText(currentProfile.role);
 
   document.querySelectorAll(".admin-only").forEach(button => {
     button.classList.toggle("hidden",!isAdmin());
   });
-
-  document.title = "BUSNEX | Dashboard";
+  // লগইনের পর ছবির মতো Active Trip Dashboard-ই প্রথমে দেখানো হবে।
+  document.querySelectorAll(".page").forEach(page => page.classList.add("hidden"));
+  $("page-booking").classList.remove("hidden");
+  document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active",button.dataset.page === "booking"));
+  $("appScreen").classList.remove("menu-open");
+  $("menuToggle").setAttribute("aria-expanded","false");
+  document.title = "BUSNEX | Active Trips";
   loadDashboardStats();
   loadBillingDashboardNotice();
+  loadBookingStopsForSelectedDate();
 }
 
 function showLogin() {
@@ -1742,6 +1785,16 @@ $("refreshTripsButton").addEventListener("click",async() => {
 });
 
 $("dashboardRefreshButton").addEventListener("click",loadDashboardStats);
+
+$("menuToggle").addEventListener("click",() => {
+  const opened = $("appScreen").classList.toggle("menu-open");
+  $("menuToggle").setAttribute("aria-expanded",String(opened));
+});
+$("topbarSearchButton").addEventListener("click",() => {
+  const value = $("topbarTicketSearch").value.trim();
+  if (!value) { $("topbarTicketSearch").focus(); return; }
+  bookingMessage("PNR/Mobile Search-এর জন্য Ticket Search সংযোগ পরবর্তী ধাপে যুক্ত করা হবে।","error");
+});
 
 document.querySelectorAll(".nav-btn").forEach(button => {
   button.addEventListener("click",async() => {
