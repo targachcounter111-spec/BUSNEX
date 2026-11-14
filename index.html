@@ -3242,7 +3242,6 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             printWindow.addEventListener("load",startTicketPrint,{once:true});
             setTimeout(() => {
               if (!printWindow.closed && !printWindow.__busnexPrintStarted) {
-                printWindow.__busnexPrintStarted = true;
                 startTicketPrint();
               }
             },1800);
