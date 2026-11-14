@@ -342,7 +342,24 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
 }
 
 </style>
-</head>
+<style id="busnex-reference-dashboard">
+#page-booking{max-width:none;padding-top:0}.counter-reference-heading h1{font-size:18px;margin:0 0 10px;color:#172b3b}
+.counter-search-panel{border:0;border-radius:11px;padding:16px;background:#fff;box-shadow:none}.counter-filter-grid{grid-template-columns:repeat(5,minmax(130px,1fr)) auto;gap:9px}
+.counter-filter-grid .field label{font-size:13px;letter-spacing:0;text-transform:none;color:#243342;font-weight:600}.counter-filter-grid select,.counter-filter-grid input{height:47px;border-radius:5px;font-size:14px}
+.counter-search-button,.counter-open-button{background:#6500d6;color:#fff;border-radius:24px;height:42px;padding:0 22px}
+.counter-control-row{display:grid;grid-template-columns:1.3fr 1.4fr .65fr;align-items:center;gap:18px;border-top:1px solid #ddd;margin-top:16px;padding-top:15px}
+.counter-day-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.counter-day-controls small{width:100%;font-size:12px;color:#111}
+.counter-day-button{border:2px solid #999;border-radius:28px;padding:8px 15px;color:#6500d6;font-size:15px;min-height:54px;background:#fff}.counter-day-button.active{background:#6500d6;color:white;border-color:#6500d6}
+.counter-type-controls{display:flex;justify-content:center;align-items:center;gap:16px;border-left:1px solid #ddd;border-right:1px solid #ddd;min-height:55px;flex-wrap:wrap}.counter-type-controls span{width:100%;text-align:center;font-size:11px}.counter-type-controls label{font-size:13px;display:flex;align-items:center;gap:5px}.counter-type-controls input{width:18px;height:18px;accent-color:#6500d6}
+.counter-order-control{display:flex;flex-direction:column;gap:5px}.counter-order-control select{height:46px;border:1px solid #ddd;border-radius:5px;padding:0 12px;background:white}
+.counter-results-heading{margin:14px 0}.counter-results-heading h2{display:none}.counter-trip-results{display:block}.counter-reference-table-wrap{border:0;border-radius:0;overflow:auto;background:white}
+.counter-reference-table{width:100%;min-width:1040px;border-collapse:collapse;font-size:14px;color:#101828}.counter-reference-table th{background:#4b4b4d;color:#fff;text-align:center;font-size:10px;letter-spacing:0;padding:9px 7px;border:1px solid #ddd;white-space:normal}
+.counter-reference-table td{text-align:center;white-space:normal;padding:7px 6px;border:1px solid #ddd;line-height:1.45;vertical-align:middle}.counter-reference-table tbody tr:hover{background:#fff}
+.counter-reference-table .counter-open-button{height:36px;padding:0 18px;font-size:12px;font-weight:700}.counter-challan-button{background:#eef6fc;color:#172b3b;border-radius:24px;padding:9px 13px;font-size:11px}
+.counter-expanded-row td{padding:12px;background:#f7f7f7}.counter-inline-workspace{background:#fff;padding:10px}
+@media(max-width:900px){.counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.counter-control-row{grid-template-columns:1fr}.counter-type-controls{border:0;border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:12px}}
+@media(max-width:600px){.counter-filter-grid{grid-template-columns:1fr 1fr}.counter-filter-grid .field:nth-child(5){grid-column:1/-1}.counter-day-button{min-height:42px;font-size:12px;padding:7px 10px}}
+</style></head>
 
 <body>
 
@@ -446,20 +463,22 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
       </section>
 
       <section id="page-booking" class="page hidden busnex-counter-page">
-        <div class="counter-page-heading"><div><div class="counter-eyebrow">BUSNEX COUNTER / TICKET COUNTER</div><h1>Trip Dashboard</h1><p>রুট, তারিখ ও বাস বেছে নিয়ে দ্রুত টিকিট বুকিং করুন</p></div><div class="counter-heading-actions"><span class="counter-live-dot"></span><span>LIVE INVENTORY</span></div></div>
+        <div class="counter-reference-heading"><h1>Dashboard</h1><span id="counterRoleTag"></span></div>
         <div class="counter-search-panel">
           <div class="counter-filter-grid">
-            <div class="field"><label>FROM CITY</label><select id="fromStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
-            <div class="field"><label>TO CITY</label><select id="toStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
-            <div class="field"><label>OPERATOR / BUS</label><select id="bookingOperator"><option value="">All Operators</option></select></div>
-            <div class="field"><label>BUS TYPE</label><select id="bookingBusType"><option value="">All Types</option><option value="ac">AC</option><option value="non-ac">Non AC</option></select></div>
-            <div class="field"><label>JOURNEY DATE</label><input id="journeyDate" type="date"></div>
-            <button id="searchTripButton" class="counter-search-button" type="button">⌕ Search Trips</button>
+            <div class="field"><label>From city</label><select id="fromStop"><option value="">All boarding locations</option></select></div>
+            <div class="field"><label>To city</label><select id="toStop"><option value="">All destination</option></select></div>
+            <div class="field"><label>Coach</label><input id="bookingCoach" placeholder="Enter coach no"></div>
+            <div class="field"><label>Reg no</label><input id="bookingReg" placeholder="Enter reg no."></div>
+            <div class="field"><label>Date</label><input id="journeyDate" type="date"></div>
+            <button id="searchTripButton" class="counter-search-button" type="button">⌕ Search</button>
           </div>
-          <div class="counter-datebar"><button type="button" class="counter-day-button" data-day-offset="-1">‹ Prev. Day</button><button type="button" class="counter-day-button active" data-day-offset="0">Today’s Trip</button><button type="button" class="counter-day-button" data-day-offset="1">Next Day ›</button><span id="bookingDateCaption">Journey date অনুযায়ী Trip</span></div>
+          <div class="counter-control-row"><div class="counter-day-controls">
+            <button type="button" class="counter-day-button" data-day-offset="-1">‹ Prev. Day</button><button type="button" class="counter-day-button active" data-day-offset="0">Today’s Trip</button><button type="button" class="counter-day-button" data-day-offset="1">Next Day ›</button><small id="bookingDateCaption">Showing active trips</small>
+          </div><div class="counter-type-controls"><span>BUS TYPE</span><label><input id="bookingAcFilter" type="checkbox"> AC</label><label><input id="bookingNonAcFilter" type="checkbox"> Non AC</label></div><div class="counter-order-control"><label for="bookingOrder">Order type</label><select id="bookingOrder"><option value="asc">Ascending</option><option value="desc">Descending</option></select></div></div>
         </div>
-        <div class="counter-results-heading"><div><h2>Available Trips</h2><p id="bookingResultsMeta">Search করে Trip List দেখুন</p></div><span class="counter-results-tag">TRIP LIST</span></div>
-        <div id="tripSearchResult" class="counter-trip-results"><div class="counter-empty-state">যাত্রার তারিখ ও রুট নির্বাচন করে Search করুন।</div></div>
+        <div class="counter-results-heading"><div><h2>Active Trips</h2><p id="bookingResultsMeta">সক্রিয় Trip লোড হচ্ছে…</p></div></div>
+        <div id="tripSearchResult" class="counter-trip-results"><div class="counter-empty-state">সক্রিয় Trip লোড হচ্ছে…</div></div>
       </section>
 
       <section id="page-trips" class="page hidden">
@@ -2477,8 +2496,8 @@ async function fetchBookingTrips(dateValue) {
   const {data,error} = await supabase
     .from("trips")
     .select(`
-      id,departure_time,ticket_price,status,is_active,
-      buses(bus_name,bus_type),
+      id,departure_time,ticket_price,status,is_active,coach_number,supervisor,supervisor_name,supervisor_phone,
+      buses(bus_name,bus_type,registration_number,total_seats),
       routes(starting_point,ending_point),
       trip_stops(id,stop_name,stop_type,stop_order,is_active)
     `)
@@ -3383,49 +3402,33 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   }
 }
 
-async function renderBookingResults(trips,from,to) {
+async function renderBookingResults(trips,from="",to="") {
   const result=$("tripSearchResult");result.innerHTML="";
-  const operator=$("bookingOperator").value,busType=$("bookingBusType").value;
+  const coach=String($("bookingCoach").value||"").trim().toLowerCase(),reg=String($("bookingReg").value||"").trim().toLowerCase();
+  const ac=$("bookingAcFilter").checked,nonAc=$("bookingNonAcFilter").checked;
   const matches=trips.filter(trip=>{
     const stops=trip.trip_stops||[];
-    const fi=stops.findIndex(s=>String(s.stop_name||"").toLowerCase()===from.toLowerCase()&&["boarding","both"].includes(String(s.stop_type).toLowerCase()));
-    const ti=stops.findIndex(s=>String(s.stop_name||"").toLowerCase()===to.toLowerCase()&&["dropping","both"].includes(String(s.stop_type).toLowerCase()));
-    if(!(fi>=0&&ti>fi))return false;
-    if(operator&&String(trip.buses?.bus_name||"")!==operator)return false;
+    if(from||to){const fi=from?stops.findIndex(x=>String(x.stop_name||"").toLowerCase()===from.toLowerCase()&&["boarding","both"].includes(String(x.stop_type).toLowerCase())):0;const ti=to?stops.findIndex(x=>String(x.stop_name||"").toLowerCase()===to.toLowerCase()&&["dropping","both"].includes(String(x.stop_type).toLowerCase())):stops.length-1;if(fi<0||ti<0||ti<=fi)return false;}
+    if(coach&&!String(trip.coach_number||"").toLowerCase().includes(coach))return false;
+    if(reg&&!String(trip.buses?.registration_number||"").toLowerCase().includes(reg))return false;
     const type=String(trip.buses?.bus_type||"").toLowerCase().replace(/[\\s_-]/g,"");
-    if(busType==="ac"&&(!type.includes("ac")||type.startsWith("non")))return false;
-    if(busType==="non-ac"&&!(type.startsWith("non")&&type.includes("ac")))return false;
-    return true;
+    if(ac&&nonAc)return false;if(ac&&(!type.includes("ac")||type.startsWith("non")))return false;if(nonAc&&!(type.startsWith("non")&&type.includes("ac")))return false;
+    return trip.is_active!==false&&String(trip.status).toLowerCase()==="scheduled";
   });
-  $("bookingResultsMeta").textContent=matches.length+"টি Trip পাওয়া গেছে · "+from+" → "+to;
-  if(!matches.length){result.innerHTML='<div class="counter-empty-state">এই Filter-এ কোনো Trip পাওয়া যায়নি। Filter পরিবর্তন করে আবার Search করুন।</div>';return;}
-  for(const trip of matches){
-    const card=document.createElement("article");card.className="counter-trip-row";
-    const bus=trip.buses||{},route=trip.routes||{},departure=new Date(trip.departure_time);
-    const time=departure.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",hour12:true}),date=departure.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
-    const head=document.createElement("div");head.className="counter-trip-main";
-    const routeBox=document.createElement("div");routeBox.className="counter-route-cell";routeBox.innerHTML='<span>JOURNEY ROUTE</span><strong>'+escapeHtml(from)+' <i>→</i> '+escapeHtml(to)+'</strong><small>'+escapeHtml(route.starting_point||"—")+' → '+escapeHtml(route.ending_point||"—")+'</small>';
-    const busBox=document.createElement("div");busBox.className="counter-trip-cell";busBox.innerHTML='<span>OPERATOR / COACH</span><strong>'+escapeHtml(bus.bus_name||"Bus")+'</strong><small>'+escapeHtml(bus.bus_type||"")+'</small>';
-    const timeBox=document.createElement("div");timeBox.className="counter-trip-cell";timeBox.innerHTML='<span>DEPARTURE</span><strong>'+escapeHtml(time)+'</strong><small>'+escapeHtml(date)+'</small>';
-    const fareBox=document.createElement("div");fareBox.className="counter-trip-fare";fareBox.innerHTML='<span>FARE / SEAT</span><strong>৳'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</strong><small>'+escapeHtml(String(trip.status||"scheduled").toUpperCase())+'</small>';
-    const action=document.createElement("button");action.type="button";action.className="counter-open-button";action.textContent="Open Counter →";
-    head.append(routeBox,busBox,timeBox,fareBox,action);card.appendChild(head);
-    const workspace=document.createElement("div");workspace.className="counter-inline-workspace hidden";card.appendChild(workspace);
-    action.addEventListener("click",async()=>{
-      const opening=workspace.classList.contains("hidden");
-      document.querySelectorAll(".counter-inline-workspace").forEach(node=>{if(node!==workspace){node.classList.add("hidden");node.innerHTML="";}});
-      document.querySelectorAll(".counter-open-button").forEach(node=>{if(node!==action)node.textContent="Open Counter →";});
-      if(!opening){workspace.classList.add("hidden");workspace.innerHTML="";action.textContent="Open Counter →";return;}
-      workspace.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';action.textContent="Close Counter ×";
-      const dhakaDate=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));
-      const tripDate=dhakaDate(trip.departure_time),today=dhakaDate(new Date());let confirmPastDate=false;
-      if(tripDate<today){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ ("+tripDate+") পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রির অনুমতি দেওয়া হয়নি।</div>';return;}}
-      try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(error){console.error("COUNTER OPEN ERROR:",error);workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(error.message)+'</div>';}
-    });
-    result.appendChild(card);
-  }
+  if($("bookingOrder").value==="desc")matches.reverse();
+  $("bookingResultsMeta").textContent=matches.length+"টি Active Trip";
+  if(!matches.length){result.innerHTML='<div class="counter-empty-state">এই তারিখে কোনো Active Trip পাওয়া যায়নি।</div>';return;}
+  const wrap=document.createElement("div");wrap.className="table-wrap counter-reference-table-wrap";const table=document.createElement("table");table.className="counter-reference-table";
+  table.innerHTML='<thead><tr><th>SL</th><th>TRIP DATE & TIME</th><th>BOARDING DATE & TIME</th><th>COACH NO.</th><th>ROUTE</th><th>SUPERVISOR</th><th>SOLD SEATS</th><th>SEAT PLAN & CLASS</th><th>FARE</th><th>ACTION</th></tr></thead><tbody></tbody>';
+  const body=table.querySelector("tbody"),ids=matches.map(t=>t.id);let seatRows=[];
+  try{const {data,error}=await supabase.from("trip_seats").select("trip_id,status").in("trip_id",ids);if(error)throw error;seatRows=data||[];}catch(e){console.warn("Trip seat counts unavailable:",e);}
+  const counts=new Map();seatRows.forEach(x=>{const c=counts.get(x.trip_id)||{available:0,reserved:0,sold:0};const st=String(x.status||"").toLowerCase();if(st==="available")c.available++;else if(st==="reserved"||st==="held")c.reserved++;else if(st==="sold")c.sold++;counts.set(x.trip_id,c);});
+  matches.forEach((trip,i)=>{const bus=trip.buses||{},route=trip.routes||{},d=new Date(trip.departure_time),dt=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}),tm=d.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}),c=counts.get(trip.id)||{available:0,reserved:0,sold:0};
+    const row=document.createElement("tr");row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td>'+escapeHtml((route.starting_point||"—")+"–"+(route.ending_point||"—"))+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">▣ Challan</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
+    const action=row.lastElementChild,open=action.querySelector(".counter-open-button"),challan=action.querySelector(".counter-challan-button"),expanded=document.createElement("tr");expanded.className="counter-expanded-row hidden";const td=document.createElement("td");td.colSpan=10;const workspace=document.createElement("div");workspace.className="counter-inline-workspace";td.appendChild(workspace);expanded.appendChild(td);
+    open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";return;}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});challan.addEventListener("click",()=>open.click());body.append(row,expanded);
+  });wrap.appendChild(table);result.appendChild(wrap);
 }
-
 $("journeyDate").value = new Date().toLocaleDateString("en-CA");
 $("tripDate").value = new Date().toLocaleDateString("en-CA");
 $("fromStop").disabled = true;
@@ -3451,9 +3454,9 @@ async function loadBookingStopsForSelectedDate() {
     // দ্রুত তারিখ বদলালে পুরোনো Request-এর ফল নতুন তারিখের Option মুছে ফেলবে না।
     if (requestId !== bookingDateLoadRequest || date !== $("journeyDate").value) return;
     fillBookingStopOptions(trips);
-    bookingMessage(trips.length
-      ? "এই তারিখে " + trips.length + "টি Trip পাওয়া গেছে। FROM ও TO নির্বাচন করুন।"
-      : "এই তারিখে কোনো সক্রিয় Scheduled Trip পাওয়া যায়নি।");
+    $("bookingDateCaption").textContent="Showing result for: "+new Date(date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"2-digit",year:"numeric"});
+    renderBookingResults(trips,$("fromStop").value,$("toStop").value);
+    bookingMessage(trips.length?"Active Trip list আপডেট হয়েছে।":"এই তারিখে কোনো সক্রিয় Scheduled Trip পাওয়া যায়নি।");
   } catch(error) {
     if (requestId !== bookingDateLoadRequest) return;
     console.error("BOOKING STOP LOAD ERROR:",error);
@@ -3462,13 +3465,13 @@ async function loadBookingStopsForSelectedDate() {
 }
 
 $("journeyDate").addEventListener("change",loadBookingStopsForSelectedDate);
-$("bookingBusType").addEventListener("change",()=>{if($("fromStop").value&&$("toStop").value)$("searchTripButton").click();});
+
 document.querySelectorAll("[data-day-offset]").forEach(button=>button.addEventListener("click",()=>{
   const date=new Date(($("journeyDate").value||new Date().toLocaleDateString("en-CA"))+"T12:00:00");
   date.setDate(date.getDate()+Number(button.dataset.dayOffset));
   $("journeyDate").value=[date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");
   document.querySelectorAll("[data-day-offset]").forEach(item=>item.classList.toggle("active",item===button));
-  $("bookingDateCaption").textContent="Journey date: "+date.toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
+  $("bookingDateCaption").textContent="Showing result for: "+date.toLocaleDateString("en-US",{month:"short",day:"2-digit",year:"numeric"});
   loadBookingStopsForSelectedDate();
 }));
 
@@ -3478,12 +3481,8 @@ $("searchTripButton").addEventListener("click",async() => {
   const date = $("journeyDate").value;
   const button = $("searchTripButton");
 
-  if (!from || !to || !date) {
-    return bookingMessage("FROM, TO এবং যাত্রার তারিখ নির্বাচন করুন।","error");
-  }
-  if (from.toLowerCase() === to.toLowerCase()) {
-    return bookingMessage("FROM ও TO একই হতে পারবে না।","error");
-  }
+  if (!date) return bookingMessage("যাত্রার তারিখ নির্বাচন করুন।","error");
+  if (from && to && from.toLowerCase()===to.toLowerCase()) return bookingMessage("FROM ও TO একই হতে পারবে না।","error");
 
   button.disabled = true;
   button.textContent = "Trip খোঁজা হচ্ছে...";
