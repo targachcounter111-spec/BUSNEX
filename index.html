@@ -3083,7 +3083,29 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         if (!details || !details.ticket) throw new Error("বিক্রিত Ticket-এর রেকর্ড পাওয়া যায়নি।");
 
         const ticket = details.ticket;
-        const allSeatNumbers = [...new Set((groupSeatNumbers || [seatNumber]).map(String))];
+
+        // Batch sale calls the ticket-sale RPC repeatedly inside one database transaction.
+        // PostgreSQL transaction timestamps are identical, so created_at identifies the
+        // seats sold together even after the page is refreshed or another seat is clicked.
+        let persistedGroupSeatNumbers = [];
+        if (ticket.created_at) {
+          const siblingResult = await supabase
+            .from("tickets")
+            .select("seat_number")
+            .eq("trip_id",trip.id)
+            .eq("created_at",ticket.created_at)
+            .eq("status","sold");
+          if (siblingResult.error) {
+            console.warn("Could not load batch ticket seats from database:",siblingResult.error);
+          } else {
+            persistedGroupSeatNumbers = (siblingResult.data || []).map(item => String(item.seat_number));
+          }
+        }
+        const allSeatNumbers = [...new Set([
+          ...(groupSeatNumbers || [seatNumber]).map(String),
+          ...persistedGroupSeatNumbers,
+          String(seatNumber)
+        ])];
         const groupDetails = await Promise.all(allSeatNumbers.filter(n => n !== String(seatNumber)).map(async n => {
           const result = await supabase.rpc("busnex_get_ticket_details",{p_trip_id:trip.id,p_seat_number:n});
           if (result.error) throw result.error;
