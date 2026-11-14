@@ -810,6 +810,16 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
       <section id="page-counters" class="page hidden">
         <div class="page-head"><div><h1>Counters & Access</h1><div class="muted small">Company Counter Directory ও Reservation Permission</div></div><button id="counterRefresh" class="secondary" type="button">↻ Refresh</button></div>
         <div class="card"><h2>Counter List</h2><div id="counterDirectoryMessage" class="message">Counter তালিকা লোড করতে Refresh করুন।</div><div id="counterDirectory" class="table-wrap"><div class="empty">কোনো তথ্য লোড হয়নি।</div></div></div>
+        <div class="card section" id="counterCreatePanel">
+          <h2>নতুন Counter তৈরি করুন</h2>
+          <div class="notice">Counter তৈরি হলে Database নিজে থেকে একটি Unique Counter ID তৈরি করবে। এটি Counter Operator-এর Login ID নয়।</div>
+          <div class="form-row section">
+            <div class="field"><label for="newCounterName">Counter-এর নাম *</label><input id="newCounterName" type="text" maxlength="120" placeholder="যেমন: GAZIPURA 28"></div>
+            <div class="field"><label for="newCounterAddress">Counter-এর ঠিকানা</label><input id="newCounterAddress" type="text" maxlength="250" placeholder="ঠিকানা (ঐচ্ছিক)"></div>
+            <div class="field"><label>&nbsp;</label><button id="createCounterButton" class="primary" type="button">+ Counter তৈরি করুন</button></div>
+          </div>
+          <div id="counterCreateMessage" class="message">নতুন Counter তৈরি করতে নাম লিখুন।</div>
+        </div>
         <div class="card section"><h2>Reservation Permission</h2>
           <div class="notice">Company Manager নিজের Company-এর Counter-এ এবং Super Admin যেকোনো Counter-এ Standard বা VIP Reservation Permission দিতে বা বন্ধ করতে পারবেন। Database RPC Migration চালু না থাকলে পরিবর্তন সংরক্ষণ হবে না।</div>
           <div id="permissionControls" class="form-row section">
@@ -2400,25 +2410,102 @@ $("reservationCreateButton").addEventListener("click",async()=>{
     $("reservationMessage").className="message section error";
   }finally{button.disabled=false;}
 });
+async function toggleCounterActive(counterId,wasActive,button) {
+  if (!isAdmin() || !counterId) return;
+  const nextActive = !wasActive;
+  const actionText = nextActive ? "আবার চালু" : "বন্ধ";
+  if (!confirm("এই Counter "+actionText+" করবেন?")) return;
+  const companyId = currentProfile.role === "super_admin" ? activeCompanyId : currentProfile.company_id;
+  if (!companyId) {
+    $("counterDirectoryMessage").textContent = "Company নির্বাচন করা হয়নি।";
+    $("counterDirectoryMessage").className = "message error";
+    return;
+  }
+  button.disabled = true;
+  try {
+    const {error} = await supabase.from("counters")
+      .update({is_active:nextActive})
+      .eq("id",counterId)
+      .eq("company_id",companyId);
+    if (error) throw error;
+    $("counterDirectoryMessage").textContent = "Counter "+actionText+" করা হয়েছে।";
+    $("counterDirectoryMessage").className = "message ok";
+    await loadCounterDirectory();
+  } catch(error) {
+    $("counterDirectoryMessage").textContent = "Counter Status পরিবর্তন হয়নি: "+error.message;
+    $("counterDirectoryMessage").className = "message error";
+    button.disabled = false;
+  }
+}
+
+async function createCounter() {
+  if (!isAdmin()) return;
+  const name = $("newCounterName").value.trim();
+  const address = $("newCounterAddress").value.trim();
+  const companyId = currentProfile.role === "super_admin" ? activeCompanyId : currentProfile.company_id;
+  const message = $("counterCreateMessage");
+  const button = $("createCounterButton");
+  if (!companyId) {
+    message.textContent = "Company নির্বাচন করা হয়নি।";
+    message.className = "message error";
+    return;
+  }
+  if (!name) {
+    message.textContent = "Counter-এর নাম লিখুন।";
+    message.className = "message error";
+    $("newCounterName").focus();
+    return;
+  }
+  button.disabled = true;
+  message.textContent = "নতুন Counter তৈরি হচ্ছে...";
+  message.className = "message";
+  try {
+    const {data,error} = await supabase.from("counters")
+      .insert({company_id:companyId,name,address:address || null})
+      .select("id,name")
+      .single();
+    if (error) throw error;
+    $("newCounterName").value = "";
+    $("newCounterAddress").value = "";
+    message.textContent = "Counter তৈরি হয়েছে: "+data.name+" | Counter ID: "+data.id;
+    message.className = "message ok";
+    await loadCounterDirectory();
+  } catch(error) {
+    message.textContent = "Counter তৈরি হয়নি: "+error.message;
+    message.className = "message error";
+  } finally {
+    button.disabled = false;
+  }
+}
+
 async function loadCounterDirectory() {
   $("counterDirectoryMessage").textContent = "Counter লোড হচ্ছে...";
   $("permissionMessage").textContent = "Permission লোড হচ্ছে...";
+  $("counterCreatePanel").classList.toggle("hidden", !isAdmin());
   try {
-    let query=supabase.from("counters").select("id,company_id,name,address,created_at").order("name");
+    let query=supabase.from("counters").select("id,company_id,name,address,created_at,is_active").order("name");
     if(currentProfile.role!=="super_admin") query=query.eq("company_id",currentProfile.company_id);
     else if(activeCompanyId) query=query.eq("company_id",activeCompanyId);
+    else throw new Error("Super Admin-এর আগে Company Workspace নির্বাচন করতে হবে।");
     const {data,error}=await query;
     if(error) throw error;
     const counters = data || [];
-    $("counterDirectory").innerHTML=safeTable(counters,[
-      {label:"Counter",value:r=>r.name},{label:"Address",value:r=>r.address},{label:"Counter ID",value:r=>r.id}
-    ]);
+    if (!counters.length) {
+      $("counterDirectory").innerHTML='<div class="empty">এখনো কোনো Counter তৈরি হয়নি।</div>';
+    } else {
+      $("counterDirectory").innerHTML='<table><thead><tr><th>Counter</th><th>Address</th><th>Counter ID</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
+        counters.map(counter=>'<tr><td>'+escapeHtml(counter.name)+'</td><td>'+escapeHtml(counter.address || "—")+'</td><td><small>'+escapeHtml(counter.id)+'</small></td><td>'+ (counter.is_active ? '<span class="status-badge">চালু</span>' : '<span class="status-badge">বন্ধ</span>') +'</td><td><button type="button" class="'+(counter.is_active ? 'danger' : 'secondary')+' toggle-counter-active" data-id="'+escapeHtml(counter.id)+'" data-active="'+(counter.is_active ? 'true' : 'false')+'">'+(counter.is_active ? 'Counter বন্ধ করুন' : 'আবার চালু করুন')+'</button></td></tr>').join('')+
+        '</tbody></table>';
+      document.querySelectorAll(".toggle-counter-active").forEach(button=>{
+        button.addEventListener("click",()=>toggleCounterActive(button.dataset.id,button.dataset.active==="true",button));
+      });
+    }
     const counterSelect = $("permissionCounter");
     counterSelect.innerHTML = '<option value="">Counter নির্বাচন করুন</option>';
     counters.forEach(counter => {
       const option = document.createElement("option");
       option.value = counter.id;
-      option.textContent = counter.name + (counter.address ? " — " + counter.address : "");
+      option.textContent = counter.name + (counter.address ? " — " + counter.address : "") + (counter.is_active ? "" : " (বন্ধ)");
       counterSelect.appendChild(option);
     });
     $("counterDirectoryMessage").textContent=counters.length+"টি Counter পাওয়া গেছে।";
@@ -2586,6 +2673,7 @@ $("billingGenerateInvoice").addEventListener("click",async()=>{
 $("billingRefresh").addEventListener("click",loadBillingPage);
 $("reservationRefresh").addEventListener("click",loadReservationsPage);
 $("counterRefresh").addEventListener("click",loadCounterDirectory);
+$("createCounterButton").addEventListener("click",createCounter);
 $("grantPermission").addEventListener("click",async() => {
   const counterId=$("permissionCounter").value;
   const reservationType=$("permissionType").value;
