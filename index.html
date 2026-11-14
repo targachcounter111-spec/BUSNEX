@@ -472,6 +472,33 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
  #appScreen #page-booking .counter-day-controls .counter-day-button{font-size:clamp(11px,3.1vw,13px)!important;min-height:46px!important;padding:7px 3px!important;border-width:1.5px!important}
 }
 </style>
+
+<style id="busnex-company-hub">
+.company-hub{max-width:1180px;margin:34px auto;padding:0 24px 48px}
+.company-hub-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px}
+.company-hub-head h1{font-size:28px;margin:0 0 8px;color:#172b3b}
+.company-hub-head p{margin:0;color:#64748b}
+.company-hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.company-hub-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;text-align:left;box-shadow:0 8px 24px #0f172a0a;cursor:pointer;transition:.18s}
+.company-hub-card:hover{border-color:#6500d6;transform:translateY(-2px);box-shadow:0 12px 30px #6500d615}
+.company-hub-card.primary-company{border:2px solid #6500d6;background:linear-gradient(135deg,#fff 0%,#f7f1ff 100%)}
+.company-logo-mark{width:46px;height:46px;display:inline-grid;place-items:center;border-radius:13px;background:linear-gradient(135deg,#6500d6,#32106e);color:#fff;font-weight:900;font-size:21px;box-shadow:0 5px 14px #6500d633;flex:0 0 auto}
+.company-brand-strip{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 15px;margin:0 0 14px}
+.company-brand-strip strong{display:block;color:#172b3b;font-size:15px;letter-spacing:.2px}
+.company-brand-strip small{display:block;color:#64748b;margin-top:3px;font-size:11px}
+.company-hub-card h3{margin:16px 0 6px;color:#172b3b;font-size:18px}
+.company-hub-card p{margin:0;color:#64748b;font-size:13px}
+.company-hub-section{margin-top:30px}
+.company-hub-section h2{font-size:17px;color:#334155;margin:0 0 14px}
+.company-add-panel{margin-top:28px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px}
+.company-add-panel h2{margin:0 0 6px;font-size:19px}
+.company-add-panel .muted{margin:0 0 16px}
+.company-add-form{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+.company-add-form .field{flex:1;min-width:220px;margin:0}
+#returnGlobalButton{display:none}
+.company-brand-strip .company-id-line{font-size:11px;color:#64748b;margin-top:4px}
+@media(max-width:650px){.company-hub{margin:22px auto;padding:0 14px 32px}.company-hub-head{display:block}.company-hub-head h1{font-size:23px}.company-add-form{display:grid}.company-add-form button{width:100%}}
+</style>
 </head>
 
 <body>
@@ -532,10 +559,34 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
     <div class="top-actions">
       <span id="userChip" class="user-chip hidden">ব্যবহারকারী</span>
       <div class="topbar-profile"><span class="profile-avatar">●</span><span><b id="topbarUserName">ব্যবহারকারী</b><small id="topbarUserRole">BUSNEX</small></span></div>
+      <button id="returnGlobalButton" class="secondary" type="button">← Global Dashboard</button>
       <button id="logoutButton" class="secondary">লগআউট</button>
     </div>
   </header>
 
+  <section id="globalCompanyHub" class="company-hub hidden">
+    <div class="company-hub-head">
+      <div><h1>Super Admin Global Dashboard</h1><p>এক জায়গা থেকে সব Company Website নির্বাচন ও পরিচালনা করুন।</p></div>
+      <span class="user-chip" style="background:#f0eaff;color:#6500d6">SUPER ADMIN</span>
+    </div>
+    <div class="company-hub-section">
+      <h2>আপনার প্রধান Website</h2>
+      <div id="shamolCompanyCard" class="company-hub-grid"></div>
+    </div>
+    <div class="company-hub-section">
+      <h2>Other Websites / Companies</h2>
+      <div id="otherCompanyCards" class="company-hub-grid"></div>
+    </div>
+    <div class="company-add-panel">
+      <h2>＋ Add New Company</h2>
+      <p class="muted">নতুন Company-এর নাম দিয়ে Company Workspace তৈরি করুন।</p>
+      <form id="addCompanyForm" class="company-add-form">
+        <div class="field"><label for="newCompanyName">Company Name</label><input id="newCompanyName" maxlength="120" placeholder="যেমন: New Travels Ltd." required></div>
+        <button id="addCompanyButton" class="primary" type="submit">Create Company</button>
+      </form>
+      <div id="companyHubMessage" class="message" aria-live="polite"></div>
+    </div>
+  </section>
   <div class="layout">
     <aside class="sidebar">
       <button class="nav-btn active" data-page="dashboard">▦ Dashboard</button>
@@ -582,6 +633,7 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
       </section>
 
       <section id="page-booking" class="page hidden busnex-counter-page">
+        <div id="counterCompanyBrand" class="company-brand-strip hidden"><span class="company-logo-mark">S</span><span><strong id="counterCompanyBrandName">SHAMOL TRAVELS</strong><small id="counterCompanyBrandMeta">Company Workspace</small><span id="counterCompanyBrandId" class="company-id-line"></span></span></div>
         <div class="counter-reference-heading"><h1>Dashboard</h1><span id="counterRoleTag"></span></div>
         <div class="counter-search-panel">
           <div class="counter-filter-grid">
@@ -826,6 +878,8 @@ const supabase = supabaseLib.createClient(
 );
 
 let currentProfile = null;
+let activeCompanyId = null;
+let activeCompanyName = "";
 let companies = [];
 let buses = [];
 let editingTripId = null;
@@ -897,6 +951,8 @@ async function loadDashboardStats() {
     if (currentProfile.role !== "super_admin") {
       if (!currentProfile.company_id) throw new Error("আপনার Company Assignment পাওয়া যায়নি।");
       tripQuery = tripQuery.eq("company_id",currentProfile.company_id);
+    } else if (activeCompanyId) {
+      tripQuery = tripQuery.eq("company_id",activeCompanyId);
     }
 
     const {data:tripRows,error:tripError,count:tripCount} = await tripQuery;
@@ -932,6 +988,8 @@ async function loadDashboardStats() {
       .select("id",{count:"exact",head:true});
     if (currentProfile.role !== "super_admin") {
       counterQuery = counterQuery.eq("company_id",currentProfile.company_id);
+    } else if (activeCompanyId) {
+      counterQuery = counterQuery.eq("company_id",activeCompanyId);
     }
     const {count:counterCount,error:counterError} = await counterQuery;
     if (counterError) throw counterError;
@@ -952,24 +1010,36 @@ async function loadDashboardStats() {
 
 function showDashboard(profile) {
   currentProfile = profile || {};
+  activeCompanyId = null;
+  activeCompanyName = "";
 
   $("loginScreen").classList.add("hidden");
   $("appScreen").classList.remove("hidden");
 
   const person = currentProfile.full_name ||
     currentProfile.login_id || "BUSNEX User";
-
   $("userChip").textContent = person + " • " + roleText(currentProfile.role);
   $("topbarUserName").textContent = person;
   $("topbarUserRole").textContent = roleText(currentProfile.role);
-  $("topbarCompany").textContent = currentProfile.company_name || "BUSNEX Bus Counter";
   $("roleLabel").textContent = roleText(currentProfile.role);
   $("counterRoleTag").textContent = roleText(currentProfile.role);
+  document.querySelectorAll(".admin-only").forEach(button => button.classList.toggle("hidden",!isAdmin()));
 
-  document.querySelectorAll(".admin-only").forEach(button => {
-    button.classList.toggle("hidden",!isAdmin());
-  });
-  // লগইনের পর ছবির মতো Active Trip Dashboard-ই প্রথমে দেখানো হবে।
+  if (currentProfile.role === "super_admin") {
+    $("globalCompanyHub").classList.remove("hidden");
+    document.querySelector(".layout").classList.add("hidden");
+    $("topbarCompany").textContent = "Super Admin • Global Dashboard";
+    $("returnGlobalButton").style.display = "none";
+    $("counterCompanyBrand").classList.add("hidden");
+    document.title = "BUSNEX | Super Admin Global";
+    loadGlobalCompanyHub();
+    return;
+  }
+
+  $("globalCompanyHub").classList.add("hidden");
+  document.querySelector(".layout").classList.remove("hidden");
+  $("returnGlobalButton").style.display = "none";
+  loadCompanyBranding();
   document.querySelectorAll(".page").forEach(page => page.classList.add("hidden"));
   $("page-booking").classList.remove("hidden");
   document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active",button.dataset.page === "booking"));
@@ -980,6 +1050,126 @@ function showDashboard(profile) {
   loadBillingDashboardNotice();
   loadBookingStopsForSelectedDate();
 }
+
+async function loadGlobalCompanyHub() {
+  const message = $("companyHubMessage");
+  message.textContent = "Company তালিকা লোড হচ্ছে...";
+  try {
+    const {data,error} = await supabase.from("companies").select("id,name").order("name");
+    if (error) throw error;
+    companies = data || [];
+    const shamol = companies.filter(c => /shamol/i.test(c.name));
+    const others = companies.filter(c => !/shamol/i.test(c.name));
+    const makeCard = (company,isPrimary) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "company-hub-card" + (isPrimary ? " primary-company" : "");
+      const mark = document.createElement("span");
+      mark.className = "company-logo-mark";
+      mark.textContent = isPrimary ? "S" : String(company.name || "C").trim().charAt(0).toUpperCase();
+      const title = document.createElement("h3");
+      title.textContent = company.name;
+      const desc = document.createElement("p");
+      desc.textContent = isPrimary ? "SHAMOL TRAVELS • Main Company Workspace" : "Company Workspace • Manage trips, counters and billing";
+      card.append(mark,title,desc);
+      card.addEventListener("click",() => openCompanyWorkspace(company));
+      return card;
+    };
+    const shamolWrap = $("shamolCompanyCard");
+    shamolWrap.innerHTML = "";
+    if (shamol.length) shamol.forEach(c => shamolWrap.appendChild(makeCard(c,true)));
+    else shamolWrap.innerHTML = '<div class="empty">SHAMOL TRAVELS নামে Company পাওয়া যায়নি। Add New Company দিয়ে তৈরি করুন।</div>';
+    const otherWrap = $("otherCompanyCards");
+    otherWrap.innerHTML = "";
+    if (others.length) others.forEach(c => otherWrap.appendChild(makeCard(c,false)));
+    else otherWrap.innerHTML = '<div class="empty">এখনো অন্য কোনো Company তৈরি হয়নি।</div>';
+    message.textContent = companies.length + "টি Company পাওয়া গেছে।";
+    message.className = "message section ok";
+  } catch(error) {
+    message.textContent = "Company লোড হয়নি: " + error.message;
+    message.className = "message section error";
+  }
+}
+
+function openCompanyWorkspace(company) {
+  if (currentProfile?.role !== "super_admin" || !company?.id) return;
+  activeCompanyId = company.id;
+  activeCompanyName = company.name || "Company";
+  $("globalCompanyHub").classList.add("hidden");
+  document.querySelector(".layout").classList.remove("hidden");
+  $("returnGlobalButton").style.display = "inline-flex";
+  $("topbarCompany").textContent = activeCompanyName;
+  $("counterCompanyBrand").classList.remove("hidden");
+  $("counterCompanyBrandName").textContent = activeCompanyName.toUpperCase();
+  $("counterCompanyBrandMeta").textContent = "Super Admin • Company Workspace";
+  $("counterCompanyBrandId").textContent = "Global Management Access";
+  document.querySelectorAll(".page").forEach(page => page.classList.add("hidden"));
+  $("page-booking").classList.remove("hidden");
+  document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active",button.dataset.page === "booking"));
+  document.title = "BUSNEX | " + activeCompanyName;
+  $("appScreen").classList.remove("menu-open");
+  $("menuToggle").setAttribute("aria-expanded","false");
+  loadDashboardStats();
+  loadBookingStopsForSelectedDate();
+}
+
+async function loadCompanyBranding() {
+  const companyId = currentProfile?.company_id;
+  if (!companyId) {
+    $("topbarCompany").textContent = "BUSNEX Bus Counter";
+    $("counterCompanyBrand").classList.add("hidden");
+    return;
+  }
+  try {
+    const {data,error} = await supabase.from("companies").select("id,name").eq("id",companyId).maybeSingle();
+    if (error) throw error;
+    const name = data?.name || "BUSNEX Bus Counter";
+    $("topbarCompany").textContent = name;
+    $("counterCompanyBrandName").textContent = name.toUpperCase();
+    $("counterCompanyBrandMeta").textContent = roleText(currentProfile.role);
+    $("counterCompanyBrandId").textContent = (currentProfile.role === "counter_operator" ? "Counter ID: " : "Manager ID: ") + (currentProfile.login_id || "—");
+    $("counterCompanyBrand").classList.remove("hidden");
+  } catch(error) {
+    console.warn("Company branding:",error);
+    $("topbarCompany").textContent = "BUSNEX Bus Counter";
+  }
+}
+
+$("addCompanyForm").addEventListener("submit",async event => {
+  event.preventDefault();
+  if (currentProfile?.role !== "super_admin") return;
+  const name = $("newCompanyName").value.trim();
+  if (!name) return;
+  const button = $("addCompanyButton");
+  button.disabled = true;
+  $("companyHubMessage").textContent = "নতুন Company তৈরি হচ্ছে...";
+  $("companyHubMessage").className = "message section";
+  try {
+    const {data,error} = await supabase.from("companies").insert({name}).select("id,name").single();
+    if (error) throw error;
+    $("newCompanyName").value = "";
+    $("companyHubMessage").textContent = data.name + " Company তৈরি হয়েছে। এখন Company Workspace খুলুন।";
+    $("companyHubMessage").className = "message section ok";
+    await loadGlobalCompanyHub();
+  } catch(error) {
+    $("companyHubMessage").textContent = "Company তৈরি হয়নি: " + error.message;
+    $("companyHubMessage").className = "message section error";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("returnGlobalButton").addEventListener("click",() => {
+  if (currentProfile?.role !== "super_admin") return;
+  activeCompanyId = null;
+  activeCompanyName = "";
+  $("returnGlobalButton").style.display = "none";
+  document.querySelector(".layout").classList.add("hidden");
+  $("globalCompanyHub").classList.remove("hidden");
+  $("topbarCompany").textContent = "Super Admin • Global Dashboard";
+  document.title = "BUSNEX | Super Admin Global";
+  loadGlobalCompanyHub();
+});
 
 function showLogin() {
   $("appScreen").classList.add("hidden");
@@ -1230,7 +1420,7 @@ async function loadCompanies() {
 
 function selectedCompanyId() {
   if (currentProfile.role === "super_admin") {
-    return $("tripCompany").value;
+    return activeCompanyId || $("tripCompany").value;
   }
 
   return currentProfile.company_id;
@@ -1284,11 +1474,17 @@ async function prepareTripManagement() {
 
   $("companyField").classList.toggle(
     "hidden",
-    currentProfile.role !== "super_admin"
+    currentProfile.role !== "super_admin" || Boolean(activeCompanyId)
   );
 
   try {
-    if (currentProfile.role === "super_admin") {
+    if (currentProfile.role === "super_admin" && activeCompanyId) {
+      $("tripCompany").innerHTML = "";
+      const option = document.createElement("option");
+      option.value = activeCompanyId;
+      option.textContent = activeCompanyName;
+      $("tripCompany").appendChild(option);
+    } else if (currentProfile.role === "super_admin") {
       await loadCompanies();
     } else {
       const {data,error} = await supabase
@@ -1605,6 +1801,8 @@ async function loadTrips() {
 
   if (currentProfile.role === "company_manager") {
     query = query.eq("company_id",currentProfile.company_id);
+  } else if (currentProfile.role === "super_admin" && activeCompanyId) {
+    query = query.eq("company_id",activeCompanyId);
   }
 
   const {data,error} = await query;
@@ -2016,7 +2214,7 @@ async function loadReservationTripOptions() {
   }
   $("reservationCreatePanel").classList.remove("hidden");
   const date = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  const {data,error} = await supabase
+  let bookingQuery = supabase
     .from("trips")
     .select("id,departure_time,ticket_price,status,is_active,buses(bus_name),routes(starting_point,ending_point),trip_stops(id,stop_name,stop_type,stop_order,is_active)")
     .eq("is_active",true).eq("status","scheduled")
@@ -2179,6 +2377,7 @@ async function loadCounterDirectory() {
   try {
     let query=supabase.from("counters").select("id,company_id,name,address,created_at").order("name");
     if(currentProfile.role!=="super_admin") query=query.eq("company_id",currentProfile.company_id);
+    else if(activeCompanyId) query=query.eq("company_id",activeCompanyId);
     const {data,error}=await query;
     if(error) throw error;
     const counters = data || [];
@@ -2659,6 +2858,8 @@ async function fetchBookingTrips(dateValue) {
     .gte("departure_time",range.start)
     .lt("departure_time",range.end)
     .order("departure_time",{ascending:true});
+  if (currentProfile?.role === "super_admin" && activeCompanyId) bookingQuery = bookingQuery.eq("company_id",activeCompanyId);
+  const {data,error} = await bookingQuery;
 
   if (error) throw error;
   return (data || []).map(trip => ({
