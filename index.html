@@ -445,22 +445,21 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
         </div>
       </section>
 
-      <section id="page-booking" class="page hidden">
-        <div class="page-head">
-          <div>
-            <h1>Ticket Booking</h1>
-            <div class="muted small">Trip-এর Stop ও যাত্রার তারিখ দিয়ে বাস খুঁজুন</div>
+      <section id="page-booking" class="page hidden busnex-counter-page">
+        <div class="counter-page-heading"><div><div class="counter-eyebrow">BUSNEX COUNTER / TICKET COUNTER</div><h1>Trip Dashboard</h1><p>রুট, তারিখ ও বাস বেছে নিয়ে দ্রুত টিকিট বুকিং করুন</p></div><div class="counter-heading-actions"><span class="counter-live-dot"></span><span>LIVE INVENTORY</span></div></div>
+        <div class="counter-search-panel">
+          <div class="counter-filter-grid">
+            <div class="field"><label>FROM CITY</label><select id="fromStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
+            <div class="field"><label>TO CITY</label><select id="toStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
+            <div class="field"><label>OPERATOR / BUS</label><select id="bookingOperator"><option value="">All Operators</option></select></div>
+            <div class="field"><label>BUS TYPE</label><select id="bookingBusType"><option value="">All Types</option><option value="ac">AC</option><option value="non-ac">Non AC</option></select></div>
+            <div class="field"><label>JOURNEY DATE</label><input id="journeyDate" type="date"></div>
+            <button id="searchTripButton" class="counter-search-button" type="button">⌕ Search Trips</button>
           </div>
+          <div class="counter-datebar"><button type="button" class="counter-day-button" data-day-offset="-1">‹ Prev. Day</button><button type="button" class="counter-day-button active" data-day-offset="0">Today’s Trip</button><button type="button" class="counter-day-button" data-day-offset="1">Next Day ›</button><span id="bookingDateCaption">Journey date অনুযায়ী Trip</span></div>
         </div>
-        <div class="card">
-          <div class="form-row">
-            <div class="field"><label>FROM / যাত্রা শুরু</label><select id="fromStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
-            <div class="field"><label>TO / গন্তব্য</label><select id="toStop"><option value="">আগে তারিখ নির্বাচন করুন</option></select></div>
-            <div class="field"><label>যাত্রার তারিখ</label><input id="journeyDate" type="date"></div>
-          </div>
-          <button id="searchTripButton" class="primary">ট্রিপ খুঁজুন</button>
-          <div id="tripSearchResult" class="section empty">যাত্রার তারিখ নির্বাচন করে ট্রিপ খুঁজুন।</div>
-        </div>
+        <div class="counter-results-heading"><div><h2>Available Trips</h2><p id="bookingResultsMeta">Search করে Trip List দেখুন</p></div><span class="counter-results-tag">TRIP LIST</span></div>
+        <div id="tripSearchResult" class="counter-trip-results"><div class="counter-empty-state">যাত্রার তারিখ ও রুট নির্বাচন করে Search করুন।</div></div>
       </section>
 
       <section id="page-trips" class="page hidden">
@@ -2479,7 +2478,7 @@ async function fetchBookingTrips(dateValue) {
     .from("trips")
     .select(`
       id,departure_time,ticket_price,status,is_active,
-      buses(bus_name),
+      buses(bus_name,bus_type),
       routes(starting_point,ending_point),
       trip_stops(id,stop_name,stop_type,stop_order,is_active)
     `)
@@ -2541,6 +2540,11 @@ function fillBookingStopOptions(trips) {
 
   setOptions(fromSelect,"যাত্রা শুরুর স্থান নির্বাচন",boardingNames,previousFrom);
   setOptions(toSelect,"গন্তব্য নির্বাচন",droppingNames,previousTo);
+  const operatorSelect=$("bookingOperator"),previousOperator=operatorSelect.value;
+  operatorSelect.innerHTML='<option value="">All Operators</option>';
+  const operators=[...new Set(trips.map(t=>String(t.buses?.bus_name||"").trim()).filter(Boolean))].sort();
+  operators.forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;operatorSelect.appendChild(o);});
+  if(operators.includes(previousOperator))operatorSelect.value=previousOperator;
 }
 
 async function appendBookingSeatPicker(trip,card,confirmPastDate) {
@@ -2919,7 +2923,27 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               .ticket-strip{box-sizing:border-box!important;width:3.66in!important;min-width:3.66in!important;max-width:3.66in!important;height:8.50in!important;min-height:8.50in!important;max-height:8.50in!important;flex:0 0 3.66in!important;box-shadow:none!important;page-break-inside:avoid;break-inside:avoid}
               .ticket-part{min-width:0!important;flex-shrink:0!important}
             }
-          </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
+          
+/* BUSNEX Counter Dashboard — video-inspired workflow. */
+.busnex-counter-page{max-width:1600px;margin:0 auto}.counter-page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 18px}
+.counter-page-heading h1{font-size:25px;letter-spacing:-.5px;margin:4px 0;color:#1b2a3a}.counter-page-heading p{margin:4px 0 0;color:#788596;font-size:13px}.counter-eyebrow{font-size:10px;font-weight:900;letter-spacing:1.8px;color:#536d87}
+.counter-heading-actions{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #dce5ec;background:#fff;border-radius:7px;font-size:10px;font-weight:900;letter-spacing:1px;color:#617185}.counter-live-dot{width:8px;height:8px;border-radius:50%;background:#1eaa70;box-shadow:0 0 0 4px #e3f6ed}
+.counter-search-panel{background:#fff;border:1px solid #dce4ec;border-radius:9px;padding:17px 18px 12px;box-shadow:0 4px 15px rgba(25,45,70,.045)}.counter-filter-grid{display:grid;grid-template-columns:1.1fr 1.1fr 1fr .8fr 1fr auto;gap:11px;align-items:end}
+.counter-filter-grid .field{margin:0;min-width:0;gap:6px}.counter-filter-grid .field label{font-size:10px;letter-spacing:.8px;color:#718096;font-weight:900}.counter-filter-grid select,.counter-filter-grid input{height:40px;padding:8px 10px;border:1px solid #d6dee7;border-radius:6px;background:#fff;color:#26374a;font-size:12px;min-width:0}
+.counter-search-button{height:40px;white-space:nowrap;background:#2865b0;color:#fff;border-radius:6px;padding:0 18px;font-size:12px;font-weight:800}.counter-datebar{display:flex;align-items:center;gap:8px;border-top:1px solid #edf0f4;margin-top:14px;padding-top:12px}
+.counter-day-button{background:#fff;border:1px solid #d7e0e9;color:#536477;border-radius:6px;padding:8px 13px;font-size:11px}.counter-day-button.active{background:#eaf2ff;color:#225ea8;border-color:#8fb6ed}#bookingDateCaption{margin-left:auto;color:#7b8795;font-size:11px}
+.counter-results-heading{display:flex;align-items:center;justify-content:space-between;margin:21px 0 10px}.counter-results-heading h2{font-size:17px;margin:0;color:#26374a}.counter-results-heading p{font-size:11px;color:#7b8795;margin:4px 0 0}.counter-results-tag{font-size:9px;letter-spacing:1.2px;font-weight:900;color:#63768b;background:#edf2f7;padding:7px 10px;border-radius:4px}
+.counter-trip-results{display:grid;gap:9px}.counter-trip-row{background:#fff;border:1px solid #dce4ec;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(20,40,65,.035)}.counter-trip-main{display:grid;grid-template-columns:1.45fr 1fr .8fr .7fr auto;gap:12px;align-items:center;padding:13px 15px}
+.counter-trip-cell,.counter-route-cell,.counter-trip-fare{min-width:0}.counter-trip-cell span,.counter-route-cell span,.counter-trip-fare span{display:block;font-size:9px;letter-spacing:.7px;font-weight:900;color:#8491a0;margin-bottom:5px}.counter-trip-cell strong,.counter-route-cell strong,.counter-trip-fare strong{display:block;font-size:13px;color:#26374a;overflow-wrap:anywhere}.counter-route-cell strong i{font-style:normal;color:#2c70bd;padding:0 4px}
+.counter-route-cell small,.counter-trip-cell small,.counter-trip-fare small{display:block;margin-top:4px;color:#8a96a4;font-size:10px}.counter-trip-fare strong{color:#2265ad;font-size:16px}.counter-open-button{background:#2865b0;color:#fff;border-radius:6px;padding:10px 13px;white-space:nowrap;font-size:11px}
+.counter-inline-workspace{border-top:1px solid #e3e9ef;background:#f7f9fb;padding:12px}.counter-inline-workspace.hidden{display:none}.counter-workspace-loading,.counter-empty-state{padding:28px;text-align:center;background:#fff;border:1px dashed #cbd6e1;border-radius:7px;color:#718096;font-size:12px}
+.booking-workspace{grid-template-columns:minmax(310px,.38fr) minmax(0,.62fr);gap:12px}.booking-seat-panel,.booking-passenger-panel{border:1px solid #d8e1e9;border-radius:7px;box-shadow:0 2px 9px rgba(30,50,75,.035)}.booking-seat-panel .seats{max-width:100%;grid-template-columns:repeat(5,minmax(42px,1fr));gap:7px 6px;background:#f7f9fb;border:1px solid #e1e7ed;border-radius:7px;padding:12px}.booking-seat-panel .seat{min-height:44px;border-radius:5px;font-size:12px}
+.booking-passenger-panel h4{background:#edf3f9;border:0;border-left:3px solid #3476b9;border-radius:4px;padding:10px 12px;font-size:12px}.booking-passenger-panel .btn.btn-primary{background:#2567b2;border:0;border-radius:6px;box-shadow:0 4px 10px #2567b22b}
+@media(max-width:1120px){.counter-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.counter-trip-main{grid-template-columns:1.3fr 1fr .8fr auto}.counter-trip-fare{display:none}}
+@media(max-width:760px){.counter-page-heading{align-items:flex-start}.counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.counter-search-button{width:100%}.counter-trip-main{grid-template-columns:1fr 1fr;gap:10px}.counter-open-button{grid-column:1/-1}.booking-workspace{grid-template-columns:1fr}.booking-seat-panel .seats{max-width:440px}#bookingDateCaption{display:none}}
+@media(max-width:480px){.counter-filter-grid{grid-template-columns:1fr}.counter-heading-actions{display:none}.counter-datebar{flex-wrap:wrap}.counter-day-button{flex:1;padding:8px 6px}}
+
+</style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
           printWindow.document.close();
           printWindow.focus();
           setTimeout(() => {
@@ -3360,70 +3384,45 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 }
 
 async function renderBookingResults(trips,from,to) {
-  const result = $("tripSearchResult");
-  result.innerHTML = "";
-
-  const matches = trips.filter(trip => {
-    const stops = trip.trip_stops;
-    const fromIndex = stops.findIndex(stop =>
-      stop.stop_name.toLowerCase() === from.toLowerCase() &&
-      ["boarding","both"].includes(String(stop.stop_type).toLowerCase())
-    );
-    const toIndex = stops.findIndex(stop =>
-      stop.stop_name.toLowerCase() === to.toLowerCase() &&
-      ["dropping","both"].includes(String(stop.stop_type).toLowerCase())
-    );
-    return fromIndex >= 0 && toIndex > fromIndex;
+  const result=$("tripSearchResult");result.innerHTML="";
+  const operator=$("bookingOperator").value,busType=$("bookingBusType").value;
+  const matches=trips.filter(trip=>{
+    const stops=trip.trip_stops||[];
+    const fi=stops.findIndex(s=>String(s.stop_name||"").toLowerCase()===from.toLowerCase()&&["boarding","both"].includes(String(s.stop_type).toLowerCase()));
+    const ti=stops.findIndex(s=>String(s.stop_name||"").toLowerCase()===to.toLowerCase()&&["dropping","both"].includes(String(s.stop_type).toLowerCase()));
+    if(!(fi>=0&&ti>fi))return false;
+    if(operator&&String(trip.buses?.bus_name||"")!==operator)return false;
+    const type=String(trip.buses?.bus_type||"").toLowerCase();
+    if(busType==="ac"&&!type.includes("ac"))return false;
+    if(busType==="non-ac"&&(type.includes("ac")||!type))return false;
+    return true;
   });
-
-  if (!matches.length) {
-    bookingMessage("এই তারিখে নির্বাচিত FROM → TO রুটে কোনো Trip পাওয়া যায়নি।");
-    return;
-  }
-
-  for (const trip of matches) {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.style.marginTop = "12px";
-
-    const heading = document.createElement("h3");
-    heading.textContent = from + " → " + to;
-    card.appendChild(heading);
-
-    const bus = trip.buses || {};
-    const route = trip.routes || {};
-    const departure = new Date(trip.departure_time);
-    const details = document.createElement("p");
-    details.className = "muted small";
-    details.textContent =
-      "বাস: " + (bus.bus_name || "তথ্য নেই") +
-      " | রুট: " + (route.starting_point || "—") + " → " +
-      (route.ending_point || "—") +
-      " | ছাড়ার সময়: " + departure.toLocaleString("en-GB") +
-      " | ভাড়া: ৳" + Number(trip.ticket_price || 0).toLocaleString("en-BD");
-    card.appendChild(details);
-
+  $("bookingResultsMeta").textContent=matches.length+"টি Trip পাওয়া গেছে · "+from+" → "+to;
+  if(!matches.length){result.innerHTML='<div class="counter-empty-state">এই Filter-এ কোনো Trip পাওয়া যায়নি। Filter পরিবর্তন করে আবার Search করুন।</div>';return;}
+  for(const trip of matches){
+    const card=document.createElement("article");card.className="counter-trip-row";
+    const bus=trip.buses||{},route=trip.routes||{},departure=new Date(trip.departure_time);
+    const time=departure.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",hour12:true}),date=departure.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+    const head=document.createElement("div");head.className="counter-trip-main";
+    const routeBox=document.createElement("div");routeBox.className="counter-route-cell";routeBox.innerHTML='<span>JOURNEY ROUTE</span><strong>'+escapeHtml(from)+' <i>→</i> '+escapeHtml(to)+'</strong><small>'+escapeHtml(route.starting_point||"—")+' → '+escapeHtml(route.ending_point||"—")+'</small>';
+    const busBox=document.createElement("div");busBox.className="counter-trip-cell";busBox.innerHTML='<span>OPERATOR / COACH</span><strong>'+escapeHtml(bus.bus_name||"Bus")+'</strong><small>'+escapeHtml(bus.bus_type||"")+'</small>';
+    const timeBox=document.createElement("div");timeBox.className="counter-trip-cell";timeBox.innerHTML='<span>DEPARTURE</span><strong>'+escapeHtml(time)+'</strong><small>'+escapeHtml(date)+'</small>';
+    const fareBox=document.createElement("div");fareBox.className="counter-trip-fare";fareBox.innerHTML='<span>FARE / SEAT</span><strong>৳'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</strong><small>'+escapeHtml(String(trip.status||"scheduled").toUpperCase())+'</small>';
+    const action=document.createElement("button");action.type="button";action.className="counter-open-button";action.textContent="Open Counter →";
+    head.append(routeBox,busBox,timeBox,fareBox,action);card.appendChild(head);
+    const workspace=document.createElement("div");workspace.className="counter-inline-workspace hidden";card.appendChild(workspace);
+    action.addEventListener("click",async()=>{
+      const opening=workspace.classList.contains("hidden");
+      document.querySelectorAll(".counter-inline-workspace").forEach(node=>{if(node!==workspace){node.classList.add("hidden");node.innerHTML="";}});
+      document.querySelectorAll(".counter-open-button").forEach(node=>{if(node!==action)node.textContent="Open Counter →";});
+      if(!opening){workspace.classList.add("hidden");workspace.innerHTML="";action.textContent="Open Counter →";return;}
+      workspace.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';action.textContent="Close Counter ×";
+      const dhakaDate=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));
+      const tripDate=dhakaDate(trip.departure_time),today=dhakaDate(new Date());let confirmPastDate=false;
+      if(tripDate<today){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ ("+tripDate+") পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রির অনুমতি দেওয়া হয়নি।</div>';return;}}
+      try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(error){console.error("COUNTER OPEN ERROR:",error);workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(error.message)+'</div>';}
+    });
     result.appendChild(card);
-    const dhakaDate = value => new Intl.DateTimeFormat("en-CA",{
-      timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"
-    }).format(new Date(value));
-    const tripDate = dhakaDate(trip.departure_time);
-    const todayDhaka = dhakaDate(new Date());
-    let confirmPastDate = false;
-    if (tripDate < todayDhaka) {
-      confirmPastDate = window.confirm(
-        "সতর্কতা! এই Trip-এর যাত্রার তারিখ (" + tripDate +
-        ") পার হয়ে গেছে। আপনি কি নিশ্চিত যে এই আগের তারিখের Trip-এ Ticket বিক্রি করতে চান?"
-      );
-      if (!confirmPastDate) {
-        const declined = document.createElement("p");
-        declined.className = "notice small";
-        declined.textContent = "আগের তারিখের Trip-এ Ticket বিক্রির অনুমতি দেওয়া হয়নি।";
-        card.appendChild(declined);
-        continue;
-      }
-    }
-    await appendBookingSeatPicker(trip,card,confirmPastDate);
   }
 }
 
@@ -3463,6 +3462,15 @@ async function loadBookingStopsForSelectedDate() {
 }
 
 $("journeyDate").addEventListener("change",loadBookingStopsForSelectedDate);
+$("bookingBusType").addEventListener("change",()=>{if($("fromStop").value&&$("toStop").value)$("searchTripButton").click();});
+document.querySelectorAll("[data-day-offset]").forEach(button=>button.addEventListener("click",()=>{
+  const date=new Date(($("journeyDate").value||new Date().toLocaleDateString("en-CA"))+"T12:00:00");
+  date.setDate(date.getDate()+Number(button.dataset.dayOffset));
+  $("journeyDate").value=[date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");
+  document.querySelectorAll("[data-day-offset]").forEach(item=>item.classList.toggle("active",item===button));
+  $("bookingDateCaption").textContent="Journey date: "+date.toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
+  loadBookingStopsForSelectedDate();
+}));
 
 $("searchTripButton").addEventListener("click",async() => {
   const from = $("fromStop").value;
