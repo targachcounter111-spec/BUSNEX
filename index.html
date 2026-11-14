@@ -1103,7 +1103,7 @@ $("saveNewPassword").addEventListener("click", async () => {
 $("loginForm").addEventListener("submit",async event => {
   event.preventDefault();
 
-  const login_id = $("loginId").value.trim();
+  const login_id = $("loginId").value.trim().toUpperCase();
   const password = $("password").value;
 
   if (!login_id || !password) {
@@ -1169,7 +1169,7 @@ $("loginForm").addEventListener("submit",async event => {
     let message = error.message || "লগইন হয়নি।";
 
     if (message.includes("Invalid login credentials")) {
-      message = "Password ভুল হয়েছে।";
+      message = "User ID অথবা Password ভুল হয়েছে।";
     }
 
     if (message.includes("Failed to fetch")) {
@@ -2850,6 +2850,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       .booking-seat-panel .seats{background:#fff;border:0}
       .booking-seat-panel .seat.available{background:#fff;color:#222;border:1px solid #bbb}
       .booking-seat-panel .seat.sold{background:#f04438;color:#fff;border-color:#e23c32}
+      .booking-seat-panel .seat.sold-male{background:#ef4444!important;color:#fff!important;border-color:#b91c1c!important}
+      .booking-seat-panel .seat.sold-female{background:#d946ef!important;color:#fff!important;border-color:#a21caf!important}
       .booking-seat-panel .seat.reserved{background:#ffb020;color:#222;border-color:#e69a0c}
       .booking-seat-panel .seat.selected{background:#58b45b;color:#fff;border-color:#399641}
       .booking-seat-panel .seat.blocked{background:#e5e5e5;color:#333;border-color:#aaa}
@@ -2923,7 +2925,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       throw new Error("Trip-এর Bus তথ্য পাওয়া যায়নি।");
     }
 
-    const [layoutResult,inventoryResult] = await Promise.all([
+    const [layoutResult,inventoryResult,ticketGenderResult] = await Promise.all([
       supabase
         .from("bus_seat_layouts")
         .select("seat_number,row_label,seat_position,seat_order")
@@ -2932,14 +2934,23 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       supabase
         .from("trip_seats")
         .select("seat_number,status,hold_until,held_by,held_counter_id,reservation_id")
+        .eq("trip_id",trip.id),
+      supabase
+        .from("tickets")
+        .select("seat_number,passenger_gender")
         .eq("trip_id",trip.id)
+        .eq("status","sold")
     ]);
 
     if (layoutResult.error) throw layoutResult.error;
     if (inventoryResult.error) throw inventoryResult.error;
+    if (ticketGenderResult.error) console.warn("Seat gender colours unavailable:",ticketGenderResult.error);
 
     const layout = layoutResult.data || [];
     const inventory = inventoryResult.data || [];
+    const genderBySeat = new Map((ticketGenderResult.data || []).map(ticket => [
+      ticket.seat_number,String(ticket.passenger_gender || "").toLowerCase()
+    ]));
     if (!layout.length) {
       summary.textContent = "এই Bus-এর Seat Layout পাওয়া যায়নি।";
       grid.remove();
@@ -3638,9 +3649,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       else if (state === "sold") soldCount++;
       else unavailableCount++;
 
+      const passengerGender = genderBySeat.get(seat.seat_number) || "";
+      const genderClass = passengerGender === "male" ? " sold-male" :
+        passengerGender === "female" ? " sold-female" : "";
       div.className = "seat " + (
         isAvailable ? "available" :
-        state === "sold" ? "sold" :
+        state === "sold" ? "sold" + genderClass :
         (state === "reserved" || isReservation || activeTemporaryHold) ? "reserved" :
         state === "blocked" ? "blocked" : "unknown"
       );
