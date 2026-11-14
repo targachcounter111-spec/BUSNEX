@@ -447,6 +447,7 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
     </div>
     <div class="topbar-search"><input id="topbarTicketSearch" type="search" placeholder="PNR or mobile number" aria-label="PNR or mobile number"><button id="topbarSearchButton" type="button" aria-label="Search">⌕</button></div>
     <div class="top-actions">
+      <span id="userChip" class="user-chip hidden">ব্যবহারকারী</span>
       <div class="topbar-profile"><span class="profile-avatar">●</span><span><b id="topbarUserName">ব্যবহারকারী</b><small id="topbarUserRole">BUSNEX</small></span></div>
       <button id="logoutButton" class="secondary">লগআউট</button>
     </div>
@@ -3011,6 +3012,37 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 @media(max-width:760px){.counter-page-heading{align-items:flex-start}.counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.counter-search-button{width:100%}.counter-trip-main{grid-template-columns:1fr 1fr;gap:10px}.counter-open-button{grid-column:1/-1}.booking-workspace{grid-template-columns:1fr}.booking-seat-panel .seats{max-width:440px}#bookingDateCaption{display:none}}
 @media(max-width:480px){.counter-filter-grid{grid-template-columns:1fr}.counter-heading-actions{display:none}.counter-datebar{flex-wrap:wrap}.counter-day-button{flex:1;padding:8px 6px}}
 
+
+/* Reference dashboard overrides: loaded after every legacy theme rule */
+#appScreen>.topbar{height:80px!important;background:#fff!important;color:#222!important;border-bottom:1px solid #e5e5e5!important;box-shadow:none!important;padding:0 26px!important;display:grid!important;grid-template-columns:minmax(300px,1fr) minmax(220px,270px) minmax(270px,1fr)!important;gap:20px!important}
+#appScreen>.topbar:after{display:none!important}
+#appScreen>.topbar .brand{font-size:0!important;letter-spacing:0!important;color:#6500d6!important}
+#appScreen>.topbar .brand:after{content:"BUSNEX";font-size:17px;letter-spacing:-.6px}
+#appScreen>.topbar .brand span{display:none!important}
+#appScreen>.topbar .menu-toggle{background:transparent!important;color:#111!important;box-shadow:none!important;padding:5px 0!important}
+#appScreen>.topbar .topbar-search{display:flex!important}
+#appScreen>.topbar .topbar-search input{background:#fff!important;color:#222!important;border:0!important;box-shadow:none!important}
+#appScreen>.topbar .topbar-search button{background:#6500d6!important;color:#fff!important;border-radius:6px!important;box-shadow:none!important}
+#appScreen>.topbar .top-actions .secondary{background:#fff!important;color:#444!important;border:1px solid #ddd!important}
+#appScreen>.layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;min-width:0!important;min-height:calc(100vh - 80px)!important}
+#appScreen>.layout>.sidebar{position:fixed!important;left:0!important;top:80px!important;bottom:0!important;width:238px!important;display:block!important;transform:translateX(-110%)!important;background:#fff!important;z-index:30!important;overflow:auto!important;box-shadow:4px 0 16px #0002!important}
+#appScreen.menu-open>.layout>.sidebar{transform:translateX(0)!important}
+#appScreen>.layout>.sidebar:before{display:block!important;color:#777!important}
+#appScreen>.layout>.sidebar .nav-btn{display:flex!important;width:100%!important;color:#40516a!important;background:transparent!important}
+#appScreen>.layout>.sidebar .nav-btn.active{background:#f2e9ff!important;color:#6500d6!important;box-shadow:inset 3px 0 #6500d6!important}
+#appScreen>.layout>.main{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:10px 30px 32px!important}
+#appScreen .page{width:100%;min-width:0}
+#appScreen #page-booking{display:block}
+#appScreen #page-booking.hidden{display:none!important}
+#appScreen #page-booking .counter-search-panel{width:100%;background:#fff!important;border:0!important;border-radius:11px!important;box-shadow:none!important}
+#appScreen #page-booking .counter-filter-grid{display:grid!important;grid-template-columns:repeat(5,minmax(120px,1fr)) auto!important;gap:9px!important}
+#appScreen #page-booking .counter-results-heading{margin:14px 0 10px}
+#appScreen #page-booking .counter-trip-results{width:100%;min-width:0}
+#appScreen #page-booking .counter-reference-table{width:100%;min-width:1120px}
+#appScreen #page-booking .counter-trip-results .table-wrap{width:100%;overflow-x:auto}
+#appScreen .grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+@media(max-width:900px){#appScreen>.topbar{grid-template-columns:minmax(0,1fr) auto!important}#appScreen>.topbar .topbar-search{display:none!important}#appScreen>.layout>.main{padding:12px 14px 24px!important}#appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:650px){#appScreen>.topbar{height:64px!important;padding:0 12px!important}#appScreen>.layout{min-height:calc(100vh - 64px)!important}#appScreen>.layout>.sidebar{top:64px!important}#appScreen>.layout>.main{padding:9px 8px 20px!important}#appScreen #page-booking .counter-filter-grid{grid-template-columns:1fr 1fr!important}#appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
           printWindow.document.close();
           printWindow.focus();
