@@ -389,7 +389,76 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
 .counter-reference-table{min-width:1120px}
 @media(max-width:1000px){.topbar{grid-template-columns:1fr auto;height:68px;padding:0 14px}.topbar-search{display:none}.topbar-company{display:none}.layout{min-height:calc(100vh - 68px)}.sidebar{top:68px}.main{padding:10px 14px 24px}.topbar-profile b{max-width:130px}}
 @media(max-width:650px){.topbar{height:62px}.sidebar{top:62px}.topbar .brand{width:60px}.top-actions{gap:5px}.profile-avatar{width:32px;height:32px}.topbar-profile{font-size:11px}#logoutButton{font-size:10px;padding:7px}.main{padding:9px 8px 20px}}
-</style></head>
+</style><style id="busnex-counter-layout-repair">
+/* BUSNEX original counter layout — distinct visual identity, reference-inspired workflow */
+html,body{width:100%;min-width:320px;overflow-x:hidden}
+#appScreen{width:100%;min-height:100vh}
+#appScreen>.topbar{width:100%;height:80px;box-sizing:border-box;background:#fff;color:#202b38;border-bottom:1px solid #e5e9ef;box-shadow:0 2px 10px rgba(20,35,55,.06);display:grid;grid-template-columns:minmax(260px,1fr) minmax(220px,300px) minmax(220px,1fr);align-items:center;gap:20px;padding:0 26px}
+#appScreen>.topbar:after{display:none}
+#appScreen>.topbar .topbar-left{display:flex;align-items:center;gap:16px;min-width:0}
+#appScreen>.topbar .menu-toggle{font-size:25px;color:#25364a;background:transparent;padding:4px;box-shadow:none}
+#appScreen>.topbar .brand{font-size:0;letter-spacing:0;color:#5b36b8;width:68px;flex:0 0 68px}
+#appScreen>.topbar .brand:after{content:"BUSNEX";font-size:18px;font-weight:900;letter-spacing:-.5px}
+#appScreen>.topbar .brand span{display:none}
+#appScreen>.topbar .topbar-company{font-size:13px;color:#334155;font-weight:700}
+#appScreen>.topbar .topbar-search{display:flex;width:100%;height:40px;align-items:center;border:1px solid #d7dee8;border-radius:7px;padding:4px 6px 4px 10px;background:#fff}
+#appScreen>.topbar .topbar-search input{width:100%;min-width:0;height:30px;border:0!important;box-shadow:none!important;background:#fff;padding:4px!important}
+#appScreen>.topbar .topbar-search button{width:34px;height:31px;background:#6236c5;color:#fff;border-radius:6px;padding:0}
+#appScreen>.topbar .top-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px;min-width:0}
+#appScreen>.topbar .topbar-profile{display:flex;align-items:center;gap:9px;min-width:0;color:#283548}
+#appScreen>.topbar .topbar-profile b{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#appScreen>.topbar .topbar-profile small{color:#778398}
+#appScreen>.topbar .profile-avatar{width:40px;height:40px;border-radius:50%;background:#e8ebf0;color:#e8ebf0}
+#appScreen>.topbar #logoutButton{background:#f2f4f8;color:#334155;border:1px solid #dce2ea}
+#appScreen>.layout{display:block!important;width:100%!important;min-width:0!important;min-height:calc(100vh - 80px);margin:0!important}
+#appScreen>.layout>.sidebar{position:fixed;left:0;top:80px;bottom:0;width:250px;display:block;overflow-y:auto;z-index:50;background:#fff;border-right:1px solid #e4e8ef;box-shadow:8px 0 22px rgba(30,45,70,.10);transform:translateX(-105%);transition:transform .2s ease;padding:18px 13px}
+#appScreen.menu-open>.layout>.sidebar{transform:translateX(0)}
+#appScreen>.layout>.sidebar:before{color:#8792a3}
+#appScreen>.layout>.sidebar .nav-btn{width:100%;display:flex;align-items:center;color:#46546a;border-radius:8px}
+#appScreen>.layout>.sidebar .nav-btn.active{background:#f1edfb;color:#5633a8;box-shadow:inset 3px 0 #6945c6}
+#appScreen>.layout>.main{display:block!important;box-sizing:border-box;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:18px 30px 36px!important}
+#appScreen .page{box-sizing:border-box;width:100%!important;max-width:none!important;min-width:0!important}
+#appScreen #page-booking{display:block;padding:0!important}
+#appScreen #page-booking.hidden{display:none!important}
+#appScreen #page-booking .counter-reference-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+#appScreen #page-booking .counter-reference-heading h1{font-size:19px;font-weight:750;color:#1f2d42;margin:0}
+#appScreen #page-booking .counter-search-panel{display:block!important;box-sizing:border-box;width:100%!important;max-width:none!important;min-width:0!important;padding:17px!important;background:#fff!important;border:1px solid #e1e6ee!important;border-radius:10px!important;box-shadow:0 3px 14px rgba(25,40,65,.045)!important}
+#appScreen #page-booking .counter-filter-grid{display:grid!important;width:100%!important;max-width:none!important;min-width:0!important;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(100px,.55fr)!important;align-items:end!important;gap:10px!important}
+#appScreen #page-booking .counter-filter-grid>.field{display:flex!important;flex-direction:column!important;width:100%!important;min-width:0!important;margin:0!important;gap:6px!important}
+#appScreen #page-booking .counter-filter-grid>.field label{font-size:12px!important;line-height:1.3;white-space:nowrap;color:#40516a!important;font-weight:650!important}
+#appScreen #page-booking .counter-filter-grid>.field input,#appScreen #page-booking .counter-filter-grid>.field select{display:block;width:100%!important;min-width:0!important;height:46px!important;box-sizing:border-box;padding:8px 11px!important;border:1px solid #d6dce6!important;border-radius:6px!important;background:#fff!important;color:#263449!important}
+#appScreen #page-booking .counter-filter-grid>.counter-search-button{width:100%;min-width:95px;height:42px;white-space:nowrap;background:#6036bf!important;color:#fff!important;border-radius:24px!important}
+#appScreen #page-booking .counter-control-row{display:grid!important;grid-template-columns:minmax(280px,1.1fr) minmax(220px,1fr) minmax(150px,.55fr)!important;align-items:center;gap:16px;width:100%;min-width:0}
+#appScreen #page-booking .counter-day-controls{min-width:0}
+#appScreen #page-booking .counter-day-button{min-width:92px}
+#appScreen #page-booking .counter-type-controls{min-width:0}
+#appScreen #page-booking .counter-results-heading{width:100%;margin:15px 0 10px}
+#appScreen #page-booking .counter-trip-results{display:block!important;width:100%!important;min-width:0!important}
+#appScreen #page-booking .counter-reference-table-wrap{display:block;width:100%;max-width:100%;overflow-x:auto;background:#fff}
+#appScreen #page-booking .counter-reference-table{width:100%;min-width:1080px;border-collapse:collapse}
+#appScreen #page-booking .counter-reference-table th{background:#35445c;color:#fff}
+#appScreen #page-booking .counter-reference-table td{color:#263449}
+@media(max-width:1050px){
+ #appScreen>.topbar{grid-template-columns:minmax(180px,1fr) minmax(190px,260px) auto;padding:0 16px;gap:12px}
+ #appScreen>.layout>.main{padding:16px!important}
+ #appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #appScreen #page-booking .counter-control-row{grid-template-columns:1fr!important}
+}
+@media(max-width:650px){
+ #appScreen>.topbar{height:66px;grid-template-columns:1fr auto;padding:0 12px;gap:8px}
+ #appScreen>.topbar .topbar-company,#appScreen>.topbar .topbar-search{display:none}
+ #appScreen>.layout{min-height:calc(100vh - 66px)}
+ #appScreen>.layout>.sidebar{top:66px}
+ #appScreen>.layout>.main{padding:10px 9px 24px!important}
+ #appScreen #page-booking .counter-search-panel{padding:12px!important}
+ #appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #appScreen #page-booking .counter-filter-grid>.field:nth-child(5){grid-column:1/-1}
+ #appScreen #page-booking .counter-control-row{grid-template-columns:1fr!important}
+ #appScreen #page-booking .counter-day-controls{justify-content:flex-start}
+ #appScreen #page-booking .counter-day-button{min-width:0;flex:1}
+}
+</style>
+</head>
 
 <body>
 
@@ -3013,36 +3082,6 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 @media(max-width:480px){.counter-filter-grid{grid-template-columns:1fr}.counter-heading-actions{display:none}.counter-datebar{flex-wrap:wrap}.counter-day-button{flex:1;padding:8px 6px}}
 
 
-/* Reference dashboard overrides: loaded after every legacy theme rule */
-#appScreen>.topbar{height:80px!important;background:#fff!important;color:#222!important;border-bottom:1px solid #e5e5e5!important;box-shadow:none!important;padding:0 26px!important;display:grid!important;grid-template-columns:minmax(300px,1fr) minmax(220px,270px) minmax(270px,1fr)!important;gap:20px!important}
-#appScreen>.topbar:after{display:none!important}
-#appScreen>.topbar .brand{font-size:0!important;letter-spacing:0!important;color:#6500d6!important}
-#appScreen>.topbar .brand:after{content:"BUSNEX";font-size:17px;letter-spacing:-.6px}
-#appScreen>.topbar .brand span{display:none!important}
-#appScreen>.topbar .menu-toggle{background:transparent!important;color:#111!important;box-shadow:none!important;padding:5px 0!important}
-#appScreen>.topbar .topbar-search{display:flex!important}
-#appScreen>.topbar .topbar-search input{background:#fff!important;color:#222!important;border:0!important;box-shadow:none!important}
-#appScreen>.topbar .topbar-search button{background:#6500d6!important;color:#fff!important;border-radius:6px!important;box-shadow:none!important}
-#appScreen>.topbar .top-actions .secondary{background:#fff!important;color:#444!important;border:1px solid #ddd!important}
-#appScreen>.layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;min-width:0!important;min-height:calc(100vh - 80px)!important}
-#appScreen>.layout>.sidebar{position:fixed!important;left:0!important;top:80px!important;bottom:0!important;width:238px!important;display:block!important;transform:translateX(-110%)!important;background:#fff!important;z-index:30!important;overflow:auto!important;box-shadow:4px 0 16px #0002!important}
-#appScreen.menu-open>.layout>.sidebar{transform:translateX(0)!important}
-#appScreen>.layout>.sidebar:before{display:block!important;color:#777!important}
-#appScreen>.layout>.sidebar .nav-btn{display:flex!important;width:100%!important;color:#40516a!important;background:transparent!important}
-#appScreen>.layout>.sidebar .nav-btn.active{background:#f2e9ff!important;color:#6500d6!important;box-shadow:inset 3px 0 #6500d6!important}
-#appScreen>.layout>.main{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:10px 30px 32px!important}
-#appScreen .page{width:100%;min-width:0}
-#appScreen #page-booking{display:block}
-#appScreen #page-booking.hidden{display:none!important}
-#appScreen #page-booking .counter-search-panel{width:100%;background:#fff!important;border:0!important;border-radius:11px!important;box-shadow:none!important}
-#appScreen #page-booking .counter-filter-grid{display:grid!important;grid-template-columns:repeat(5,minmax(120px,1fr)) auto!important;gap:9px!important}
-#appScreen #page-booking .counter-results-heading{margin:14px 0 10px}
-#appScreen #page-booking .counter-trip-results{width:100%;min-width:0}
-#appScreen #page-booking .counter-reference-table{width:100%;min-width:1120px}
-#appScreen #page-booking .counter-trip-results .table-wrap{width:100%;overflow-x:auto}
-#appScreen .grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-@media(max-width:900px){#appScreen>.topbar{grid-template-columns:minmax(0,1fr) auto!important}#appScreen>.topbar .topbar-search{display:none!important}#appScreen>.layout>.main{padding:12px 14px 24px!important}#appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:650px){#appScreen>.topbar{height:64px!important;padding:0 12px!important}#appScreen>.layout{min-height:calc(100vh - 64px)!important}#appScreen>.layout>.sidebar{top:64px!important}#appScreen>.layout>.main{padding:9px 8px 20px!important}#appScreen #page-booking .counter-filter-grid{grid-template-columns:1fr 1fr!important}#appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 </style></head><body><main class="ticket-strip">${ticketPanel("left","COUNTER COPY")}${ticketPanel("center","PASSENGER COPY")}${ticketPanel("right","GUIDE COPY")}</main></body></html>`);
           printWindow.document.close();
           printWindow.focus();
