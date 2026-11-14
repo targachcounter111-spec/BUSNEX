@@ -26,8 +26,17 @@ function reply(status: number, body: Record<string, unknown>, origin: string | n
   });
 }
 
-function getKey(primary: string, legacy: string) {
-  return Deno.env.get(primary) ?? Deno.env.get(legacy) ?? "";
+function getKey(primary: string, legacy: string): string {
+  const raw = Deno.env.get(primary) ?? Deno.env.get(legacy) ?? "";
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "string") return parsed;
+    if (parsed && typeof parsed.default === "string") return parsed.default;
+    return raw;
+  } catch {
+    return raw;
+  }
 }
 
 Deno.serve(async (req: Request) => {
