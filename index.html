@@ -783,7 +783,7 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
       <section id="page-reservations" class="page hidden">
         <div class="page-head"><div><h1>Reservations</h1><div class="muted small">আপনার অনুমোদিত Company/Counter-এর Reservation</div></div><button id="reservationRefresh" class="secondary" type="button">↻ Refresh</button></div>
         <div class="card">
-          <div class="notice">Standard Reservation যাত্রা শুরুর ৫ মিনিট আগে Expire হবে। VIP Reservation-এর নির্দিষ্ট Expiry থাকবে না, তবে Manager চাইলে সময় নির্ধারণ করতে পারবেন। Reservation-এর জন্য Counter-এ সক্রিয় Permission থাকতে হবে।</div>
+          <div class="notice">Standard ও VIP—দুই ধরনের Reservation-এর জন্যই Valid Till তারিখ ও সময় নির্বাচন করতে হবে। নির্ধারিত সময় পার হলে Active Reservation Expire হবে। Confirmed Reservation Expire হবে না। Reservation-এর জন্য Counter-এ সক্রিয় Permission থাকতে হবে।</div>
           <div id="reservationCreatePanel" class="section">
             <h2>নতুন Reservation</h2>
             <div class="form-row">
@@ -2294,9 +2294,10 @@ async function loadReservationsPage() {
         rows.map(row=>{
           const seats=(row.ticket_reservation_seats||[]).map(x=>escapeHtml(x.seat_number)+" · "+escapeHtml(x.passenger_name)).join("<br>");
           const expiry=row.expires_at?formatDhakaDateTime(row.expires_at):"কোনো Expiry নেই";
-          const active=row.status==="active";
           const reservationStatus=row.status==="active"&&row.confirmed_at?"confirmed":row.status;
-          return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(row.status)+'</td><td>'+escapeHtml(expiry)+'</td><td>'+(active?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'" '+(row.status==="confirmed"?'disabled':'')+'>Confirm</button> <button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+(canManageExpiry&&row.reservation_type==="vip"&&row.status==="active"?' <button type="button" class="secondary reservation-expiry" data-id="'+escapeHtml(row.id)+'">Expiry সেট</button>':'')+'</td></tr>';
+          const canConfirm=row.status==="active"&&!row.confirmed_at;
+          const canCancel=["active","confirmed"].includes(reservationStatus);
+          return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(reservationStatus)+'</td><td>'+escapeHtml(expiry)+'</td><td>'+(canConfirm?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'">Confirm</button> ':'')+(canCancel?'<button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+(canManageExpiry&&row.reservation_type==="vip"&&canConfirm?' <button type="button" class="secondary reservation-expiry" data-id="'+escapeHtml(row.id)+'">Expiry সেট</button>':'')+'</td></tr>';
         }).join("")+'</tbody></table>';
       $("reservationList").querySelectorAll(".reservation-confirm").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_confirm_reservation","Reservation Confirm হয়েছে?")));
       $("reservationList").querySelectorAll(".reservation-cancel").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_cancel_reservation","Reservation Cancel হয়েছে?")));
