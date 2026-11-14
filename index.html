@@ -1650,6 +1650,14 @@ function setupPointRows(kind) {
     time:row.querySelector('input[type="time"]').value
   })).filter(point => point.name || point.time);
 }
+function setPointSetupRows(kind,points) {
+  const host = $(kind+"PointSetup");
+  Array.from(host.querySelectorAll(".form-row")).forEach(row=>row.remove());
+  (points && points.length ? points : [{}]).forEach(point=>addPointSetupRow(kind,point.name||point.point_name||"",point.time||point.boarding_time||""));
+  $(kind+"PointMode").value = "setup";
+  host.classList.remove("hidden");
+  $(kind+"Points").classList.add("hidden");
+}
 function parseBoardingPoints() {
   if ($("boardingPointMode").value === "setup") {
     return setupPointRows("boarding").map((p,i) => {
@@ -1879,6 +1887,9 @@ function clearTripFormFields() {
   $("tripDateEnd").value = $("tripDate").value;
   $("tripArrivalTime").value = "";
   $("droppingPoints").value = "";
+  $("boardingPoints").value = "";
+  setPointSetupRows("boarding",[]);
+  setPointSetupRows("dropping",[]);
   $("tripSeatLayoutInput").value = "";
   $("tripPrice").value = "";
   $("tripSupervisor").value = "";
@@ -2322,11 +2333,11 @@ async function editTrip(id) {
     const points = (trip.trip_boarding_points || [])
       .sort((a,b) => a.point_order - b.point_order);
 
-    $("boardingPoints").value = points.map(point => {
-      const time = String(point.boarding_time || "").slice(0,5);
-      return point.point_name + "|" + time;
-    }).join("\n");
+    setPointSetupRows("boarding",points.map(point=>({
+      name:point.point_name,time:String(point.boarding_time||"").slice(0,5)
+    })));
     $("droppingPoints").value = "";
+    setPointSetupRows("dropping",[]);
     $("tripSeatLayoutInput").value = "";
 
     editingTripId = trip.id;
