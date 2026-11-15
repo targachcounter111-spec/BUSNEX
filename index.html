@@ -2771,8 +2771,14 @@ async function editTrip(id) {
 
     const activeTripStops=(trip.trip_stops||[]).filter(stop=>stop.is_active!==false)
       .sort((a,b)=>a.stop_order-b.stop_order);
-    const boardingStops=activeTripStops.filter(stop=>String(stop.stop_type).toLowerCase()==="boarding");
-    const droppingStops=activeTripStops.filter(stop=>String(stop.stop_type).toLowerCase()==="dropping");
+    const normalizeEditStopType=value=>{
+      const type=String(value||"").trim().toLowerCase();
+      if(["boarding","board","pickup","pick-up"].includes(type))return "boarding";
+      if(["dropping","drop","dropoff","drop-off"].includes(type))return "dropping";
+      return type;
+    };
+    const boardingStops=activeTripStops.filter(stop=>normalizeEditStopType(stop.stop_type)==="boarding");
+    const droppingStops=activeTripStops.filter(stop=>normalizeEditStopType(stop.stop_type)==="dropping");
     const points=(trip.trip_boarding_points||[]).sort((a,b)=>a.point_order-b.point_order);
     const boardingRows=boardingStops.length?boardingStops.map(stop=>({
       name:stop.stop_name,time:String(stop.scheduled_time||"").slice(0,5)
@@ -3938,7 +3944,7 @@ async function fetchBookingTrips(dateValue) {
       id,departure_time,ticket_price,status,is_active,coach_number,supervisor,supervisor_name,supervisor_phone,
       buses(bus_name,bus_type,registration_number,total_seats),
       routes(starting_point,ending_point),
-      trip_stops(id,stop_name,stop_type,stop_order,is_active)
+      trip_stops(id,stop_name,stop_type,stop_order,scheduled_time,is_active)
     `)
     .eq("is_active",true)
     .eq("status","scheduled")
@@ -3965,17 +3971,21 @@ function fillBookingStopOptions(trips) {
   const boardingNames = new Map();
   const droppingNames = new Map();
 
+  const normalizeStopType = value => {
+    const type=String(value||"").trim().toLowerCase();
+    if (["boarding","board","pickup","pick-up"].includes(type)) return "boarding";
+    if (["dropping","drop","dropoff","drop-off"].includes(type)) return "dropping";
+    if (["both","all"].includes(type)) return "both";
+    return type;
+  };
   trips.forEach(trip => {
     trip.trip_stops.forEach(stop => {
-      const name = String(stop.stop_name || "").trim();
-      const type = String(stop.stop_type || "").toLowerCase();
-      if (!name) return;
-      if (type === "boarding" || type === "both") {
-        boardingNames.set(name.toLowerCase(),name);
-      }
-      if (type === "dropping" || type === "both") {
-        droppingNames.set(name.toLowerCase(),name);
-      }
+      const name=String(stop.stop_name||"").trim();
+      const type=normalizeStopType(stop.stop_type);
+      const time=String(stop.scheduled_time||"").slice(0,5);
+      if(!name)return;
+      if(type==="boarding"||type==="both")boardingNames.set(name.toLowerCase(),{name,time});
+      if(type==="dropping"||type==="both")droppingNames.set(name.toLowerCase(),{name,time});
     });
   });
 
@@ -3985,14 +3995,14 @@ function fillBookingStopOptions(trips) {
     first.value = "";
     first.textContent = placeholder;
     select.appendChild(first);
-    [...names.values()].sort((a,b) => a.localeCompare(b))
-      .forEach(name => {
+    [...names.values()].sort((a,b) => a.name.localeCompare(b.name))
+      .forEach(point => {
         const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
+        option.value = point.name;
+        option.textContent = point.name+(point.time?" · "+formatClock12(point.time):"");
         select.appendChild(option);
       });
-    if ([...names.values()].some(name => name.toLowerCase() === previous.toLowerCase())) {
+    if ([...names.values()].some(point => point.name.toLowerCase() === previous.toLowerCase())) {
       select.value = [...names.values()].find(name => name.toLowerCase() === previous.toLowerCase());
     }
     select.disabled = names.size === 0;
