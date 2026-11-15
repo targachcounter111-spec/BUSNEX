@@ -4176,31 +4176,26 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   let selectedReservationCounterId = currentProfile?.role === "counter_operator" ? currentProfile.counter_id : null;
   let allowedReservationTypes = new Set();
   try {
-    if (currentProfile?.role === "counter_operator" && selectedReservationCounterId) {
-      const {data,error} = await supabase.from("counter_reservation_permissions").select("reservation_type")
-        .eq("counter_id",selectedReservationCounterId).eq("is_active",true);
-      if (error) throw error;
-      allowedReservationTypes = new Set((data || []).map(row=>row.reservation_type));
-    } else if (["super_admin","company_manager"].includes(currentProfile?.role)) {
-      const companyId = currentProfile.role === "super_admin" ? trip.company_id : currentProfile.company_id;
-      if (companyId && companyId === trip.company_id) {
-        const {data:counters,error:counterError} = await supabase.from("counters").select("id,name,address")
-          .eq("company_id",companyId).eq("is_active",true).order("name");
-        if (counterError) throw counterError;
-        const counterIds = (counters || []).map(row=>row.id);
-        if (counterIds.length) {
-          const {data:permissions,error:permissionError} = await supabase.from("counter_reservation_permissions")
-            .select("counter_id,reservation_type").in("counter_id",counterIds).eq("is_active",true);
-          if (permissionError) throw permissionError;
-          reservationCounterChoices = (counters || []).map(counter=>({...counter,
-            types:new Set((permissions || []).filter(row=>row.counter_id===counter.id).map(row=>row.reservation_type))
-          })).filter(counter=>counter.types.size);
-          selectedReservationCounterId = reservationCounterChoices[0]?.id || null;
-          allowedReservationTypes = reservationCounterChoices[0]?.types || new Set();
+    const companyId = currentProfile?.role === "super_admin" ? trip.company_id : currentProfile?.company_id;
+    const {data:permissionRows,error} = await supabase.rpc("busnex_get_reservation_permissions",{
+      p_company_id:currentProfile?.role==="counter_operator"?null:companyId
+    });
+    if (error) throw error;
+    if (currentProfile?.role === "counter_operator") {
+      allowedReservationTypes = new Set((permissionRows || []).map(row=>row.reservation_type));
+    } else {
+      const countersById = new Map();
+      (permissionRows || []).forEach(row=>{
+        if(!countersById.has(row.counter_id)){
+          countersById.set(row.counter_id,{id:row.counter_id,name:row.counter_name,types:new Set()});
         }
-      }
+        countersById.get(row.counter_id).types.add(row.reservation_type);
+      });
+      reservationCounterChoices=[...countersById.values()];
+      selectedReservationCounterId=reservationCounterChoices[0]?.id || null;
+      allowedReservationTypes=reservationCounterChoices[0]?.types || new Set();
     }
-  } catch(permissionLoadError) {
+  }{
     console.warn("RESERVATION PERMISSION LOAD:",permissionLoadError.message);
     reservationCounterChoices=[];
     selectedReservationCounterId=currentProfile?.role==="counter_operator"?currentProfile.counter_id:null;
