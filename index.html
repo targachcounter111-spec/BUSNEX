@@ -5760,7 +5760,7 @@ async function renderBookingResults(trips,from="",to="") {
 const todayBookingDate = new Date().toLocaleDateString("en-CA");
 let savedBookingDate = "";
 try { savedBookingDate = localStorage.getItem("busnex_booking_journey_date") || ""; } catch(e) {}
-$("journeyDate").value = /^\\d{4}-\\d{2}-\\d{2}$/.test(savedBookingDate) ? savedBookingDate : todayBookingDate;
+$("journeyDate").value = /^\d{4}-\d{2}-\d{2}$/.test(savedBookingDate) ? savedBookingDate : todayBookingDate;
 $("tripDate").value = new Date().toLocaleDateString("en-CA");
 $("fromStop").disabled = true;
 $("toStop").disabled = true;
