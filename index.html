@@ -647,6 +647,151 @@ body{font-family:Inter,"Noto Sans Bengali",Arial,sans-serif!important}
  #appScreen .booking-seat-panel .seat{min-height:35px!important;font-size:11px!important}
 }
 
+<style id="busnex-premium-purple-complete">
+/* Consistent premium visual layer across every existing BUSNEX role and page.
+   Presentation only: keep all existing IDs, controls, workflows and data logic. */
+:root{
+ --bg:#f7f4ff;--card:#fff;--text:#24163e;--muted:#796b91;--line:#e9e1fa;
+ --navy:#351078;--blue:#6426d8;--cyan:#a78bfa;
+}
+html{scroll-behavior:smooth}
+body{background:#f7f4ff!important;color:#24163e!important}
+#loginScreen{
+ background:radial-gradient(ellipse at 15% 10%,#e6d8ff 0,transparent 38%),
+            radial-gradient(ellipse at 90% 85%,#e9ddff 0,transparent 34%),
+            linear-gradient(135deg,#faf8ff,#f0eaff)!important;
+}
+#loginScreen .login-card{
+ width:min(100%,460px)!important;padding:34px!important;border:1px solid #e9defb!important;
+ border-radius:24px!important;box-shadow:0 24px 70px rgba(65,28,130,.15)!important;
+}
+#loginScreen .login-logo{
+ background:linear-gradient(125deg,#32106f,#702ce0)!important;border-radius:17px!important;
+ box-shadow:0 12px 25px rgba(83,35,169,.22)!important;padding:23px!important
+}
+#loginScreen .login-card h1{color:#32106f!important;font-weight:850!important}
+#loginScreen .field input{min-height:46px;border-radius:12px!important}
+#loginScreen button.primary{min-height:47px;background:linear-gradient(120deg,#4b13a8,#7c3aed)!important}
+#appScreen{background:linear-gradient(145deg,#faf8ff 0%,#f4efff 55%,#f8f6ff 100%)!important}
+#appScreen>.topbar{
+ background:rgba(255,255,255,.94)!important;border-bottom:1px solid #e9e1fa!important;
+ box-shadow:0 5px 24px rgba(65,32,130,.07)!important;backdrop-filter:blur(16px)!important
+}
+#appScreen>.topbar .menu-toggle{width:40px;height:40px;border-radius:12px!important;background:#f3edff!important;color:#5b21b6!important}
+#appScreen>.topbar .profile-avatar{display:grid;place-items:center;background:linear-gradient(135deg,#5b21b6,#9b6bfa)!important;color:#fff!important;border:3px solid #eee6ff}
+#appScreen>.topbar #logoutButton{background:#f4efff!important;color:#5b21b6!important;border:1px solid #e7dcfa!important}
+#appScreen>.layout>.sidebar{
+ background:rgba(255,255,255,.98)!important;border-right:1px solid #e9e1fa!important;
+ box-shadow:12px 0 34px rgba(61,31,120,.10)!important
+}
+#appScreen>.layout>.sidebar:before{content:"BUSNEX WORKSPACE";font-size:10px;letter-spacing:1.8px;font-weight:900;color:#9b83c7;padding:4px 13px 17px}
+#appScreen>.layout>.sidebar .nav-btn{
+ min-height:43px;display:flex;align-items:center;gap:11px;padding:11px 14px!important;
+ border:1px solid transparent!important;font-size:13px!important
+}
+#appScreen>.layout>.sidebar .nav-btn.active{
+ background:linear-gradient(115deg,#4b16a8,#7c3aed)!important;color:#fff!important;
+ box-shadow:0 8px 20px rgba(91,33,182,.22)!important
+}
+#appScreen>.layout>.main{padding:25px 30px 42px!important}
+#appScreen .page{animation:busnexPageIn .22s ease both}
+@keyframes busnexPageIn{from{opacity:.72;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+#appScreen .page-head{margin-bottom:20px!important;align-items:center}
+#appScreen .page-head h1,#appScreen h1,#appScreen h2,#appScreen h3{color:#32106f}
+#appScreen .page-head h1{font-size:clamp(20px,2vw,27px)!important;font-weight:850!important;letter-spacing:-.5px}
+#appScreen .page-head p,#appScreen .muted{color:#796b91}
+#appScreen .card,#appScreen .section.card,#appScreen .trip-card,
+#appScreen .company-hub-section,#appScreen .company-hub-head,
+#appScreen .company-add-panel,#appScreen .company-brand-strip{
+ background:#fff!important;border:1px solid #e9e1fa!important;border-radius:18px!important;
+ box-shadow:0 8px 28px rgba(73,35,145,.055)!important
+}
+#appScreen .grid{gap:16px!important}
+#appScreen .stat-label{color:#796b91!important;font-weight:650}
+#appScreen .stat-value{color:#5520b5!important;font-size:clamp(23px,2.2vw,30px)!important;font-weight:850}
+#appScreen .section{margin-top:20px!important}
+#appScreen .field{gap:7px!important}
+#appScreen .field label{color:#514267!important;font-size:12px!important;font-weight:750!important}
+#appScreen .field input,#appScreen .field select,#appScreen .field textarea,
+#appScreen input:not([type=checkbox]):not([type=radio]):not([type=search]),
+#appScreen select,#appScreen textarea{
+ min-height:40px;border:1px solid #e3d9f7!important;border-radius:11px!important;
+ background:#fff!important;color:#2c2044!important
+}
+#appScreen textarea{min-height:88px}
+#appScreen button{border-radius:11px!important;font-weight:750!important}
+#appScreen button.primary,#appScreen .primary,#appScreen .counter-search-button,
+#appScreen .counter-open-button{
+ background:linear-gradient(120deg,#4b13a8,#7c3aed)!important;color:#fff!important;border:0!important;
+ box-shadow:0 6px 16px rgba(91,33,182,.18)!important
+}
+#appScreen button.secondary,#appScreen .secondary{
+ background:#f3edff!important;color:#5b21b6!important;border:1px solid #e3d5ff!important
+}
+#appScreen button.danger,#appScreen .danger{background:#fff0f2!important;color:#c52b4a!important;border:1px solid #ffd5df!important}
+#appScreen button.success,#appScreen .success{background:#eafff2!important;color:#167344!important;border:1px solid #c8f0d8!important}
+#appScreen button:hover:not(:disabled){filter:brightness(.985);transform:translateY(-1px)}
+#appScreen button:focus-visible,#appScreen input:focus-visible,#appScreen select:focus-visible,#appScreen textarea:focus-visible{outline:3px solid rgba(139,92,246,.2)!important;outline-offset:2px}
+#appScreen .table-wrap,#appScreen .counter-reference-table-wrap{
+ border:1px solid #e9e1fa!important;border-radius:15px!important;overflow:auto!important;background:#fff!important;
+ box-shadow:0 5px 20px rgba(73,35,145,.04)!important
+}
+#appScreen table{border-collapse:separate!important;border-spacing:0!important;background:#fff!important}
+#appScreen th{background:#f4efff!important;color:#4b267e!important;font-size:11px!important;font-weight:850!important;letter-spacing:.25px}
+#appScreen td{border-bottom:1px solid #f0eafa!important;color:#382b50!important}
+#appScreen tr:hover td{background:#fcfaff!important}
+#appScreen .status,#appScreen .badge{border-radius:30px!important}
+#appScreen .message{border-radius:12px!important}
+#appScreen .notice{background:#fff9eb!important;border:1px solid #f3dfb5!important;border-radius:13px!important}
+#appScreen .company-hub{padding:20px!important}
+#appScreen .company-hub-head{padding:20px!important}
+#appScreen .company-hub-section{padding:18px!important;margin-top:18px!important}
+#appScreen .company-add-panel{padding:20px!important}
+#appScreen .company-hub-grid{gap:14px!important}
+#appScreen .company-hub-grid>*{border-radius:15px!important}
+#appScreen .counter-search-panel{border-radius:18px!important}
+#appScreen .counter-reference-table th{background:#4b267e!important;color:#fff!important}
+#appScreen .counter-reference-table td{background:#fff!important}
+#appScreen .booking-seat-panel,#appScreen .booking-passenger-panel{
+ border-radius:19px!important;border-color:#e7ddfa!important;box-shadow:0 9px 26px rgba(73,35,145,.07)!important
+}
+#appScreen .booking-seat-panel .seats{border-radius:15px!important}
+#appScreen .booking-seat-panel .seat{transition:background .15s,border-color .15s,transform .15s!important}
+#appScreen .booking-seat-panel .seat:hover{transform:translateY(-1px)}
+#appScreen .booking-passenger-panel .field{margin:10px 0!important}
+#appScreen .booking-passenger-panel .actions button{min-height:42px}
+#appScreen .booking-passenger-panel .booking-action-row>button{min-height:44px}
+#appScreen .counter-inline-workspace{border:1px solid #eee7fa!important}
+#appScreen .counter-trip-results{border-radius:15px}
+#appScreen .modal,#appScreen .popup,#appScreen [role=dialog]{
+ border:1px solid #e8def8;border-radius:18px;box-shadow:0 22px 70px rgba(36,16,78,.2)
+}
+@media(min-width:1200px){
+ #appScreen>.layout>.main{padding-left:34px!important;padding-right:34px!important}
+ #appScreen .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:1050px){
+ #appScreen>.layout>.main{padding:16px!important}
+ #appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ #appScreen>.layout>.main{padding:11px 9px 26px!important}
+ #appScreen .page-head{align-items:flex-start;flex-wrap:wrap;gap:10px}
+ #appScreen .page-head h1{font-size:20px!important}
+ #appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important}
+ #appScreen .card{padding:13px!important}
+ #appScreen .company-hub{padding:10px!important}
+ #appScreen .company-hub-head,#appScreen .company-add-panel{padding:14px!important}
+ #appScreen table{font-size:12px}
+ #appScreen th,#appScreen td{padding:9px 8px!important}
+ #appScreen .booking-workspace{grid-template-columns:minmax(0,1fr)!important}
+ #appScreen .booking-seat-panel,#appScreen .booking-passenger-panel{padding:12px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #appScreen .page{animation:none!important}
+ #appScreen button,#appScreen .seat{transition:none!important}
+}
+</style>
 </style>
 </head>
 
@@ -4400,151 +4545,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   }
 </style>
 
-<style id="busnex-premium-purple-complete">
-/* Consistent premium visual layer across every existing BUSNEX role and page.
-   Presentation only: keep all existing IDs, controls, workflows and data logic. */
-:root{
- --bg:#f7f4ff;--card:#fff;--text:#24163e;--muted:#796b91;--line:#e9e1fa;
- --navy:#351078;--blue:#6426d8;--cyan:#a78bfa;
-}
-html{scroll-behavior:smooth}
-body{background:#f7f4ff!important;color:#24163e!important}
-#loginScreen{
- background:radial-gradient(ellipse at 15% 10%,#e6d8ff 0,transparent 38%),
-            radial-gradient(ellipse at 90% 85%,#e9ddff 0,transparent 34%),
-            linear-gradient(135deg,#faf8ff,#f0eaff)!important;
-}
-#loginScreen .login-card{
- width:min(100%,460px)!important;padding:34px!important;border:1px solid #e9defb!important;
- border-radius:24px!important;box-shadow:0 24px 70px rgba(65,28,130,.15)!important;
-}
-#loginScreen .login-logo{
- background:linear-gradient(125deg,#32106f,#702ce0)!important;border-radius:17px!important;
- box-shadow:0 12px 25px rgba(83,35,169,.22)!important;padding:23px!important
-}
-#loginScreen .login-card h1{color:#32106f!important;font-weight:850!important}
-#loginScreen .field input{min-height:46px;border-radius:12px!important}
-#loginScreen button.primary{min-height:47px;background:linear-gradient(120deg,#4b13a8,#7c3aed)!important}
-#appScreen{background:linear-gradient(145deg,#faf8ff 0%,#f4efff 55%,#f8f6ff 100%)!important}
-#appScreen>.topbar{
- background:rgba(255,255,255,.94)!important;border-bottom:1px solid #e9e1fa!important;
- box-shadow:0 5px 24px rgba(65,32,130,.07)!important;backdrop-filter:blur(16px)!important
-}
-#appScreen>.topbar .menu-toggle{width:40px;height:40px;border-radius:12px!important;background:#f3edff!important;color:#5b21b6!important}
-#appScreen>.topbar .profile-avatar{display:grid;place-items:center;background:linear-gradient(135deg,#5b21b6,#9b6bfa)!important;color:#fff!important;border:3px solid #eee6ff}
-#appScreen>.topbar #logoutButton{background:#f4efff!important;color:#5b21b6!important;border:1px solid #e7dcfa!important}
-#appScreen>.layout>.sidebar{
- background:rgba(255,255,255,.98)!important;border-right:1px solid #e9e1fa!important;
- box-shadow:12px 0 34px rgba(61,31,120,.10)!important
-}
-#appScreen>.layout>.sidebar:before{content:"BUSNEX WORKSPACE";font-size:10px;letter-spacing:1.8px;font-weight:900;color:#9b83c7;padding:4px 13px 17px}
-#appScreen>.layout>.sidebar .nav-btn{
- min-height:43px;display:flex;align-items:center;gap:11px;padding:11px 14px!important;
- border:1px solid transparent!important;font-size:13px!important
-}
-#appScreen>.layout>.sidebar .nav-btn.active{
- background:linear-gradient(115deg,#4b16a8,#7c3aed)!important;color:#fff!important;
- box-shadow:0 8px 20px rgba(91,33,182,.22)!important
-}
-#appScreen>.layout>.main{padding:25px 30px 42px!important}
-#appScreen .page{animation:busnexPageIn .22s ease both}
-@keyframes busnexPageIn{from{opacity:.72;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-#appScreen .page-head{margin-bottom:20px!important;align-items:center}
-#appScreen .page-head h1,#appScreen h1,#appScreen h2,#appScreen h3{color:#32106f}
-#appScreen .page-head h1{font-size:clamp(20px,2vw,27px)!important;font-weight:850!important;letter-spacing:-.5px}
-#appScreen .page-head p,#appScreen .muted{color:#796b91}
-#appScreen .card,#appScreen .section.card,#appScreen .trip-card,
-#appScreen .company-hub-section,#appScreen .company-hub-head,
-#appScreen .company-add-panel,#appScreen .company-brand-strip{
- background:#fff!important;border:1px solid #e9e1fa!important;border-radius:18px!important;
- box-shadow:0 8px 28px rgba(73,35,145,.055)!important
-}
-#appScreen .grid{gap:16px!important}
-#appScreen .stat-label{color:#796b91!important;font-weight:650}
-#appScreen .stat-value{color:#5520b5!important;font-size:clamp(23px,2.2vw,30px)!important;font-weight:850}
-#appScreen .section{margin-top:20px!important}
-#appScreen .field{gap:7px!important}
-#appScreen .field label{color:#514267!important;font-size:12px!important;font-weight:750!important}
-#appScreen .field input,#appScreen .field select,#appScreen .field textarea,
-#appScreen input:not([type=checkbox]):not([type=radio]):not([type=search]),
-#appScreen select,#appScreen textarea{
- min-height:40px;border:1px solid #e3d9f7!important;border-radius:11px!important;
- background:#fff!important;color:#2c2044!important
-}
-#appScreen textarea{min-height:88px}
-#appScreen button{border-radius:11px!important;font-weight:750!important}
-#appScreen button.primary,#appScreen .primary,#appScreen .counter-search-button,
-#appScreen .counter-open-button{
- background:linear-gradient(120deg,#4b13a8,#7c3aed)!important;color:#fff!important;border:0!important;
- box-shadow:0 6px 16px rgba(91,33,182,.18)!important
-}
-#appScreen button.secondary,#appScreen .secondary{
- background:#f3edff!important;color:#5b21b6!important;border:1px solid #e3d5ff!important
-}
-#appScreen button.danger,#appScreen .danger{background:#fff0f2!important;color:#c52b4a!important;border:1px solid #ffd5df!important}
-#appScreen button.success,#appScreen .success{background:#eafff2!important;color:#167344!important;border:1px solid #c8f0d8!important}
-#appScreen button:hover:not(:disabled){filter:brightness(.985);transform:translateY(-1px)}
-#appScreen button:focus-visible,#appScreen input:focus-visible,#appScreen select:focus-visible,#appScreen textarea:focus-visible{outline:3px solid rgba(139,92,246,.2)!important;outline-offset:2px}
-#appScreen .table-wrap,#appScreen .counter-reference-table-wrap{
- border:1px solid #e9e1fa!important;border-radius:15px!important;overflow:auto!important;background:#fff!important;
- box-shadow:0 5px 20px rgba(73,35,145,.04)!important
-}
-#appScreen table{border-collapse:separate!important;border-spacing:0!important;background:#fff!important}
-#appScreen th{background:#f4efff!important;color:#4b267e!important;font-size:11px!important;font-weight:850!important;letter-spacing:.25px}
-#appScreen td{border-bottom:1px solid #f0eafa!important;color:#382b50!important}
-#appScreen tr:hover td{background:#fcfaff!important}
-#appScreen .status,#appScreen .badge{border-radius:30px!important}
-#appScreen .message{border-radius:12px!important}
-#appScreen .notice{background:#fff9eb!important;border:1px solid #f3dfb5!important;border-radius:13px!important}
-#appScreen .company-hub{padding:20px!important}
-#appScreen .company-hub-head{padding:20px!important}
-#appScreen .company-hub-section{padding:18px!important;margin-top:18px!important}
-#appScreen .company-add-panel{padding:20px!important}
-#appScreen .company-hub-grid{gap:14px!important}
-#appScreen .company-hub-grid>*{border-radius:15px!important}
-#appScreen .counter-search-panel{border-radius:18px!important}
-#appScreen .counter-reference-table th{background:#4b267e!important;color:#fff!important}
-#appScreen .counter-reference-table td{background:#fff!important}
-#appScreen .booking-seat-panel,#appScreen .booking-passenger-panel{
- border-radius:19px!important;border-color:#e7ddfa!important;box-shadow:0 9px 26px rgba(73,35,145,.07)!important
-}
-#appScreen .booking-seat-panel .seats{border-radius:15px!important}
-#appScreen .booking-seat-panel .seat{transition:background .15s,border-color .15s,transform .15s!important}
-#appScreen .booking-seat-panel .seat:hover{transform:translateY(-1px)}
-#appScreen .booking-passenger-panel .field{margin:10px 0!important}
-#appScreen .booking-passenger-panel .actions button{min-height:42px}
-#appScreen .booking-passenger-panel .booking-action-row>button{min-height:44px}
-#appScreen .counter-inline-workspace{border:1px solid #eee7fa!important}
-#appScreen .counter-trip-results{border-radius:15px}
-#appScreen .modal,#appScreen .popup,#appScreen [role=dialog]{
- border:1px solid #e8def8;border-radius:18px;box-shadow:0 22px 70px rgba(36,16,78,.2)
-}
-@media(min-width:1200px){
- #appScreen>.layout>.main{padding-left:34px!important;padding-right:34px!important}
- #appScreen .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-}
-@media(max-width:1050px){
- #appScreen>.layout>.main{padding:16px!important}
- #appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:650px){
- #appScreen>.layout>.main{padding:11px 9px 26px!important}
- #appScreen .page-head{align-items:flex-start;flex-wrap:wrap;gap:10px}
- #appScreen .page-head h1{font-size:20px!important}
- #appScreen .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important}
- #appScreen .card{padding:13px!important}
- #appScreen .company-hub{padding:10px!important}
- #appScreen .company-hub-head,#appScreen .company-add-panel{padding:14px!important}
- #appScreen table{font-size:12px}
- #appScreen th,#appScreen td{padding:9px 8px!important}
- #appScreen .booking-workspace{grid-template-columns:minmax(0,1fr)!important}
- #appScreen .booking-seat-panel,#appScreen .booking-passenger-panel{padding:12px!important}
-}
-@media(prefers-reduced-motion:reduce){
- #appScreen .page{animation:none!important}
- #appScreen button,#appScreen .seat{transition:none!important}
-}
-</style>
+
 
 </head>
 <body>${printMarkup}</body>
