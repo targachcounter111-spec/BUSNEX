@@ -4200,6 +4200,77 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       .booking-passenger-panel .btn.btn-primary:hover{filter:brightness(.94)}
       .booking-passenger-panel .notice{margin:8px 0;padding:9px;font-size:11px}
       .booking-passenger-panel button{border-radius:3px}
+      /* Exact-reference booking skin: compact lavender journey header, two premium panels */
+      .booking-trip-summarybar{
+        display:grid!important;grid-template-columns:minmax(130px,.8fr) minmax(180px,1.2fr) minmax(170px,1fr)!important;
+        gap:12px!important;align-items:center!important;padding:12px 15px!important;
+        margin:0 0 10px!important;background:linear-gradient(115deg,#f2eaff,#fff 65%,#eee5ff)!important;
+        border:1px solid #dfcffd!important;border-left:4px solid #6d28d9!important;border-radius:16px!important;
+        box-shadow:0 6px 18px rgba(91,33,182,.08)!important;color:#32106f!important
+      }
+      .booking-trip-coach small,.booking-trip-destination span,.booking-type-choice>span{color:#745b9b!important;font-size:11px!important;font-weight:750!important}
+      .booking-trip-coach strong{font-size:19px!important;color:#6426d8!important}
+      .booking-trip-coach span{color:#625278!important;font-weight:650!important}
+      .booking-trip-destination select{height:40px!important;border:1px solid #ddcef8!important;border-radius:11px!important;color:#32106f!important}
+      .booking-type-choice{gap:7px!important}
+      .booking-type-choice button{height:40px!important;border:1px solid #ddcef8!important;border-radius:11px!important;background:#fff!important;color:#54258f!important}
+      .booking-type-choice button.active{background:linear-gradient(120deg,#4b13a8,#7c3aed)!important;color:#fff!important;border-color:#6426d8!important;box-shadow:0 5px 13px #5b21b62b!important}
+      .booking-trip-toolbar{min-height:48px!important;padding:7px 10px!important;margin:0 0 12px!important;
+        background:#fff!important;border:1px solid #e8def8!important;border-radius:13px!important;
+        box-shadow:0 4px 14px rgba(73,35,145,.045)!important}
+      .booking-trip-toolbar:before{display:none!important}
+      .booking-trip-toolbar .booking-trip-status{width:auto!important;margin-right:auto!important;border-radius:9px!important;background:#e9ddff!important;color:#54258f!important}
+      .booking-trip-toolbar button{border-radius:10px!important;padding:9px 14px!important}
+      .booking-workspace{display:grid!important;grid-template-columns:minmax(310px,.82fr) minmax(390px,1.18fr)!important;gap:14px!important;margin-top:0!important;align-items:start!important}
+      .booking-seat-panel,.booking-passenger-panel{
+        background:#fff!important;border:1px solid #e4d8fa!important;border-radius:18px!important;
+        padding:14px!important;box-shadow:0 8px 24px rgba(73,35,145,.07)!important;min-width:0!important
+      }
+      .booking-seat-panel:before{
+        content:"♙  Seat Selection";display:block;margin:-14px -14px 12px!important;padding:12px 15px!important;
+        color:#fff!important;font-size:14px!important;font-weight:850!important;letter-spacing:.2px!important;
+        background:linear-gradient(110deg,#4b13a8,#7c3aed 75%,#9b6bfa)!important;
+        border-radius:17px 17px 11px 11px!important;box-shadow:0 5px 14px #5b21b62b!important
+      }
+      .booking-seat-panel .booking-seat-legend{order:4!important;background:#faf7ff!important;border:1px solid #eee5ff!important;border-radius:11px!important;padding:9px!important}
+      .booking-seat-panel .booking-seat-summary{order:0!important;background:#f2eaff!important;border:1px solid #e5d8ff!important;border-radius:12px!important;color:#4c267d!important;text-align:center!important;padding:9px!important;margin:0 0 9px!important}
+      .booking-seat-panel .seats{order:1!important;background:#fbf9ff!important;border:1px solid #eee5ff!important;border-radius:14px!important;padding:10px!important}
+      .booking-seat-panel .seat{min-height:37px!important;border-radius:9px!important;font-weight:800!important}
+      .booking-seat-panel .seat.available{background:#fff!important;border:1px solid #d9c9f4!important;color:#4c267d!important}
+      .booking-seat-panel .seat.selected{background:#6d28d9!important;border-color:#5b21b6!important;color:#fff!important;outline:2px solid #e9ddff!important}
+      .booking-seat-panel .seat.sold-male{background:#ef4444!important;color:#fff!important}
+      .booking-seat-panel .seat.sold-female{background:#d946ef!important;color:#fff!important}
+      .booking-seat-panel .seat.reserved{background:#ffb020!important;color:#4b2e00!important}
+      .booking-seat-panel .seat.held{background:#eee7ff!important;color:#6233b6!important}
+      .booking-seat-panel .seat.blocked{background:#e5e2ea!important;color:#655b70!important}
+      .booking-seat-panel>p.small:not(.booking-seat-summary){order:2!important;background:#faf7ff!important;border:1px solid #eee5ff!important;border-radius:10px!important;padding:8px!important}
+      .booking-passenger-panel h4{
+        margin:-14px -14px 13px!important;padding:13px 15px!important;border:0!important;border-radius:17px 17px 11px 11px!important;
+        background:linear-gradient(110deg,#4b13a8,#7c3aed 75%,#9b6bfa)!important;color:#fff!important;
+        font-size:14px!important;font-weight:850!important;box-shadow:0 5px 14px #5b21b62b!important
+      }
+      .booking-passenger-panel .card{background:#fff!important;border:1px solid #eee5ff!important;border-radius:13px!important;padding:12px!important}
+      .booking-passenger-panel .form-row{gap:9px 10px!important}
+      .booking-passenger-panel .field{gap:6px!important;margin:7px 0!important}
+      .booking-passenger-panel .field label{color:#594276!important;font-size:11px!important;font-weight:750!important}
+      .booking-passenger-panel .field input,.booking-passenger-panel .field select{
+        min-height:39px!important;border:1px solid #e2d5f7!important;border-radius:10px!important;padding:8px 10px!important;background:#fff!important;color:#33234d!important
+      }
+      .booking-passenger-panel .notice{background:#fff9eb!important;border:1px solid #f5dfa9!important;border-radius:11px!important;color:#795a22!important}
+      .booking-action-choice{background:#f4efff!important;border:1px solid #e7dcfa!important;border-left:3px solid #6d28d9!important;border-radius:11px!important;color:#4c267d!important}
+      .booking-action-choice b{background:linear-gradient(120deg,#4b13a8,#7c3aed)!important;border-radius:9px!important}
+      .booking-passenger-panel .btn.btn-primary{
+        background:linear-gradient(110deg,#4b13a8,#7c3aed)!important;border:0!important;border-radius:25px!important;
+        min-height:48px!important;box-shadow:0 8px 20px rgba(91,33,182,.24)!important
+      }
+      @media(max-width:900px){.booking-workspace{grid-template-columns:minmax(0,1fr)!important}.booking-seat-panel .seats{max-width:100%!important}}
+      @media(max-width:650px){
+        .booking-trip-summarybar{grid-template-columns:1fr!important;gap:9px!important}
+        .booking-workspace{grid-template-columns:minmax(0,1fr)!important}
+        .booking-seat-panel,.booking-passenger-panel{padding:11px!important}
+        .booking-seat-panel:before,.booking-passenger-panel h4{margin:-11px -11px 10px!important}
+        .booking-passenger-panel .form-row{grid-template-columns:1fr!important}
+      }
       @media(max-width:1050px){.booking-workspace{grid-template-columns:minmax(0,1fr)}.booking-seat-panel .seats{max-width:440px}.booking-passenger-panel .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
       @media(max-width:560px){.booking-passenger-panel .form-row{grid-template-columns:1fr}.booking-trip-toolbar button{flex:1}.booking-trip-status{width:100%;margin:0}}
     `;
