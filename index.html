@@ -1197,12 +1197,13 @@ body{background:#f7f4ff!important;color:#24163e!important}
       <section id="page-reservations" class="page hidden">
         <div class="page-head"><div><h1>Reservations</h1><div class="muted small">আপনার অনুমোদিত Company/Counter-এর Reservation</div></div><button id="reservationRefresh" class="secondary" type="button">↻ Refresh</button></div>
         <div class="card">
-          <div class="notice">Standard ও VIP—দুই ধরনের Reservation-এর জন্যই Valid Till তারিখ ও সময় নির্বাচন করতে হবে। নির্ধারিত সময় পার হলে Active Reservation Expire হবে। Confirmed Reservation Expire হবে না। Reservation-এর জন্য Counter-এ সক্রিয় Permission থাকতে হবে।</div>
+          <div class="notice">Manager ও Super Admin নিজের Company/নির্বাচিত Company-এর যেকোনো Active Counter-এর নামে Reservation করতে পারবেন। Counter Operator শুধু নিজের নির্ধারিত Counter-এ সক্রিয় Permission থাকলে Reservation করতে পারবেন। Standard Reservation Departure-এর আগে; VIP Reservation Departure-এর পরেও করা যাবে এবং VIP-এর Valid Till নির্বাচন করতে হবে। Confirmed Reservation Expire হবে না।</div>
           <div id="reservationCreatePanel" class="section">
             <h2>নতুন Reservation</h2>
             <div class="form-row">
               <div class="field"><label for="reservationTrip">Trip</label><select id="reservationTrip"><option value="">Trip নির্বাচন করুন</option></select></div>
               <div class="field"><label for="reservationType">Type</label><select id="reservationType"><option value="standard">Standard</option><option value="vip">VIP</option></select></div>
+              <div class="field" id="reservationCounterField"><label for="reservationCounter">Reservation কোন Counter-এর নামে হবে?</label><select id="reservationCounter"><option value="">Counter নির্বাচন করুন</option></select></div>
               <div class="field"><label for="reservationSeats">Seat Number (কমা দিয়ে, সর্বোচ্চ ৮টি)</label><input id="reservationSeats" placeholder="যেমন: A1,A2"></div>
               <div class="field"><label for="reservationValidTill">Valid Till (তারিখ ও সময়)</label><input id="reservationValidTill" type="datetime-local" required></div>
             </div>
@@ -3254,25 +3255,42 @@ function safeTable(rows,columns) {
 let reservationTripCache = [];
 
 async function loadReservationTripOptions() {
-  if (currentProfile?.role !== "counter_operator") {
-    $("reservationCreatePanel").classList.add("hidden");
-    return;
+  const role=currentProfile?.role;
+  const canCreate=["super_admin","company_manager","counter_operator"].includes(role);
+  $("reservationCreatePanel").classList.toggle("hidden",!canCreate);
+  if(!canCreate)return;
+  const counterField=$("reservationCounterField");
+  const counterSelect=$("reservationCounter");
+  const needsCounterChoice=role==="super_admin"||role==="company_manager";
+  counterField.classList.toggle("hidden",!needsCounterChoice);
+  counterSelect.required=needsCounterChoice;
+  if(needsCounterChoice){
+    const companyId=role==="super_admin"?activeCompanyId:currentProfile.company_id;
+    counterSelect.innerHTML='<option value="">Counter নির্বাচন করুন</option>';
+    if(!companyId)throw new Error("Super Admin-এর জন্য আগে একটি Company নির্বাচন করুন।");
+    const {data:counters,error:counterError}=await supabase.from("counters")
+      .select("id,name,address").eq("company_id",companyId).eq("is_active",true).order("name");
+    if(counterError)throw counterError;
+    (counters||[]).forEach(counter=>{
+      const option=document.createElement("option");
+      option.value=counter.id;
+      option.textContent=counter.name+(counter.address?" — "+counter.address:"");
+      counterSelect.appendChild(option);
+    });
+    counterSelect.disabled=!(counters||[]).length;
+  }else{
+    counterSelect.value="";
+    counterSelect.disabled=true;
   }
-  $("reservationCreatePanel").classList.remove("hidden");
-  const date = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  let reservationQuery = supabase
-    .from("trips")
-    .select("id,departure_time,ticket_price,status,is_active,buses(bus_name),routes(starting_point,ending_point),trip_stops(id,stop_name,stop_type,stop_order,is_active)")
+  let reservationQuery=supabase.from("trips")
+    .select("id,company_id,departure_time,ticket_price,status,is_active,buses(bus_name),routes(starting_point,ending_point),trip_stops(id,stop_name,stop_type,stop_order,is_active)")
     .eq("is_active",true).eq("status","scheduled")
-    .gte("departure_time",localDateRange(date).start)
-    .order("departure_time",{ascending:true});
-  if (currentProfile?.role === "super_admin" && activeCompanyId) reservationQuery = reservationQuery.eq("company_id",activeCompanyId);
-  const {data,error} = await reservationQuery;
-  if (error) throw error;
-  reservationTripCache = (data || []).map(trip=>({
-    ...trip,
-    trip_stops:(trip.trip_stops||[]).filter(x=>x.is_active).sort((a,b)=>a.stop_order-b.stop_order)
-  }));
+    .order("departure_time",{ascending:true}).limit(500);
+  if(role==="company_manager"||role==="counter_operator")reservationQuery=reservationQuery.eq("company_id",currentProfile.company_id);
+  if(role==="super_admin"&&activeCompanyId)reservationQuery=reservationQuery.eq("company_id",activeCompanyId);
+  const {data,error}=await reservationQuery;
+  if(error)throw error;
+  reservationTripCache=(data||[]).map(trip=>({...trip,trip_stops:(trip.trip_stops||[]).filter(x=>x.is_active).sort((a,b)=>a.stop_order-b.stop_order)}));
   const select=$("reservationTrip");
   select.innerHTML='<option value="">Trip নির্বাচন করুন</option>';
   reservationTripCache.forEach(trip=>{
@@ -3283,7 +3301,6 @@ async function loadReservationTripOptions() {
   });
   select.disabled=!reservationTripCache.length;
 }
-
 function fillReservationStopSelects(trip) {
   const fill=(id,types,placeholder)=>{
     const select=$(id);
@@ -3386,7 +3403,7 @@ $("reservationTrip").addEventListener("change",()=>{
 });
 
 $("reservationCreateButton").addEventListener("click",async()=>{
-  if(currentProfile?.role!=="counter_operator")return;
+  if(!["super_admin","company_manager","counter_operator"].includes(currentProfile?.role))return;
   const tripId=$("reservationTrip").value;
   const seats=$("reservationSeats").value.split(",").map(x=>x.trim()).filter(Boolean);
   const name=$("reservationPassengerName").value.trim();
@@ -3407,16 +3424,26 @@ $("reservationCreateButton").addEventListener("click",async()=>{
     $("reservationMessage").className="message section error";return;
   }
   const validTillDate=new Date(validTillValue);
-  if(!Number.isFinite(validTillDate.getTime())||validTillDate.getTime()<=Date.now()||validTillDate.getTime()>=new Date(trip.departure_time).getTime()){
-    $("reservationMessage").textContent="Valid Till বর্তমান সময়ের পরে এবং Trip Departure-এর আগে হতে হবে।";
+  const reservationType=$("reservationType").value;
+  if(!Number.isFinite(validTillDate.getTime())||validTillDate.getTime()<=Date.now()||
+     (reservationType==="standard"&&validTillDate.getTime()>=new Date(trip.departure_time).getTime())){
+    $("reservationMessage").textContent=reservationType==="vip"
+      ?"VIP Reservation-এর Valid Till বর্তমান সময়ের পরে হতে হবে। Departure-এর পরের সময়ও দেওয়া যাবে।"
+      :"Standard Reservation-এর Valid Till বর্তমান সময়ের পরে এবং Trip Departure-এর আগে হতে হবে।";
+    $("reservationMessage").className="message section error";return;
+  }
+  const selectedCounterId=currentProfile.role==="counter_operator"?null:$("reservationCounter").value;
+  if(currentProfile.role!=="counter_operator"&&!selectedCounterId){
+    $("reservationMessage").textContent="Reservation-এর জন্য একটি Counter নির্বাচন করুন।";
     $("reservationMessage").className="message section error";return;
   }
   const button=$("reservationCreateButton");button.disabled=true;
   try{
     const {data,error}=await supabase.rpc("busnex_create_reservation",{
-      p_trip_id:tripId,p_reservation_type:$("reservationType").value,p_seat_numbers:seats,
+      p_trip_id:tripId,p_reservation_type:reservationType,p_seat_numbers:seats,
       p_passenger_name:name,p_passenger_phone:phone,p_passenger_gender:gender,
-      p_boarding_stop_id:boarding,p_dropping_stop_id:dropping,p_valid_till:validTillDate.toISOString()
+      p_boarding_stop_id:boarding,p_dropping_stop_id:dropping,
+      p_valid_till:validTillDate.toISOString(),p_counter_id:selectedCounterId
     });
     if(error)throw error;
     $("reservationMessage").textContent="Reservation তৈরি হয়েছে। ID: "+data;
