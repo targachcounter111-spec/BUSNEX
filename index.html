@@ -1225,7 +1225,8 @@ body{background:#f7f4ff!important;color:#24163e!important}
           <div id="permissionControls" class="form-row section">
             <div class="field"><label for="permissionCounter">Counter নির্বাচন</label><select id="permissionCounter"><option value="">Counter নির্বাচন করুন</option></select></div>
             <div class="field"><label for="permissionType">Permission Type</label><select id="permissionType"><option value="standard">Standard Reservation</option><option value="vip">VIP Reservation</option></select></div>
-            <div class="field"><label>Permission Action</label><div class="actions"><button id="grantPermission" class="primary" type="button">Grant Permission</button><button id="revokePermission" class="danger" type="button">Revoke Permission</button></div></div>
+            <div class="field"><label>Reservation Permission Action</label><div class="actions"><button id="grantPermission" class="primary" type="button">Grant Permission</button><button id="revokePermission" class="danger" type="button">Revoke Permission</button></div></div>
+            <div class="field"><label>Ticket Cancel Permission</label><div class="actions"><button id="grantTicketCancelPermission" class="primary" type="button">Cancel Permission Grant</button><button id="revokeTicketCancelPermission" class="danger" type="button">Cancel Permission Revoke</button></div></div>
           </div>
           <div id="permissionMessage" class="message">Permission তালিকা লোড হয়নি।</div>
           <div id="permissionList" class="table-wrap"><div class="empty">তথ্য লোড হয়নি।</div></div>
@@ -3546,6 +3547,37 @@ $("billingGenerateInvoice").addEventListener("click",async()=>{
   }
 });
 
+$("grantTicketCancelPermission").addEventListener("click",async()=>{
+  const counterId=$("permissionCounter").value;
+  if(!counterId){$("permissionMessage").textContent="প্রথমে Counter নির্বাচন করুন।";$("permissionMessage").className="message section error";return;}
+  const button=$("grantTicketCancelPermission");button.disabled=true;
+  $("permissionMessage").textContent="Ticket Cancel Permission Grant হচ্ছে...";
+  try{
+    const {data,error}=await supabase.rpc("busnex_grant_ticket_cancel_permission",{p_counter_id:counterId});
+    if(error)throw error;
+    $("permissionMessage").textContent="এই Counter-এর Operator-কে Ticket Cancel Permission দেওয়া হয়েছে।";
+    $("permissionMessage").className="message section ok";
+  }catch(error){
+    $("permissionMessage").textContent="Permission Grant হয়নি: "+error.message;
+    $("permissionMessage").className="message section error";
+  }finally{button.disabled=false;}
+});
+$("revokeTicketCancelPermission").addEventListener("click",async()=>{
+  const counterId=$("permissionCounter").value;
+  if(!counterId){$("permissionMessage").textContent="প্রথমে Counter নির্বাচন করুন।";$("permissionMessage").className="message section error";return;}
+  if(!confirm("এই Counter-এর Ticket Cancel Permission বন্ধ করবেন?"))return;
+  const button=$("revokeTicketCancelPermission");button.disabled=true;
+  $("permissionMessage").textContent="Ticket Cancel Permission Revoke হচ্ছে...";
+  try{
+    const {data,error}=await supabase.rpc("busnex_revoke_ticket_cancel_permission",{p_counter_id:counterId});
+    if(error)throw error;
+    $("permissionMessage").textContent=data?"Ticket Cancel Permission বন্ধ হয়েছে।":"এই Permission আগে থেকেই বন্ধ ছিল।";
+    $("permissionMessage").className="message section ok";
+  }catch(error){
+    $("permissionMessage").textContent="Permission Revoke হয়নি: "+error.message;
+    $("permissionMessage").className="message section error";
+  }finally{button.disabled=false;}
+});
 $("billingRefresh").addEventListener("click",loadBillingPage);
 $("reservationRefresh").addEventListener("click",loadReservationsPage);
 $("counterRefresh").addEventListener("click",loadCounterDirectory);
