@@ -4474,6 +4474,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       throw new Error("Trip-এর Bus তথ্য পাওয়া যায়নি।");
     }
 
+    // On entering or refreshing this Trip, release only this logged-in user's
+    // previous temporary holds. The RPC is scoped by auth.uid() and Trip company.
+    const {error:releaseOwnHoldsError} = await supabase.rpc("busnex_release_own_trip_seat_holds",{
+      p_trip_id:trip.id
+    });
+    if (releaseOwnHoldsError) throw releaseOwnHoldsError;
+
     const {error:expireHoldsError} = await supabase.rpc("busnex_expire_trip_seat_holds",{
       p_trip_id:trip.id
     });
