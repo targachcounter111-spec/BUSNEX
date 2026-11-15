@@ -4403,6 +4403,11 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       throw new Error("Trip-এর Bus তথ্য পাওয়া যায়নি।");
     }
 
+    const {error:expireHoldsError} = await supabase.rpc("busnex_expire_trip_seat_holds",{
+      p_trip_id:trip.id
+    });
+    if (expireHoldsError) throw expireHoldsError;
+
     const [layoutResult,inventoryResult,ticketGenderResult] = await Promise.all([
       supabase
         .from("bus_seat_layouts")
@@ -5338,12 +5343,28 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           if (holdRequestRunning) return;
 
           if (selectedSeats.has(seat.seat_number)) {
-            selectedSeats.delete(seat.seat_number);
-            if (localHoldTimer) clearTimeout(localHoldTimer);
-            div.classList.remove("selected");
-            selectedInfo.textContent =
-              "Seat " + seat.seat_number + " নির্বাচন থেকে সরানো হয়েছে। নিরাপত্তার জন্য Hold-এর বাকি সময় শেষ হলে Seat আবার খালি হবে।";
-            renderPassengerFields();
+            holdRequestRunning = true;
+            div.style.pointerEvents = "none";
+            try {
+              const {data:released,error:releaseError} = await supabase.rpc("busnex_release_own_seat_hold",{
+                p_trip_id:trip.id,
+                p_seat_number:seat.seat_number
+              });
+              if (releaseError) throw releaseError;
+              if (!released) throw new Error("এই Seat-এর Hold আর আপনার নামে Active নেই। Seat Map আবার লোড করুন।");
+              selectedSeats.delete(seat.seat_number);
+              if (localHoldTimer) clearTimeout(localHoldTimer);
+              div.classList.remove("selected");
+              div.classList.add("available");
+              div.title = "Hold ছেড়ে দেওয়া হয়েছে। Seat এখন Available।";
+              selectedInfo.textContent = "Seat " + seat.seat_number + " সঙ্গে সঙ্গে Available করা হয়েছে।";
+              renderPassengerFields();
+            } catch(error) {
+              alert("Seat Hold ছাড়া যায়নি: " + error.message);
+            } finally {
+              holdRequestRunning = false;
+              div.style.pointerEvents = "";
+            }
             return;
           }
 
@@ -5374,15 +5395,22 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               " — Hold ১ মিনিট ৪৫ সেকেন্ডের জন্য।";
             renderPassengerFields();
 
-            localHoldTimer = setTimeout(() => {
+            localHoldTimer = setTimeout(async () => {
               if (!selectedSeats.has(seat.seat_number)) return;
-              selectedSeats.delete(seat.seat_number);
-              div.classList.remove("selected");
-              div.classList.add("available");
-              div.title = "Hold-এর সময় শেষ। আবার নির্বাচন করতে ক্লিক করুন।";
-              selectedInfo.textContent =
-                "Seat " + seat.seat_number + "-এর ১ মিনিট ৪৫ সেকেন্ড Hold শেষ হয়েছে।";
-              renderPassengerFields();
+              try {
+                const {error:expireError} = await supabase.rpc("busnex_expire_trip_seat_holds",{
+                  p_trip_id:trip.id
+                });
+                if (expireError) throw expireError;
+                selectedSeats.delete(seat.seat_number);
+                div.classList.remove("selected","held");
+                div.classList.add("available");
+                div.title = "Hold-এর সময় শেষ। Seat এখন Available।";
+                selectedInfo.textContent = "Seat " + seat.seat_number + "-এর Hold শেষ হয়েছে এবং Seat Available।";
+                renderPassengerFields();
+              } catch(error) {
+                console.error("SEAT HOLD EXPIRY ERROR:",error);
+              }
             },Math.max(0,Date.parse(holdResult?.hold_until)-Date.now()) || 105000);
           } catch(error) {
             alert("Seat Hold করা যায়নি: " + error.message);
@@ -5403,6 +5431,42 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 
       grid.appendChild(div);
     });
+
+    window.addEventListener("pagehide",() => {
+      for (const seatNumber of selectedSeats) {
+        void supabase.rpc("busnex_release_own_seat_hold",{
+          p_trip_id:trip.id,
+          p_seat_number:seatNumber
+        });
+      }
+    },{once:true});
+
+    const holdExpiryPoll = window.setInterval(async () => {
+      try {
+        const {error:expireError} = await supabase.rpc("busnex_expire_trip_seat_holds",{
+          p_trip_id:trip.id
+        });
+        if (expireError) throw expireError;
+        const {data:latestSeats,error:latestSeatsError} = await supabase
+          .from("trip_seats")
+          .select("seat_number,status,reservation_id")
+          .eq("trip_id",trip.id);
+        if (latestSeatsError) throw latestSeatsError;
+        (latestSeats || []).forEach(item => {
+          if (item.status !== "available" || item.reservation_id) return;
+          const button = seatButtons.get(item.seat_number);
+          if (!button || button.classList.contains("selected")) return;
+          if (button.classList.contains("held")) {
+            button.classList.remove("held");
+            button.classList.add("available");
+            button.title = "Hold-এর সময় শেষ। Seat এখন Available।";
+          }
+        });
+      } catch(error) {
+        console.warn("SEAT HOLD EXPIRY CHECK:",error);
+      }
+    },10000);
+    window.addEventListener("pagehide",() => window.clearInterval(holdExpiryPoll),{once:true});
 
     summary.textContent =
       "মোট Seat: " + layout.length +
