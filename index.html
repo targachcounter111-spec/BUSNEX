@@ -4274,6 +4274,26 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       }
       @media(max-width:1050px){.booking-workspace{grid-template-columns:minmax(0,1fr)}.booking-seat-panel .seats{max-width:440px}.booking-passenger-panel .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
       @media(max-width:560px){.booking-passenger-panel .form-row{grid-template-columns:1fr}.booking-trip-toolbar button{flex:1}.booking-trip-status{width:100%;margin:0}}
+      /* Match the supplied reference: compact centered purple confirm pill */
+      .booking-passenger-panel .btn.btn-primary{
+        display:flex!important;align-items:center!important;justify-content:center!important;
+        width:min(100%,164px)!important;min-width:164px!important;min-height:44px!important;
+        margin:12px auto 0!important;padding:10px 16px!important;
+        border:0!important;border-radius:999px!important;
+        background:linear-gradient(110deg,#321078 0%,#651ed1 58%,#7c3aed 100%)!important;
+        color:#fff!important;font-size:13px!important;font-weight:850!important;
+        letter-spacing:0!important;white-space:nowrap!important;
+        box-shadow:0 7px 17px rgba(75,19,168,.27)!important
+      }
+      .booking-passenger-panel .btn.btn-primary:hover{filter:brightness(1.08)!important;transform:translateY(-1px)}
+      .booking-action-choice{
+        background:#f1f1f1!important;border:0!important;border-left:3px solid #16a34a!important;
+        border-radius:0!important;padding:8px 12px!important;color:#263449!important
+      }
+      .booking-action-choice b{
+        min-width:145px!important;min-height:38px!important;border-radius:0!important;
+        background:#5cb85c!important;color:#fff!important
+      }
     `;
     document.head.appendChild(style);
   }
@@ -4843,7 +4863,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       const submit = document.createElement("button");
       submit.type = "button";
       submit.className = "btn btn-primary";
-      submit.textContent = "নির্বাচিত Seat-এর টিকিট বিক্রি করুন";
+      submit.textContent = "✓ Confirm Ticket";
       submit.addEventListener("click",async () => {
         if (submit.disabled) return;
         if (!groupPassenger.name.trim() || !groupPassenger.phone.trim() ||
@@ -4936,7 +4956,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           renderPassengerFields();
         } finally {
           submit.disabled = false;
-          submit.textContent = "নির্বাচিত Seat-এর টিকিট বিক্রি করুন";
+          submit.textContent = "✓ Confirm Ticket";
         }
       });
       const reservationActions = document.createElement("div");
