@@ -138,7 +138,33 @@ Deno.serve(async (req: Request) => {
     .eq("id", companyId)
     .maybeSingle();
 
-  if (companyError || !company) return json(404, { success: false, message: "Company পাওয়া যায়নি।" }, origin);
+  if (companyError) {
+    console.error("manage-company-users company_lookup failed", {
+      code: companyError.code ?? null,
+      message: companyError.message ?? null,
+      details: companyError.details ?? null,
+      hint: companyError.hint ?? null,
+    });
+    return json(500, {
+      success: false,
+      message: "Company Database Query ব্যর্থ হয়েছে।",
+      stage: "company_lookup",
+      code: companyError.code ?? "UNKNOWN",
+    }, origin);
+  }
+
+  if (!company) {
+    console.error("manage-company-users company_lookup returned no row", {
+      company_id: companyId,
+      caller_role: caller.role,
+      caller_company_id: caller.company_id ?? null,
+    });
+    return json(404, {
+      success: false,
+      message: "Company রেকর্ড পাওয়া যায়নি।",
+      stage: "company_not_found",
+    }, origin);
+  }
 
   let role: "company_manager" | "counter_operator";
   let counterId: string | null = null;
