@@ -4689,6 +4689,43 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           }
         });
         actions.appendChild(print);
+
+        // Cancellation visibility is decided by the database, and the cancel RPC rechecks permission.
+        let mayCancelTicket = false;
+        try {
+          const {data:cancelPermission,error:cancelPermissionError}=await supabase.rpc("busnex_can_cancel_tickets");
+          if(cancelPermissionError) throw cancelPermissionError;
+          mayCancelTicket=cancelPermission===true;
+        } catch(permissionError) {
+          console.warn("Ticket cancellation permission check unavailable:",permissionError);
+        }
+        if(mayCancelTicket && groupTickets.every(item=>String(item.status||"").toLowerCase()==="sold")) {
+          const cancel=document.createElement("button");
+          cancel.type="button";
+          cancel.className="danger";
+          cancel.textContent="✖ Cancel Ticket";
+          cancel.addEventListener("click",async()=>{
+            const ids=[...new Set(groupTickets.map(item=>item.id).filter(Boolean))];
+            if(!ids.length) { alert("Ticket ID পাওয়া যায়নি।"); return; }
+            if(!confirm("এই Ticket"+(ids.length>1?"গুলো":"")+" Cancel করবেন? Cancel হলে Seat আবার Available হবে।")) return;
+            cancel.disabled=true;
+            cancel.textContent="Cancel হচ্ছে...";
+            try {
+              const {data:cancelled,error:cancelError}=await supabase.rpc("busnex_cancel_tickets",{p_ticket_ids:ids});
+              if(cancelError) throw cancelError;
+              if(cancelled!==true) throw new Error("Database Ticket Cancel নিশ্চিত করেনি।");
+              alert("Ticket সফলভাবে Cancel হয়েছে। Seat আবার Available করা হয়েছে।");
+              closeModal();
+              window.location.reload();
+            } catch(cancelError) {
+              console.error("BUSNEX TICKET CANCEL ERROR:",cancelError);
+              alert("Ticket Cancel হয়নি: "+(cancelError.message||"অজানা সমস্যা"));
+              cancel.disabled=false;
+              cancel.textContent="✖ Cancel Ticket";
+            }
+          });
+          actions.appendChild(cancel);
+        }
         const closeFooter = document.createElement("button");
         closeFooter.type = "button";
         closeFooter.className = "secondary";
