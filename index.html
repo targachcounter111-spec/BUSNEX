@@ -826,7 +826,11 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
 
         <div class="section card">
           <div class="page-head">
-            <div><h2>সংরক্ষিত Trip List</h2><div class="small muted">এই কোম্পানির Trip-গুলো এখানে দেখা যাবে।</div></div>
+            <div><h2>সংরক্ষিত Trip List</h2><div class="small muted">চলতি Schedule ও অতীতের Trip আলাদাভাবে দেখুন।</div></div>
+            <div class="actions">
+              <button id="tripUpcomingButton" class="primary" type="button">চলতি Schedule</button>
+              <button id="tripHistoryButton" class="secondary" type="button">History</button>
+            </div>
           </div>
           <div id="tripList" class="empty">Trip লোড করা হয়নি।</div>
         </div>
@@ -1007,6 +1011,7 @@ let activeCompanyName = "";
 let companies = [];
 let buses = [];
 let editingTripId = null;
+let tripListView = "upcoming";
 
 function showMessage(message,type) {
   $("loginMessage").textContent = message;
@@ -2106,7 +2111,7 @@ $("tripSaveButton").addEventListener("click",async() => {
     const selectedRouteId = $("tripRouteSelect").value;
     if (isEditing) {
       const {data:currentTrip,error:currentTripError} = await supabase
-        .from("trips").select("route_id").eq("id",editingTripId).single();
+        .from("trips").select("route_id,schedule_group_id").eq("id",editingTripId).single();
       if (currentTripError) throw currentTripError;
       routeId = currentTrip.route_id;
     } else if (selectedRouteId && selectedRouteId !== "__new__") {
@@ -2145,11 +2150,35 @@ $("tripSaveButton").addEventListener("click",async() => {
 
     const tripIds = [];
     if (isEditing) {
-      const {error:updateError} = await supabase.from("trips")
-        .update(tripPayload).eq("id",editingTripId);
-      if (updateError) throw updateError;
-      tripIds.push(editingTripId);
+      const {data:editingTrip,error:editingTripError} = await supabase
+        .from("trips").select("id,schedule_group_id,departure_time")
+        .eq("id",editingTripId).single();
+      if (editingTripError) throw editingTripError;
+      let groupTrips = [editingTrip];
+      if (editingTrip.schedule_group_id) {
+        const {data:groupData,error:groupError} = await supabase
+          .from("trips").select("id,departure_time")
+          .eq("schedule_group_id",editingTrip.schedule_group_id)
+          .eq("company_id",companyId);
+        if (groupError) throw groupError;
+        if (!groupData?.length || !groupData.some(item=>item.id===editingTripId)) {
+          throw new Error("এই Schedule Group-এর Trip পাওয়া যায়নি। কোনো পরিবর্তন করা হয়নি।");
+        }
+        groupTrips = groupData;
+      }
+      for (const sibling of groupTrips) {
+        const siblingDate = sibling.id === editingTripId ? date : localDateValue(sibling.departure_time);
+        const siblingDeparture = new Date(siblingDate+"T"+time+":00");
+        const siblingArrival = arrivalTime ? new Date(siblingDate+"T"+arrivalTime+":00") : null;
+        if (siblingArrival && siblingArrival <= siblingDeparture) siblingArrival.setDate(siblingArrival.getDate()+1);
+        const siblingPayload = {...tripPayload,departure_time:siblingDeparture.toISOString(),arrival_time:siblingArrival ? siblingArrival.toISOString() : null};
+        const {error:updateError} = await supabase.from("trips")
+          .update(siblingPayload).eq("id",sibling.id).eq("company_id",companyId);
+        if (updateError) throw updateError;
+        tripIds.push(sibling.id);
+      }
     } else {
+      const scheduleGroupId = dayCount > 1 ? crypto.randomUUID() : null;
       for (let dayIndex=0; dayIndex<dayCount; dayIndex++) {
         const tripDate = new Date(startDay);
         tripDate.setDate(startDay.getDate()+dayIndex);
@@ -2160,7 +2189,7 @@ $("tripSaveButton").addEventListener("click",async() => {
         const dayPayload = {...tripPayload,departure_time:dayDeparture.toISOString(),
           arrival_time:dayArrival ? dayArrival.toISOString() : null};
         const {data:trip,error:tripError} = await supabase.from("trips")
-          .insert({...dayPayload,status:"scheduled"}).select("id").single();
+          .insert({...dayPayload,status:"scheduled",schedule_group_id:scheduleGroupId}).select("id").single();
         if (tripError) throw new Error(dayString+" তারিখের Trip তৈরি হয়নি: "+tripError.message);
         tripIds.push(trip.id);
       }
@@ -2251,22 +2280,24 @@ $("tripSaveButton").addEventListener("click",async() => {
   }
 });
 
-async function loadTrips() {
+async function loadTrips(view) {
   if (!isAdmin()) return;
-
+  if (view === "upcoming" || view === "history") tripListView = view;
+  $("tripUpcomingButton").className = tripListView === "upcoming" ? "primary" : "secondary";
+  $("tripHistoryButton").className = tripListView === "history" ? "primary" : "secondary";
   $("tripList").innerHTML = "Trip লোড হচ্ছে...";
 
   let query = supabase
     .from("trips")
     .select(`
       id,company_id,bus_id,route_id,departure_time,arrival_time,
-      ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,
+      ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,schedule_group_id,
       buses(bus_name),
       routes(starting_point,ending_point),
       trip_boarding_points(point_name,boarding_time,point_order)
     `)
     .order("departure_time",{ascending:true})
-    .limit(100);
+    .limit(1000);
 
   if (currentProfile.role === "company_manager") {
     query = query.eq("company_id",currentProfile.company_id);
@@ -2283,15 +2314,22 @@ async function loadTrips() {
     return;
   }
 
-  if (!data || !data.length) {
-    $("tripList").innerHTML =
-      '<div class="empty">এখনো কোনো Trip তৈরি করা হয়নি।</div>';
+  const now = Date.now();
+  const visibleTrips = (data || []).filter(trip => {
+    const departureMs = new Date(trip.departure_time).getTime();
+    return tripListView === "history" ? departureMs < now : departureMs >= now;
+  });
+
+  if (!visibleTrips.length) {
+    $("tripList").innerHTML = tripListView === "history"
+      ? '<div class="empty">এখনো কোনো অতীতের Trip নেই। History খালি।</div>'
+      : '<div class="empty">এখন কোনো চলতি বা ভবিষ্যতের Trip নেই।</div>';
     return;
   }
 
   $("tripList").innerHTML = "";
 
-  data.forEach(trip => {
+  visibleTrips.forEach(trip => {
     const route = trip.routes || {};
     const bus = trip.buses || {};
 
@@ -2323,6 +2361,7 @@ async function loadTrips() {
         <span><b>Fare:</b> ৳${escapeHtml(String(trip.ticket_price))}</span>
         <span><b>Supervisor:</b> ${escapeHtml(trip.supervisor_name || trip.supervisor || "—")}</span>
         <span><b>Supervisor Phone:</b> ${escapeHtml(trip.supervisor_phone || "—")}</span>
+        ${trip.schedule_group_id ? '<span><b>Schedule Group:</b> একই Group</span>' : ""}
         <span class="status ${escapeHtml(status)}">${escapeHtml(status)}</span>
         ${busIsOff ? '<strong class="status cancelled">BUS OFF — TICKET SALE STOPPED</strong>' : ''}
       </div>
@@ -2565,6 +2604,9 @@ async function deleteTrip(id,button) {
     button.textContent = "Delete Trip";
   }
 }
+
+$("tripUpcomingButton").addEventListener("click",() => loadTrips("upcoming"));
+$("tripHistoryButton").addEventListener("click",() => loadTrips("history"));
 
 $("refreshTripsButton").addEventListener("click",async() => {
   try {
