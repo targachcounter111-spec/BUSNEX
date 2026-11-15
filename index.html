@@ -4596,20 +4596,25 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     );
     // Refresh-এর পরও Slip দেখানোর জন্য Reservation table থেকে Seat mapping পুনরায় পড়ুন।
     const reservationIdBySeat = new Map();
+    // Nested relation বাদ দিয়ে আলাদা query: refresh-এর পরও Reservation Seat নির্ভরযোগ্যভাবে খুঁজবে।
     const {data:activeReservations,error:reservationLookupError} = await supabase
-      .from("ticket_reservations")
-      .select("id,status,expires_at,ticket_reservation_seats(seat_number)")
-      .eq("trip_id",trip.id)
-      .in("status",["active","confirmed"]);
+      .from("ticket_reservations").select("id,status,expires_at")
+      .eq("trip_id",trip.id).in("status",["active","confirmed"]);
     if (reservationLookupError) {
-      console.warn("RESERVATION SEAT LOOKUP:",reservationLookupError.message);
+      console.error("RESERVATION LOOKUP FAILED:",reservationLookupError);
+      summary.textContent = "Reservation তথ্য লোড হয়নি: " + reservationLookupError.message;
     } else {
-      (activeReservations || []).forEach(reservation => {
-        if (reservation.expires_at && Date.parse(reservation.expires_at) <= Date.now()) return;
-        (reservation.ticket_reservation_seats || []).forEach(item => {
-          reservationIdBySeat.set(String(item.seat_number),reservation.id);
-        });
-      });
+      const validIds=(activeReservations||[]).filter(r=>!r.expires_at||Date.parse(r.expires_at)>Date.now()).map(r=>r.id);
+      if(validIds.length){
+        const {data:reservedSeatRows,error:reservedSeatError}=await supabase.from("ticket_reservation_seats")
+          .select("reservation_id,seat_number").eq("trip_id",trip.id).in("reservation_id",validIds);
+        if(reservedSeatError){
+          console.error("RESERVATION SEAT LOOKUP FAILED:",reservedSeatError);
+          summary.textContent = "Reservation Seat তথ্য লোড হয়নি: " + reservedSeatError.message;
+        }else{
+          (reservedSeatRows||[]).forEach(item=>reservationIdBySeat.set(String(item.seat_number),item.reservation_id));
+        }
+      }
     }
     const selectedSeats = new Set();
     let availableCount = 0;
@@ -5747,10 +5752,15 @@ async function renderBookingResults(trips,from="",to="") {
   matches.forEach((trip,i)=>{const bus=trip.buses||{},route=trip.routes||{},d=new Date(trip.departure_time),dt=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}),tm=formatDhakaTime(d),c=counts.get(trip.id)||{available:0,reserved:0,sold:0};
     const row=document.createElement("tr");row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td>'+escapeHtml((route.starting_point||"—")+"–"+(route.ending_point||"—"))+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>'+(countLoadError?'তথ্য লোড হয়নি':('Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold))+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">▣ Challan</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
     const action=row.lastElementChild,open=action.querySelector(".counter-open-button"),challan=action.querySelector(".counter-challan-button"),expanded=document.createElement("tr");expanded.className="counter-expanded-row hidden";const td=document.createElement("td");td.colSpan=10;const workspace=document.createElement("div");workspace.className="counter-inline-workspace";td.appendChild(workspace);expanded.appendChild(td);
-    open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";return;}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});challan.addEventListener("click",()=>openCounterChallan(trip.id,challan));body.append(row,expanded);
+    open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";try{localStorage.removeItem("busnex_booking_open_trip");}catch(e){}return;}try{localStorage.setItem("busnex_booking_open_trip",trip.id);}catch(e){}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});challan.addEventListener("click",()=>openCounterChallan(trip.id,challan));body.append(row,expanded);
   });wrap.appendChild(table);result.appendChild(wrap);
+  let lastOpenTrip="";try{lastOpenTrip=localStorage.getItem("busnex_booking_open_trip")||"";}catch(e){}
+  if(lastOpenTrip){const targetIndex=matches.findIndex(t=>t.id===lastOpenTrip);if(targetIndex>=0){const targetButton=body.children[targetIndex]?.querySelector(".counter-open-button");if(targetButton)targetButton.click();}}
 }
-$("journeyDate").value = new Date().toLocaleDateString("en-CA");
+const todayBookingDate = new Date().toLocaleDateString("en-CA");
+let savedBookingDate = "";
+try { savedBookingDate = localStorage.getItem("busnex_booking_journey_date") || ""; } catch(e) {}
+$("journeyDate").value = /^\\d{4}-\\d{2}-\\d{2}$/.test(savedBookingDate) ? savedBookingDate : todayBookingDate;
 $("tripDate").value = new Date().toLocaleDateString("en-CA");
 $("fromStop").disabled = true;
 $("toStop").disabled = true;
@@ -5759,6 +5769,7 @@ let bookingDateLoadRequest = 0;
 
 async function loadBookingStopsForSelectedDate() {
   const date = $("journeyDate").value;
+  try { if(date) localStorage.setItem("busnex_booking_journey_date",date); } catch(e) {}
   const requestId = ++bookingDateLoadRequest;
   $("fromStop").disabled = true;
   $("toStop").disabled = true;
