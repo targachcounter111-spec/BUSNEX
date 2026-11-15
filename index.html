@@ -3253,11 +3253,24 @@ async function loadReservationsPage() {
         rows.map(row=>{
           const seats=(row.ticket_reservation_seats||[]).map(x=>escapeHtml(x.seat_number)+" · "+escapeHtml(x.passenger_name)).join("<br>");
           const expiry=row.expires_at?formatDhakaDateTime(row.expires_at):"কোনো Expiry নেই";
+          const expiryMs=row.expires_at?Date.parse(row.expires_at):0;
+          const remainingText=row.status==="active"&&expiryMs?'<br><small class="reservation-list-countdown" data-expires="'+escapeHtml(row.expires_at)+'"></small>':"";
           const reservationStatus=row.status==="active"&&row.confirmed_at?"confirmed":row.status;
           const canConfirm=row.status==="active"&&!row.confirmed_at;
           const canCancel=["active","confirmed"].includes(reservationStatus);
-          return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(reservationStatus)+'</td><td>'+escapeHtml(expiry)+'</td><td>'+(canConfirm?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'">Confirm</button> ':'')+(canCancel?'<button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+'</td></tr>';
+          return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(reservationStatus)+'</td><td>'+escapeHtml(expiry)+remainingText+'</td><td>'+(canConfirm?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'">Confirm</button> ':'')+(canCancel?'<button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+'</td></tr>';
         }).join("")+'</tbody></table>';
+      const updateReservationCountdowns=()=>{
+        $("reservationList").querySelectorAll(".reservation-list-countdown").forEach(node=>{
+          const ms=Date.parse(node.dataset.expires)-Date.now();
+          if(!Number.isFinite(ms)||ms<=0){node.textContent="সময় শেষ — Expiry cleanup অপেক্ষমাণ";node.classList.add("expired");return;}
+          const total=Math.floor(ms/1000),days=Math.floor(total/86400),hours=Math.floor((total%86400)/3600),minutes=Math.floor((total%3600)/60),seconds=total%60;
+          node.textContent="বাকি "+(days?days+" দিন ":"")+(hours?hours+" ঘণ্টা ":"")+(minutes?minutes+" মিনিট ":"")+seconds+" সেকেন্ড";
+        });
+      };
+      updateReservationCountdowns();
+      if(window.busnexReservationCountdownTimer) clearInterval(window.busnexReservationCountdownTimer);
+      window.busnexReservationCountdownTimer=setInterval(updateReservationCountdowns,1000);
       $("reservationList").querySelectorAll(".reservation-confirm").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_confirm_reservation","Reservation Confirm হয়েছে?")));
       $("reservationList").querySelectorAll(".reservation-cancel").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_cancel_reservation","Reservation Cancel হয়েছে?")));
 
@@ -5221,7 +5234,51 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               seatButton.textContent=seatNumber;seatButton.title=type.toUpperCase()+" Reservation";
               seatButton.removeAttribute("role");seatButton.removeAttribute("tabindex");}
           });
+          let expiryDetails=null;
+          try {
+            const {data:expiryRow,error:expiryReadError}=await supabase
+              .from("ticket_reservations").select("expires_at").eq("id",data).single();
+            if(expiryReadError) throw expiryReadError;
+            expiryDetails=expiryRow;
+          } catch(expiryReadError) {
+            console.warn("RESERVATION EXPIRY DISPLAY:",expiryReadError.message);
+          }
           selectedInfo.textContent=seatsToReserve.length+"টি Seat-এর "+(type==="vip"?"VIP":"Standard")+" Reservation তৈরি হয়েছে। ID: "+data;
+          if(expiryDetails?.expires_at) {
+            const expiryDate=new Date(expiryDetails.expires_at);
+            const expiryLabel=document.createElement("div");
+            expiryLabel.className="reservation-expiry-countdown";
+            const expiryTime=document.createElement("strong");
+            expiryTime.textContent="শেষ হবে: "+formatDhakaDateTime(expiryDetails.expires_at);
+            const remaining=document.createElement("span");
+            remaining.className="reservation-countdown";
+            expiryLabel.append(expiryTime,document.createElement("br"),remaining);
+            selectedInfo.appendChild(expiryLabel);
+            const updateCountdown=()=>{
+              const ms=expiryDate.getTime()-Date.now();
+              if(ms<=0) {
+                remaining.textContent="সময় শেষ — Reservation Expire হয়েছে; Seat মুক্ত হওয়ার কথা।";
+                remaining.classList.add("expired");
+                return false;
+              }
+              const totalSeconds=Math.floor(ms/1000);
+              const days=Math.floor(totalSeconds/86400);
+              const hours=Math.floor((totalSeconds%86400)/3600);
+              const minutes=Math.floor((totalSeconds%3600)/60);
+              const seconds=totalSeconds%60;
+              remaining.textContent="বাকি: "+(days?days+" দিন ":"")+(hours?hours+" ঘণ্টা ":"")+(minutes?minutes+" মিনিট ":"")+seconds+" সেকেন্ড";
+              return true;
+            };
+            updateCountdown();
+            const countdownTimer=setInterval(()=>{
+              if(!expiryLabel.isConnected || !updateCountdown()) clearInterval(countdownTimer);
+            },1000);
+          } else {
+            const expiryWarning=document.createElement("div");
+            expiryWarning.className="reservation-expiry-countdown";
+            expiryWarning.textContent="Expiry সময় পাওয়া যায়নি। Reservation পেজে গিয়ে Expiry পরীক্ষা করুন।";
+            selectedInfo.appendChild(expiryWarning);
+          }
           if(!selectedSeats.size){groupPassenger.name="";groupPassenger.phone="";groupPassenger.gender="";groupPassenger.boarding="";groupPassenger.dropping="";}
           renderPassengerFields();alert((type==="vip"?"VIP":"Standard")+" Reservation সফল হয়েছে।");
         }catch(error){selectedInfo.textContent="Reservation তৈরি হয়নি: "+error.message;alert(selectedInfo.textContent);}
