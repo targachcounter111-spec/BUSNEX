@@ -1048,7 +1048,7 @@ async function loadBillingDashboardNotice() {
     if(due<=0||count<=0)return;
     notice.textContent="Billing Notice: আপনার Company-এর "+count+"টি Invoice-এর মোট বকেয়া ৳"+due.toFixed(2)+
       (summary?.earliest_due?"। নিকটতম Due Date: "+summary.earliest_due:"")+
-      +(currentProfile.role==="company_manager"?"। বিস্তারিত দেখতে Billing পেজ খুলুন।":"। বকেয়া Invoice-এর বিস্তারিত জানতে Company Manager-এর সঙ্গে যোগাযোগ করুন।");
+      (currentProfile.role==="company_manager"?"। বিস্তারিত দেখতে Billing পেজ খুলুন।":"। বকেয়া Invoice-এর বিস্তারিত জানতে Company Manager-এর সঙ্গে যোগাযোগ করুন।");
     notice.classList.remove("hidden");
   }catch(error){
     console.warn("BILLING NOTICE LOAD:",error.message);
