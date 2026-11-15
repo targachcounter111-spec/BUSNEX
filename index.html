@@ -4255,31 +4255,6 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   const reservationChoice = document.createElement("button");
   reservationChoice.type="button";reservationChoice.className="reservation-choice";reservationChoice.textContent="Reservation";
   reservationChoice.hidden = allowedReservationTypes.size === 0;
-  let reservationCounterSelect = null;
-  if (["super_admin","company_manager"].includes(currentProfile?.role)) {
-    reservationCounterSelect = document.createElement("select");
-    reservationCounterSelect.className = "booking-reservation-counter";
-    reservationCounterSelect.setAttribute("aria-label","Reservation Counter নির্বাচন");
-    reservationCounterSelect.innerHTML = '<option value="">Counter নির্বাচন করুন</option>';
-    reservationCounterChoices.forEach(counter=>{
-      const option=document.createElement("option");option.value=counter.id;
-      option.textContent=counter.name+(counter.address?" — "+counter.address:"");
-      reservationCounterSelect.appendChild(option);
-    });
-    reservationCounterSelect.value=selectedReservationCounterId || "";
-    reservationCounterSelect.hidden = reservationCounterChoices.length === 0;
-    reservationCounterSelect.addEventListener("change",()=>{
-      selectedReservationCounterId=reservationCounterSelect.value || null;
-      const selected=reservationCounterChoices.find(counter=>counter.id===selectedReservationCounterId);
-      allowedReservationTypes=selected?.types || new Set();
-      reservationChoice.hidden=allowedReservationTypes.size===0;
-      if (!allowedReservationTypes.size && bookingMode==="reservation") {
-        bookingMode="paid";paidChoice.classList.add("active");reservationChoice.classList.remove("active");
-      }
-      refreshPassengerFields();
-    });
-    bookingTypeWrap.appendChild(reservationCounterSelect);
-  }
   paidChoice.addEventListener("click",()=>{
     bookingMode="paid";
     paidChoice.classList.add("active");reservationChoice.classList.remove("active");
@@ -5223,7 +5198,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         if (button.disabled) return;
         if (!allowedReservationTypes.has(type)) { alert("এই Counter-এর জন্য এই Reservation Permission সক্রিয় নেই।"); return; }
         if (currentProfile?.role !== "counter_operator" && !selectedReservationCounterId) {
-          alert("Reservation-এর জন্য Permission দেওয়া Counter নির্বাচন করুন。"); return;
+          alert("এই Company-তে কোনো Active Counter পাওয়া যায়নি।"); return;
         }
         if (!groupPassenger.name.trim() || !groupPassenger.phone.trim() || !groupPassenger.gender || !groupPassenger.boarding || !groupPassenger.dropping) {
           alert("Reservation-এর জন্য নাম, মোবাইল, Gender, Boarding ও Dropping Stop পূরণ করুন।"); return;
