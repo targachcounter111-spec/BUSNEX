@@ -269,3 +269,60 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid,timestamptz,uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid,timestamptz,uuid) TO authenticated;
+
+
+-- Expire reservations in the database even when no user has the website open.
+-- The job runs once per minute; every expired reservation releases its seats.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+CREATE OR REPLACE FUNCTION public.busnex_expire_reservations_system()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+DECLARE
+  v_expired integer := 0;
+BEGIN
+  WITH expired AS (
+    UPDATE public.ticket_reservations r
+    SET status = 'expired', updated_at = now()
+    WHERE r.status = 'active'
+      AND r.expires_at IS NOT NULL
+      AND r.expires_at <= now()
+    RETURNING r.id
+  ),
+  cleared AS (
+    UPDATE public.trip_seats ts
+    SET reservation_id = NULL
+    WHERE ts.reservation_id IN (SELECT id FROM expired)
+    RETURNING ts.id
+  )
+  SELECT count(*)::integer INTO v_expired FROM expired;
+
+  RETURN COALESCE(v_expired,0);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.busnex_expire_reservations_system() FROM PUBLIC, anon, authenticated;
+
+DO $schedule$
+DECLARE
+  v_job_id bigint;
+BEGIN
+  SELECT jobid INTO v_job_id
+  FROM cron.job
+  WHERE jobname = 'busnex_expire_reservations_minutely'
+  LIMIT 1;
+
+  IF v_job_id IS NOT NULL THEN
+    PERFORM cron.unschedule(v_job_id);
+  END IF;
+
+  PERFORM cron.schedule(
+    'busnex_expire_reservations_minutely',
+    '* * * * *',
+    'SELECT public.busnex_expire_reservations_system();'
+  );
+END;
+$schedule$;
