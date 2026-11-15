@@ -272,6 +272,65 @@ GRANT EXECUTE ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text
 
 
 
+
+-- Route legacy RPC overloads through the same permission and boarding-expiry rules.
+CREATE OR REPLACE FUNCTION public.busnex_create_reservation(
+  p_trip_id uuid,
+  p_reservation_type text,
+  p_seat_numbers text[],
+  p_passenger_name text,
+  p_passenger_phone text,
+  p_passenger_gender text,
+  p_boarding_stop_id uuid,
+  p_dropping_stop_id uuid
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+BEGIN
+  RETURN public.busnex_create_reservation(
+    p_trip_id,p_reservation_type,p_seat_numbers,p_passenger_name,
+    p_passenger_phone,p_passenger_gender,p_boarding_stop_id,
+    p_dropping_stop_id,NULL,NULL
+  );
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.busnex_create_reservation(
+  p_trip_id uuid,
+  p_reservation_type text,
+  p_seat_numbers text[],
+  p_passenger_name text,
+  p_passenger_phone text,
+  p_passenger_gender text,
+  p_boarding_stop_id uuid,
+  p_dropping_stop_id uuid,
+  p_valid_till timestamptz
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+BEGIN
+  RETURN public.busnex_create_reservation(
+    p_trip_id,p_reservation_type,p_seat_numbers,p_passenger_name,
+    p_passenger_phone,p_passenger_gender,p_boarding_stop_id,
+    p_dropping_stop_id,p_valid_till,NULL
+  );
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid,timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.busnex_create_reservation(uuid,text,text[],text,text,text,uuid,uuid,timestamptz) TO authenticated;
+
+-- VIP expiry is fixed by the last boarding schedule; disable the old manual override.
+REVOKE ALL ON FUNCTION public.busnex_set_vip_reservation_expiry(uuid,timestamptz) FROM PUBLIC, anon, authenticated;
+
 -- Return only the current user's permitted reservation counter/type pairs.
 -- This avoids exposing the permission table directly to counter operators.
 CREATE OR REPLACE FUNCTION public.busnex_get_reservation_permissions(p_company_id uuid)
