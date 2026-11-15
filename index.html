@@ -3424,6 +3424,49 @@ $("tripSheetPrint").addEventListener("click",()=>{
   w.document.open();w.document.write(html);w.document.close();w.onload=()=>{w.focus();w.print();};
 });
 
+async function openCounterChallan(tripId,button) {
+  if(document.getElementById("counterChallanOverlay")) return;
+  const styleId="counterChallanPreviewStyles";
+  if(!document.getElementById(styleId)){
+    const style=document.createElement("style");
+    style.id=styleId;
+    style.textContent="#counterChallanOverlay{position:fixed;inset:0;z-index:99999;background:rgba(8,20,35,.78);display:flex;flex-direction:column;padding:14px;overflow:auto}#counterChallanOverlay .challan-toolbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;padding:10px 14px;border-radius:10px 10px 0 0;max-width:210mm;width:100%;margin:0 auto}#counterChallanOverlay .challan-toolbar strong{font-size:14px}#counterChallanOverlay .challan-toolbar button{padding:9px 15px}#counterChallanOverlay .challan-close{background:#e9edf2;color:#243447}#counterChallanOverlay .challan-print{background:#1769aa;color:#fff}#counterChallanOverlay .challan-paper-wrap{flex:1;overflow:auto;display:flex;justify-content:center;align-items:flex-start;background:#dce2e8;padding:12px}#counterChallanOverlay iframe{display:block;border:0;background:#fff;width:210mm;height:297mm;min-width:210mm;box-shadow:0 5px 25px #0003}@media(max-width:700px){#counterChallanOverlay{padding:5px}#counterChallanOverlay .challan-toolbar{border-radius:8px;flex-wrap:wrap}#counterChallanOverlay .challan-paper-wrap{justify-content:flex-start;padding:8px}}";
+    document.head.appendChild(style);
+  }
+  const overlay=document.createElement("div");
+  overlay.id="counterChallanOverlay";
+  overlay.setAttribute("role","dialog");
+  overlay.setAttribute("aria-modal","true");
+  overlay.innerHTML='<div class="challan-toolbar"><strong>BUSNEX — A4 Trip Sheet</strong><div><button type="button" class="challan-print" disabled>🖨 Print A4</button> <button type="button" class="challan-close">✕ বন্ধ করুন</button></div></div><div class="challan-paper-wrap"><div style="background:#fff;padding:30px;min-width:280px;text-align:center;margin:auto">Trip Sheet লোড হচ্ছে…</div></div>';
+  document.body.appendChild(overlay);
+  const close=()=>overlay.remove();
+  overlay.querySelector(".challan-close").addEventListener("click",close);
+  overlay.addEventListener("click",event=>{if(event.target===overlay)close();});
+  const printButton=overlay.querySelector(".challan-print");
+  try{
+    if(button)button.disabled=true;
+    await loadTripSheet(tripId);
+    const html=$("tripSheetPrint").dataset.printHtml;
+    if($("tripSheetPrint").disabled||!html)throw new Error($("tripSheetMessage").textContent||"Trip Sheet তৈরি হয়নি।");
+    const paper=overlay.querySelector(".challan-paper-wrap");
+    paper.innerHTML="";
+    const frame=document.createElement("iframe");
+    frame.title="A4 Trip Sheet Preview";
+    frame.setAttribute("sandbox","allow-same-origin allow-modals");
+    frame.srcdoc=html;
+    paper.appendChild(frame);
+    printButton.disabled=false;
+    printButton.addEventListener("click",()=>{
+      try{frame.contentWindow.focus();frame.contentWindow.print();}
+      catch(error){alert("Print চালু হয়নি: "+error.message);}
+    });
+  }catch(error){
+    overlay.querySelector(".challan-paper-wrap").innerHTML='<div style="background:#fff;padding:24px;color:#a32b20;max-width:700px;margin:20px auto;border-radius:8px">Trip Sheet লোড হয়নি: '+escapeHtml(error.message)+'</div>';
+  }finally{
+    if(button)button.disabled=false;
+  }
+}
+
 async function loadSeatInventory(tripId) {
   $("seatLayout").innerHTML = "";
   $("seatSummary").textContent = "Seat Inventory লোড হচ্ছে...";
@@ -4853,7 +4896,7 @@ async function renderBookingResults(trips,from="",to="") {
   matches.forEach((trip,i)=>{const bus=trip.buses||{},route=trip.routes||{},d=new Date(trip.departure_time),dt=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}),tm=formatDhakaTime(d),c=counts.get(trip.id)||{available:0,reserved:0,sold:0};
     const row=document.createElement("tr");row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td>'+escapeHtml((route.starting_point||"—")+"–"+(route.ending_point||"—"))+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">▣ Challan</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
     const action=row.lastElementChild,open=action.querySelector(".counter-open-button"),challan=action.querySelector(".counter-challan-button"),expanded=document.createElement("tr");expanded.className="counter-expanded-row hidden";const td=document.createElement("td");td.colSpan=10;const workspace=document.createElement("div");workspace.className="counter-inline-workspace";td.appendChild(workspace);expanded.appendChild(td);
-    open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";return;}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});challan.addEventListener("click",()=>open.click());body.append(row,expanded);
+    open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";return;}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});challan.addEventListener("click",()=>openCounterChallan(trip.id,challan));body.append(row,expanded);
   });wrap.appendChild(table);result.appendChild(wrap);
 }
 $("journeyDate").value = new Date().toLocaleDateString("en-CA");
