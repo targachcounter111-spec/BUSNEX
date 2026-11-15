@@ -118,7 +118,7 @@ BEGIN
     RAISE EXCEPTION 'অন্য Company-এর Counter ব্যবহার করা যাবে না';
   END IF;
 
-  -- Every reservation requires an active permission for the selected counter.
+  -- Counter Operators require an active permission for their assigned counter.
   IF v_role = 'counter_operator' AND NOT EXISTS (
     SELECT 1 FROM public.counter_reservation_permissions p
     WHERE p.counter_id = v_target_counter_id
