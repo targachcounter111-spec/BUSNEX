@@ -4003,7 +4003,7 @@ function fillBookingStopOptions(trips) {
         select.appendChild(option);
       });
     if ([...names.values()].some(point => point.name.toLowerCase() === previous.toLowerCase())) {
-      select.value = [...names.values()].find(name => name.toLowerCase() === previous.toLowerCase());
+      select.value = [...names.values()].find(point => point.name.toLowerCase() === previous.toLowerCase()).name;
     }
     select.disabled = names.size === 0;
   }
