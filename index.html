@@ -4900,11 +4900,35 @@ async function renderBookingResults(trips,from="",to="") {
   if(!matches.length){result.innerHTML='<div class="counter-empty-state">এই তারিখে কোনো Active Trip পাওয়া যায়নি।</div>';return;}
   const wrap=document.createElement("div");wrap.className="table-wrap counter-reference-table-wrap";const table=document.createElement("table");table.className="counter-reference-table";
   table.innerHTML='<thead><tr><th>SL</th><th>TRIP DATE & TIME</th><th>BOARDING DATE & TIME</th><th>COACH NO.</th><th>ROUTE</th><th>SUPERVISOR</th><th>SOLD SEATS</th><th>SEAT PLAN & CLASS</th><th>FARE</th><th>ACTION</th></tr></thead><tbody></tbody>';
-  const body=table.querySelector("tbody"),ids=matches.map(t=>t.id);let seatRows=[];
-  try{const {data,error}=await supabase.from("trip_seats").select("trip_id,status").in("trip_id",ids);if(error)throw error;seatRows=data||[];}catch(e){console.warn("Trip seat counts unavailable:",e);}
-  const counts=new Map();seatRows.forEach(x=>{const c=counts.get(x.trip_id)||{available:0,reserved:0,sold:0};const st=String(x.status||"").toLowerCase();if(st==="available")c.available++;else if(st==="reserved"||st==="held")c.reserved++;else if(st==="sold")c.sold++;counts.set(x.trip_id,c);});
+  const body=table.querySelector("tbody"),ids=matches.map(t=>t.id);
+  let seatRows=[],soldTicketRows=[],countLoadError=null;
+  try{
+    const [inventoryResult,ticketResult]=await Promise.all([
+      supabase.from("trip_seats").select("trip_id,seat_number,status,reservation_id").in("trip_id",ids),
+      supabase.from("tickets").select("trip_id,seat_number").in("trip_id",ids).eq("status","sold")
+    ]);
+    if(inventoryResult.error)throw inventoryResult.error;
+    if(ticketResult.error)throw ticketResult.error;
+    seatRows=inventoryResult.data||[];
+    soldTicketRows=ticketResult.data||[];
+  }catch(e){countLoadError=e;console.warn("Trip seat counts unavailable:",e);}
+  const soldSeatsByTrip=new Map();
+  soldTicketRows.forEach(ticket=>{
+    if(!soldSeatsByTrip.has(ticket.trip_id))soldSeatsByTrip.set(ticket.trip_id,new Set());
+    soldSeatsByTrip.get(ticket.trip_id).add(String(ticket.seat_number));
+  });
+  const counts=new Map();
+  seatRows.forEach(x=>{
+    const c=counts.get(x.trip_id)||{available:0,reserved:0,sold:0};
+    const st=String(x.status||"").toLowerCase();
+    const isSold=st==="sold"||(soldSeatsByTrip.get(x.trip_id)?.has(String(x.seat_number))||false);
+    if(isSold)c.sold++;
+    else if(st==="available")c.available++;
+    else if(st==="reserved"||st==="held"||x.reservation_id)c.reserved++;
+    counts.set(x.trip_id,c);
+  });
   matches.forEach((trip,i)=>{const bus=trip.buses||{},route=trip.routes||{},d=new Date(trip.departure_time),dt=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}),tm=formatDhakaTime(d),c=counts.get(trip.id)||{available:0,reserved:0,sold:0};
-    const row=document.createElement("tr");row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td>'+escapeHtml((route.starting_point||"—")+"–"+(route.ending_point||"—"))+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">▣ Challan</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
+    const row=document.createElement("tr");row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td>'+escapeHtml((route.starting_point||"—")+"–"+(route.ending_point||"—"))+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>'+(countLoadError?'তথ্য লোড হয়নি':('Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold))+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">▣ Challan</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
     const action=row.lastElementChild,open=action.querySelector(".counter-open-button"),challan=action.querySelector(".counter-challan-button"),expanded=document.createElement("tr");expanded.className="counter-expanded-row hidden";const td=document.createElement("td");td.colSpan=10;const workspace=document.createElement("div");workspace.className="counter-inline-workspace";td.appendChild(workspace);expanded.appendChild(td);
     open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";return;}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});challan.addEventListener("click",()=>openCounterChallan(trip.id,challan));body.append(row,expanded);
   });wrap.appendChild(table);result.appendChild(wrap);
