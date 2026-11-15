@@ -5346,9 +5346,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           if(error)throw error;
           seatsToReserve.forEach(seatNumber=>{
             selectedSeats.delete(seatNumber);const seatButton=seatButtons.get(seatNumber);
-            if(seatButton){seatButton.classList.remove("selected","available");seatButton.classList.add("reserved");
-              seatButton.textContent=seatNumber;seatButton.title=type.toUpperCase()+" Reservation";
-              seatButton.removeAttribute("role");seatButton.removeAttribute("tabindex");}
+            if(seatButton){
+              seatButton.classList.remove("selected","available");seatButton.classList.add("reserved");
+              seatButton.textContent=seatNumber;seatButton.title="Reservation Slip দেখতে ক্লিক করুন";
+              seatButton.setAttribute("role","button");seatButton.setAttribute("tabindex","0");
+              seatButton.onclick=()=>showReservationSlip(data);
+              seatButton.onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();showReservationSlip(data);}};
+            }
           });
           let expiryDetails=null;
           try {
