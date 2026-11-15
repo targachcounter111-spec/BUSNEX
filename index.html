@@ -4732,6 +4732,19 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           console.warn("Ticket cancellation permission check unavailable:",permissionError);
         }
         if(mayCancelTicket && groupTickets.every(item=>String(item.status||"").toLowerCase()==="sold")) {
+          // Load saved passenger gender so cancellation seat tiles use full gender colours.
+          try {
+            const groupIds=groupTickets.map(item=>item.id).filter(Boolean);
+            if(groupIds.length) {
+              const genderResult=await supabase.from("tickets").select("id,passenger_gender").in("id",groupIds);
+              if(genderResult.error) throw genderResult.error;
+              const genderByTicketId=new Map((genderResult.data||[]).map(item=>[item.id,String(item.passenger_gender||"").toLowerCase()]));
+              groupTickets.forEach(item=>{item.passenger_gender=genderByTicketId.get(item.id)||item.passenger_gender||"";});
+            }
+          } catch(genderLoadError) {
+            console.warn("Could not load cancellation seat gender colours:",genderLoadError);
+          }
+
           const selectedCancelTicketIds = new Set();
           if(groupTickets.length===1 && groupTickets[0].id) selectedCancelTicketIds.add(groupTickets[0].id);
 
@@ -4752,13 +4765,17 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             selectionCount.style.cssText="margin-top:10px;font-weight:700;color:#4b328f;font-size:13px;";
             groupTickets.forEach(item=>{
               const seatLabel=document.createElement("label");
-              seatLabel.style.cssText="display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid #e4e0ef;border-radius:9px;background:#fff;cursor:pointer;font-size:13px;";
+              const gender=String(item.passenger_gender||"").trim().toLowerCase();
+              const isMale=["male","m","পুরুষ","ছেলে"].includes(gender);
+              const isFemale=["female","f","মহিলা","নারী","মেয়ে","মেয়ে"].includes(gender);
+              const seatColour=isMale?"#dc3545":isFemale?"#e83e8c":"#596579";
+              seatLabel.style.cssText="display:flex;align-items:center;gap:9px;padding:11px 12px;border:2px solid "+seatColour+";border-radius:9px;background:"+seatColour+";color:#fff;cursor:pointer;font-size:13px;font-weight:700;min-height:44px;box-sizing:border-box;box-shadow:inset 0 0 0 1px #ffffff22;";
               const checkbox=document.createElement("input");
               checkbox.type="checkbox";
               checkbox.value=String(item.id||"");
-              checkbox.style.cssText="width:17px;height:17px;accent-color:#6941c6;flex:0 0 auto;";
+              checkbox.style.cssText="width:18px;height:18px;accent-color:#fff;flex:0 0 auto;cursor:pointer;";
               const seatText=document.createElement("span");
-              seatText.textContent="Seat "+String(item.seat_number||"—")+" · "+String(item.passenger_name||"যাত্রীর নাম নেই")+" · ৳"+Number(item.ticket_price||0).toFixed(2);
+              seatText.textContent="Seat "+String(item.seat_number||"—")+" · "+(isMale?"Male":isFemale?"Female":"Other")+" · ৳"+Number(item.ticket_price||0).toFixed(2);
               seatLabel.append(checkbox,seatText);
               checkbox.addEventListener("change",()=>{
                 if(checkbox.checked && item.id) selectedCancelTicketIds.add(item.id);
