@@ -75,6 +75,55 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = body.action;
+
+  // Every authenticated user may update their own display name and/or password.
+  if (action === "update_own_account") {
+    const fullName = typeof body.full_name === "string" ? body.full_name.trim() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    if (!fullName && !password) return json(400, { success: false, message: "নতুন নাম অথবা Password দিন।" }, origin);
+    if (fullName.length > 120) return json(400, { success: false, message: "নাম ১২০ অক্ষরের মধ্যে হতে হবে।" }, origin);
+    if (password && password.length < 8) return json(400, { success: false, message: "Password কমপক্ষে ৮ অক্ষরের হতে হবে।" }, origin);
+    if (password) {
+      const { error } = await admin.auth.admin.updateUserById(authData.user.id, { password });
+      if (error) return json(400, { success: false, message: error.message }, origin);
+    }
+    if (fullName) {
+      const { error } = await admin.from("profiles").update({ full_name: fullName }).eq("id", authData.user.id);
+      if (error) return json(400, { success: false, message: error.message }, origin);
+    }
+    return json(200, { success: true, message: "আপনার Account তথ্য আপডেট হয়েছে।", full_name: fullName || caller.full_name || null }, origin);
+  }
+
+  // Super Admin may manage any account; a Company Manager may manage only
+  // Operator/Agent accounts belonging to the Manager's own company.
+  if (action === "admin_reset_user_credentials") {
+    if (caller.role !== "super_admin" && caller.role !== "company_manager") {
+      return json(403, { success: false, message: "অন্যের Account পরিবর্তনের অনুমতি নেই।" }, origin);
+    }
+    const targetId = typeof body.profile_id === "string" ? body.profile_id : "";
+    const fullName = typeof body.full_name === "string" ? body.full_name.trim() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    if (!targetId || (!fullName && !password)) return json(400, { success: false, message: "Account নির্বাচন করে নতুন নাম অথবা Password দিন।" }, origin);
+    if (fullName.length > 120) return json(400, { success: false, message: "নাম ১২০ অক্ষরের মধ্যে হতে হবে।" }, origin);
+    if (password && password.length < 8) return json(400, { success: false, message: "নতুন Password কমপক্ষে ৮ অক্ষরের হতে হবে।" }, origin);
+    let targetQuery = admin.from("profiles").select("id, role, company_id").eq("id", targetId);
+    if (caller.role === "company_manager") {
+      targetQuery = targetQuery.eq("company_id", caller.company_id).eq("role", "counter_operator");
+    }
+    const { data: target, error: targetError } = await targetQuery.maybeSingle();
+    if (targetError) return json(500, { success: false, message: targetError.message }, origin);
+    if (!target) return json(404, { success: false, message: "এই Account আপনার অনুমোদিত তালিকায় পাওয়া যায়নি।" }, origin);
+    if (password) {
+      const { error } = await admin.auth.admin.updateUserById(target.id, { password });
+      if (error) return json(400, { success: false, message: error.message }, origin);
+    }
+    if (fullName) {
+      const { error } = await admin.from("profiles").update({ full_name: fullName }).eq("id", target.id);
+      if (error) return json(400, { success: false, message: error.message }, origin);
+    }
+    return json(200, { success: true, message: "Account তথ্য আপডেট হয়েছে।" }, origin);
+  }
+
   const loginId = normalizeLoginId(body.login_id);
 
   if (action === "set_operator_active") {
