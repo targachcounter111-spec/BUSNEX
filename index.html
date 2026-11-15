@@ -4195,7 +4195,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       selectedReservationCounterId=reservationCounterChoices[0]?.id || null;
       allowedReservationTypes=reservationCounterChoices[0]?.types || new Set();
     }
-  }{
+  } catch(permissionLoadError) {
     console.warn("RESERVATION PERMISSION LOAD:",permissionLoadError.message);
     reservationCounterChoices=[];
     selectedReservationCounterId=currentProfile?.role==="counter_operator"?currentProfile.counter_id:null;
