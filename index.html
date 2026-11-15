@@ -865,6 +865,7 @@ body{background:#f7f4ff!important;color:#24163e!important}
     <div class="top-actions">
       <span id="userChip" class="user-chip hidden">ব্যবহারকারী</span>
       <div class="topbar-profile"><span class="profile-avatar">●</span><span><b id="topbarUserName">ব্যবহারকারী</b><small id="topbarUserRole">BUSNEX</small></span></div>
+      <button id="myAccountButton" class="secondary" type="button">My Account</button>
       <button id="returnGlobalButton" class="secondary" type="button">← Global Dashboard</button>
       <button id="logoutButton" class="secondary">লগআউট</button>
     </div>
@@ -1290,6 +1291,25 @@ body{background:#f7f4ff!important;color:#24163e!important}
       </section>
       <div class="footer">BUSNEX • Bus Counter Management System</div>
     </main>
+  </div>
+</div>
+
+<div id="accountModal" class="hidden" style="position:fixed;inset:0;z-index:10000;background:rgba(22,12,40,.58);padding:18px;overflow:auto">
+  <div style="max-width:900px;margin:30px auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.25)">
+    <div class="page-head"><div><h2>Account Settings</h2><p class="muted small">নিজের নাম ও Password নিরাপদে পরিবর্তন করুন।</p></div><button id="closeAccountModal" class="secondary" type="button">বন্ধ করুন ✕</button></div>
+    <form id="ownAccountForm" class="form-row">
+      <div class="field"><label for="accountFullName">আপনার নাম</label><input id="accountFullName" maxlength="120" autocomplete="name" placeholder="নতুন নাম"></div>
+      <div class="field"><label for="accountNewPassword">নতুন Password (কমপক্ষে ৮ অক্ষর)</label><input id="accountNewPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></div>
+      <div class="field"><label for="accountConfirmPassword">নতুন Password আবার লিখুন</label><input id="accountConfirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="একই Password আবার লিখুন"></div>
+      <div class="field"><label>&nbsp;</label><button id="saveOwnAccount" class="primary" type="submit">নিজের তথ্য সংরক্ষণ</button></div>
+    </form>
+    <div id="ownAccountMessage" class="message" aria-live="polite"></div>
+    <div id="managedAccountsPanel" class="section hidden">
+      <h2>অন্যদের Account পরিচালনা</h2>
+      <p id="managedAccountsHint" class="muted small"></p>
+      <div id="managedAccountsMessage" class="message" aria-live="polite"></div>
+      <div id="managedAccountsList" class="table-wrap"><div class="empty">Account তালিকা লোড হয়নি।</div></div>
+    </div>
   </div>
 </div>
 
@@ -2812,6 +2832,121 @@ function escapeHtml(value) {
     "'":"&#39;"
   })[char]);
 }
+
+function accountMessage(id, message, type = "") {
+  const node = $(id);
+  if (!node) return;
+  node.textContent = message;
+  node.className = "message" + (type ? " " + type : "");
+}
+
+async function loadManagedAccounts() {
+  const panel = $("managedAccountsPanel");
+  if (!["super_admin","company_manager"].includes(currentProfile?.role)) {
+    panel.classList.add("hidden");
+    return;
+  }
+  panel.classList.remove("hidden");
+  $("managedAccountsHint").textContent = currentProfile.role === "super_admin"
+    ? "সব Company-র Manager, Operator ও Agent Account পরিচালনা করতে পারবেন।"
+    : "শুধু আপনার Company-র Operator ও Agent Account পরিচালনা করতে পারবেন।";
+  $("managedAccountsMessage").textContent = "Account তালিকা লোড হচ্ছে...";
+  try {
+    let query = supabase.from("profiles")
+      .select("id,login_id,full_name,role,id_type,company_id")
+      .neq("id", currentProfile.id)
+      .order("full_name");
+    if (currentProfile.role === "company_manager") {
+      query = query.eq("company_id", currentProfile.company_id).eq("role", "counter_operator");
+    }
+    const {data,error} = await query;
+    if (error) throw error;
+    const rows = data || [];
+    $("managedAccountsList").innerHTML = rows.length ? '<table><thead><tr><th>নাম</th><th>Login ID</th><th>Role</th><th>নতুন নাম</th><th>নতুন Password</th><th>Action</th></tr></thead><tbody>' +
+      rows.map(user => '<tr><td>' + escapeHtml(user.full_name || "—") + '</td><td><strong>' + escapeHtml(user.login_id || "—") + '</strong></td><td>' + escapeHtml(user.role === "company_manager" ? "Manager" : (user.id_type === "AGENT" ? "Agent" : user.role === "counter_operator" ? "Operator" : user.role)) + '</td><td><input class="managed-new-name" data-id="' + escapeHtml(user.id) + '" maxlength="120" placeholder="নাম পরিবর্তন (ঐচ্ছিক)"></td><td><input class="managed-new-password" data-id="' + escapeHtml(user.id) + '" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></td><td><button class="primary save-managed-account" data-id="' + escapeHtml(user.id) + '" type="button">Save</button></td></tr>').join("") +
+      '</tbody></table>' : '<div class="empty">পরিচালনার জন্য কোনো Account পাওয়া যায়নি।</div>';
+    $("managedAccountsMessage").textContent = rows.length + "টি Account পাওয়া গেছে।";
+    $("managedAccountsMessage").className = "message ok";
+  } catch(error) {
+    accountMessage("managedAccountsMessage", "Account তালিকা লোড হয়নি: " + (error.message || "অজানা সমস্যা"), "error");
+  }
+}
+
+async function invokeAccountUpdate(body) {
+  const {data,error} = await supabase.functions.invoke("manage-company-users", {body});
+  if (error) {
+    let detail = data?.message || error.message || "Backend request failed";
+    try {
+      if (error.context?.clone) {
+        const payload = await error.context.clone().json();
+        detail = payload?.message || detail;
+      }
+    } catch {}
+    throw new Error(detail);
+  }
+  if (!data?.success) throw new Error(data?.message || "Account আপডেট হয়নি।");
+  return data;
+}
+
+$("myAccountButton").addEventListener("click", async () => {
+  $("accountModal").classList.remove("hidden");
+  $("accountFullName").value = currentProfile?.full_name || "";
+  $("accountNewPassword").value = "";
+  $("accountConfirmPassword").value = "";
+  accountMessage("ownAccountMessage", "");
+  await loadManagedAccounts();
+});
+$("closeAccountModal").addEventListener("click", () => $("accountModal").classList.add("hidden"));
+$("accountModal").addEventListener("click", event => {
+  if (event.target === $("accountModal")) $("accountModal").classList.add("hidden");
+});
+
+$("ownAccountForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const full_name = $("accountFullName").value.trim();
+  const password = $("accountNewPassword").value;
+  const confirmPassword = $("accountConfirmPassword").value;
+  if (!full_name && !password) return accountMessage("ownAccountMessage", "নতুন নাম অথবা Password দিন।", "error");
+  if (password && password.length < 8) return accountMessage("ownAccountMessage", "Password কমপক্ষে ৮ অক্ষরের হতে হবে।", "error");
+  if (password !== confirmPassword) return accountMessage("ownAccountMessage", "দুইটি Password এক হয়নি।", "error");
+  const button = $("saveOwnAccount");
+  button.disabled = true;
+  try {
+    const data = await invokeAccountUpdate({action:"update_own_account",full_name,password});
+    if (full_name) {
+      currentProfile.full_name = full_name;
+      $("topbarUserName").textContent = full_name;
+      $("userChip").textContent = full_name + " • " + roleText(currentProfile.role);
+    }
+    $("accountNewPassword").value = "";
+    $("accountConfirmPassword").value = "";
+    accountMessage("ownAccountMessage", data.message || "আপনার Account আপডেট হয়েছে।", "ok");
+  } catch(error) {
+    accountMessage("ownAccountMessage", "আপডেট হয়নি: " + error.message, "error");
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("managedAccountsList").addEventListener("click", async event => {
+  const button = event.target.closest(".save-managed-account");
+  if (!button) return;
+  const id = button.dataset.id;
+  const full_name = $("managedAccountsList").querySelector('.managed-new-name[data-id="' + CSS.escape(id) + '"]')?.value.trim() || "";
+  const password = $("managedAccountsList").querySelector('.managed-new-password[data-id="' + CSS.escape(id) + '"]')?.value || "";
+  if (!full_name && !password) return accountMessage("managedAccountsMessage", "নতুন নাম অথবা Password লিখুন।", "error");
+  if (password && password.length < 8) return accountMessage("managedAccountsMessage", "নতুন Password কমপক্ষে ৮ অক্ষরের হতে হবে।", "error");
+  if (!confirm("নির্বাচিত Account-এর তথ্য পরিবর্তন করবেন?")) return;
+  button.disabled = true;
+  try {
+    const data = await invokeAccountUpdate({action:"admin_reset_user_credentials",profile_id:id,full_name,password});
+    accountMessage("managedAccountsMessage", data.message || "Account আপডেট হয়েছে।", "ok");
+    await loadManagedAccounts();
+  } catch(error) {
+    accountMessage("managedAccountsMessage", "Account আপডেট হয়নি: " + error.message, "error");
+    button.disabled = false;
+  }
+});
 
 async function editTrip(id) {
   if (!isAdmin()) return;
