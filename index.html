@@ -5129,7 +5129,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       addGroupStopSelect(commonFields,"dropping","Dropping Stop / নামার স্থান",["dropping","both"]);
       const note = document.createElement("p");
       note.className = "notice small";
-      note.textContent = "একই নাম, মোবাইল, Gender, Boarding ও Dropping Stop সব নির্বাচিত Seat-এর Ticket-এ ব্যবহার হবে। সব তথ্য একবারই পূরণ করুন।";
+      note.textContent = bookingMode === "reservation" ? "একই নাম, মোবাইল, Gender, Boarding ও Dropping Stop সব নির্বাচিত Seat-এর Reservation-এ ব্যবহার হবে। সব তথ্য একবারই পূরণ করুন।" : "একই নাম, মোবাইল, Gender, Boarding ও Dropping Stop সব নির্বাচিত Seat-এর Ticket-এ ব্যবহার হবে। সব তথ্য একবারই পূরণ করুন।";
       passengerPanel.appendChild(note);
 
       const submit = document.createElement("button");
@@ -5281,7 +5281,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       const paidLabel = document.createElement("span");
       paidLabel.textContent = "Booking Type";
       const paidTag = document.createElement("b");
-      paidTag.textContent = "✓ Paid";
+      paidTag.textContent = bookingMode === "reservation" ? "Reservation" : "✓ Paid";
       bookingActions.append(paidLabel,paidTag);
       const actionRow = document.createElement("div");
       actionRow.className = "booking-action-row booking-mode-" + bookingMode;
