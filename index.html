@@ -1105,10 +1105,31 @@ body{background:#f7f4ff!important;color:#24163e!important}
             </div>
           </div>
           <div class="trip-builder-section"><h3>✦ Trip-এর নিজস্ব Seat Plan</h3><p>প্রতি লাইনে Seat|Row|Position|Order লিখুন। খালি রাখলে Coach-এর বর্তমান Layout ব্যবহার হবে।</p></div>
+          <div class="trip-builder-section"><h3>সংরক্ষিত Seat Format</h3></div>
+          <div class="field">
+            <label for="seatFormatSelect">ছবির Format নির্বাচন করুন</label>
+            <select id="seatFormatSelect">
+              <option value="">Seat Format নির্বাচন করুন</option>
+              <option value="economy">Economy Class — ৪০ Seat</option>
+              <option value="nonac">Non AC — ৩৬ Seat</option>
+              <option value="r1">R1 + A–K — ৪৬ Seat</option>
+              <option value="sleeper">Sleeper Coach — Lower ও Upper Deck</option>
+              <option value="business">Business Class — ২৮ Seat</option>
+            </select>
+            <div class="small muted">Format নির্বাচন করলে নিচের Seat Layout-এ বসবে। মাঝখানে কোনো লেখা/লেবেল থাকবে না।</div>
+          </div>
+          <div class="field">
+            <label>Custom Seat Format-এর নাম (ঐচ্ছিক)</label>
+            <div class="form-row">
+              <input id="seatFormatName" type="text" placeholder="নিজের Format-এর নাম">
+              <button id="seatFormatSave" class="secondary" type="button">Format Save</button>
+            </div>
+            <div class="small muted">নিচের Seat তালিকা পরিবর্তন করে নিজের Format Save করতে পারবেন। Seat যোগ/বাদ করতে প্রতিটি Seat-এর একটি করে লাইন যোগ/মুছুন।</div>
+          </div>
           <div class="field">
             <label>Custom Seat Layout (ঐচ্ছিক)</label>
             <textarea id="tripSeatLayoutInput" class="trip-layout-input" placeholder="A-1|A|1|1&#10;A-2|A|2|2&#10;A-3|A|3|3&#10;A-4|A|4|4"></textarea>
-            <div class="small muted">Coach-এর বিদ্যমান Seat Number-এর সঙ্গে হুবহু মিল থাকতে হবে। Seat Status বা বিক্রিত টিকিট পরিবর্তন হবে না।</div>
+            <div class="small muted">প্রতি লাইন: Seat Number|Row|Position|Order। এখানে মাঝখানে কোনো লেখা তৈরি হবে না।</div>
           </div>
 
           <div class="actions">
@@ -2113,7 +2134,57 @@ function parseCustomTripLayout() {
   });
 }
 
+const BUSNEX_SEAT_FORMATS = {
+  economy: Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((row,r)=>[1,2,3,4].map((n)=>({seat_number:row+"-"+n,row_label:row,seat_position:n,seat_order:r*4+n}))),
+  nonac: Array.from({length:9},(_,r)=>["A","B","C","D","E","F","G","H","I"][r]).flatMap((row,r)=>[1,2,3,4].map(n=>({seat_number:row+n,row_label:row,seat_position:n,seat_order:r*4+n}))),
+  r1: [{seat_number:"R1",row_label:"R",seat_position:1,seat_order:1},...Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((row)=>[1,2,3,4].map(n=>({seat_number:row+"-"+n,row_label:row,seat_position:n,seat_order:1+("ABCDEFGHIJ".indexOf(row))*4+n}))),...[1,2,3,4,5].map(n=>({seat_number:"K-"+n,row_label:"K",seat_position:n,seat_order:42+n}))],
+  sleeper: ["A","B","C","D","E"].flatMap((row,r)=>[{seat_number:row+"-1",row_label:"Lower "+row,seat_position:1,seat_order:r*3+1},{seat_number:row+"-2",row_label:"Lower "+row,seat_position:5,seat_order:r*3+2},{seat_number:row+"-3",row_label:"Lower "+row,seat_position:6,seat_order:r*3+3},{seat_number:row+"-4",row_label:"Upper "+row,seat_position:1,seat_order:15+r*3+1},{seat_number:row+"-5",row_label:"Upper "+row,seat_position:5,seat_order:15+r*3+2},{seat_number:row+"-6",row_label:"Upper "+row,seat_position:6,seat_order:15+r*3+3}]),
+  business: ["A","B","C","D","E","F","G","H"].flatMap((row,r)=>[1,3,4].map(n=>({seat_number:row+"-"+n,row_label:row,seat_position:n,seat_order:r*3+[1,3,4].indexOf(n)+1}))).concat([1,2,3,4].map(n=>({seat_number:"I-"+n,row_label:"I",seat_position:n,seat_order:25+n})))
+};
+function seatFormatLines(rows) {
+  return rows.map(x=>[x.seat_number,x.row_label,x.seat_position,x.seat_order].join("|")).join("\n");
+}
+function initSeatFormatLibrary() {
+  const select=$("seatFormatSelect"), input=$("tripSeatLayoutInput"), save=$("seatFormatSave");
+  if(!select||!input||!save) return;
+  const customKey="busnex_custom_seat_formats_v1";
+  const readCustom=()=>{try{return JSON.parse(localStorage.getItem(customKey)||"[]")}catch(_){return []}};
+  const builtins=Object.entries(BUSNEX_SEAT_FORMATS);
+  const renderOptions=()=>{
+    const keep=select.value;
+    select.innerHTML='<option value="">Seat Format নির্বাচন করুন</option>'+
+      '<option value="economy">Economy Class — ৪০ Seat</option>'+
+      '<option value="nonac">Non AC — ৩৬ Seat</option>'+
+      '<option value="r1">R1 + A–K — ৪৬ Seat</option>'+
+      '<option value="sleeper">Sleeper Coach — Lower ও Upper Deck</option>'+
+      '<option value="business">Business Class — ২৮ Seat</option>'+
+      readCustom().map((f,i)=>'<option value="custom:'+i+'">'+escapeHtml(f.name)+'</option>').join("");
+    if(keep) select.value=keep;
+  };
+  select.addEventListener("change",()=>{
+    const value=select.value;
+    if(BUSNEX_SEAT_FORMATS[value]) input.value=seatFormatLines(BUSNEX_SEAT_FORMATS[value]);
+    else if(value.startsWith("custom:")) {
+      const f=readCustom()[Number(value.split(":")[1])]; if(f) input.value=f.layout;
+    }
+  });
+  save.addEventListener("click",()=>{
+    const name=$("seatFormatName").value.trim();
+    if(!name) return alert("Format-এর একটি নাম লিখুন।");
+    let rows;try{rows=parseCustomTripLayout()}catch(e){return alert(e.message)}
+    if(!rows.length) return alert("আগে Seat Layout নির্বাচন বা তৈরি করুন।");
+    if(new Set(rows.map(x=>x.seat_number)).size!==rows.length) return alert("একই Seat Number একাধিকবার আছে।");
+    const list=readCustom();list.push({name,layout:seatFormatLines(rows)});
+    localStorage.setItem(customKey,JSON.stringify(list));
+    $("seatFormatName").value="";renderOptions();alert("Custom Seat Format এই Browser-এ Save হয়েছে।");
+  });
+  renderOptions();
+}
+
+
 let savedRouteCache = [];
+
+initSeatFormatLibrary();
 
 function parseRouteStopsInputFrom(elementId) {
   const raw = $(elementId).value.trim();
