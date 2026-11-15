@@ -3698,7 +3698,25 @@ $("createOperatorForm").addEventListener("submit", async event => {
     message.textContent = data.message + " | Login ID: " + data.profile.login_id;
     message.className = "message ok";
   } catch(error) {
-    message.textContent = "Operator ID তৈরি হয়নি: " + error.message;
+    let detail = error?.message || "Backend request failed";
+    // Supabase FunctionsHttpError keeps the actual Edge Function response in context.
+    // Read it so the user sees the real server-side reason instead of a generic non-2xx message.
+    try {
+      if (error?.context && typeof error.context.clone === "function") {
+        const response = error.context.clone();
+        let payload = null;
+        try { payload = await response.json(); }
+        catch { payload = {message:await response.text()}; }
+        detail = payload?.message || payload?.error || payload?.details || detail;
+        if (payload?.stage) detail += " (Stage: " + payload.stage + ")";
+        if (payload?.code) detail += " (Code: " + payload.code + ")";
+      } else if (error?.details) {
+        detail = error.details;
+      }
+    } catch(parseError) {
+      console.warn("Could not read Operator creation error response:",parseError);
+    }
+    message.textContent = "Operator ID তৈরি হয়নি: " + detail;
     message.className = "message error";
   } finally {
     button.disabled = false;
