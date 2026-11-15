@@ -5411,8 +5411,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         const validTillInput = passengerPanel.querySelector(".booking-reservation-valid-till");
         const validTillDate = validTillInput?.value ? new Date(validTillInput.value) : null;
         const departureMs = new Date(trip.departure_time).getTime();
-        if (!validTillDate || !Number.isFinite(validTillDate.getTime()) || validTillDate.getTime() <= Date.now() || validTillDate.getTime() >= departureMs) {
-          alert("Valid Till বর্তমান সময়ের পরে এবং Trip Departure-এর আগে নির্বাচন করুন।");
+        if (type === "vip") {
+          if (!validTillDate || !Number.isFinite(validTillDate.getTime()) || validTillDate.getTime() <= Date.now()) {
+            alert("VIP Reservation-এর Valid Till অবশ্যই বর্তমান সময়ের পরে হতে হবে। Departure-এর পরের সময়ও দেওয়া যাবে।");
+            return;
+          }
+        } else if (!validTillDate || !Number.isFinite(validTillDate.getTime()) || validTillDate.getTime() <= Date.now() || validTillDate.getTime() >= departureMs) {
+          alert("Standard Reservation-এর Valid Till বর্তমান সময়ের পরে এবং Trip Departure-এর আগে নির্বাচন করুন।");
           return;
         }
         const seatsToReserve = [...selectedSeats];
@@ -5429,7 +5434,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             p_passenger_gender:groupPassenger.gender,
             p_boarding_stop_id:groupPassenger.boarding,
             p_dropping_stop_id:groupPassenger.dropping,
-            p_valid_till:validTillDate.toISOString()
+            p_valid_till:validTillDate.toISOString(),
+            p_counter_id:null
           });
           if (error) throw error;
           seatsToReserve.forEach(seatNumber => {
