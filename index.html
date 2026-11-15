@@ -4604,6 +4604,59 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const soldTicketGroups = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
 
+
+    async function showReservationSlip(reservationId) {
+      const overlay=document.createElement("div");
+      overlay.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(8,20,36,.65);display:flex;align-items:center;justify-content:center;padding:14px;";
+      const modal=document.createElement("div");
+      modal.style.cssText="background:#fff;color:#172b43;width:min(680px,96vw);max-height:90vh;overflow:auto;border-radius:14px;padding:22px;box-shadow:0 18px 50px #0004;";
+      const heading=document.createElement("h2");heading.textContent="BUSNEX · RESERVATION SLIP";
+      const content=document.createElement("div");content.textContent="Reservation তথ্য লোড হচ্ছে...";
+      modal.append(heading,content);overlay.appendChild(modal);document.body.appendChild(overlay);
+      const close=()=>overlay.remove();
+      overlay.addEventListener("click",event=>{if(event.target===overlay)close();});
+      try{
+        const {data:row,error}=await supabase.from("ticket_reservations")
+          .select("id,trip_id,counter_id,reservation_type,status,expires_at,confirmed_at,created_at,trips(departure_time,coach_number,routes(starting_point,ending_point)),counters(name),ticket_reservation_seats(seat_number,passenger_name,passenger_phone,ticket_price)")
+          .eq("id",reservationId).single();
+        if(error)throw error;
+        content.innerHTML="";
+        const addLine=(label,value)=>{
+          const line=document.createElement("p");line.style.cssText="margin:8px 0;padding:9px;background:#f4f7fb;border-radius:7px;";
+          const strong=document.createElement("strong");strong.textContent=label+": ";
+          line.append(strong,document.createTextNode(value||"—"));content.appendChild(line);
+        };
+        const seats=row.ticket_reservation_seats||[];
+        addLine("Reservation ID",row.id);
+        addLine("Status",row.confirmed_at?"Confirmed":row.status);
+        addLine("Type",String(row.reservation_type||"").toUpperCase());
+        addLine("Route",(row.trips?.routes?.starting_point||"—")+" → "+(row.trips?.routes?.ending_point||"—"));
+        addLine("Coach",row.trips?.coach_number||"—");
+        addLine("Counter",row.counters?.name||"—");
+        addLine("Seat(s)",seats.map(x=>x.seat_number).join(", "));
+        addLine("Passenger",seats.map(x=>x.passenger_name).filter(Boolean).join(", "));
+        addLine("Mobile",seats.map(x=>x.passenger_phone).filter(Boolean).join(", "));
+        addLine("Valid Till",row.expires_at?formatDhakaDateTime(row.expires_at):"নির্ধারিত নেই");
+        const actions=document.createElement("div");actions.style.cssText="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;";
+        const makeButton=(label,handler)=>{
+          const b=document.createElement("button");b.type="button";b.textContent=label;b.addEventListener("click",handler);actions.appendChild(b);return b;
+        };
+        if(row.status==="active"&&!row.confirmed_at){
+          makeButton("✓ Confirm Ticket",async event=>{
+            const b=event.currentTarget;b.disabled=true;
+            try{const {error}=await supabase.rpc("busnex_confirm_reservation",{p_reservation_id:row.id});if(error)throw error;alert("Reservation Confirm হয়েছে।");window.location.reload();}
+            catch(err){alert("Confirm করা যায়নি: "+err.message);b.disabled=false;}
+          });
+          makeButton("✕ Cancel Reservation",async event=>{
+            const b=event.currentTarget;if(!confirm("এই Reservation বাতিল করবেন?"))return;b.disabled=true;
+            try{const {error}=await supabase.rpc("busnex_cancel_reservation",{p_reservation_id:row.id});if(error)throw error;alert("Reservation Cancel হয়েছে; Seat মুক্ত করা হয়েছে।");window.location.reload();}
+            catch(err){alert("Cancel করা যায়নি: "+err.message);b.disabled=false;}
+          });
+        }
+        makeButton("বন্ধ করুন",close);content.appendChild(actions);
+      }catch(error){content.textContent="Reservation Slip লোড করা যায়নি: "+error.message;const b=document.createElement("button");b.textContent="বন্ধ করুন";b.addEventListener("click",close);content.appendChild(b);}
+    }
+
     async function showSoldTicketDetails(seatNumber, groupSeatNumbers = [seatNumber]) {
       const styleId = "busnex-ticket-popup-style";
       if (!document.getElementById(styleId)) {
@@ -5207,6 +5260,26 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       });
       const reservationActions = document.createElement("div");
       reservationActions.className = "booking-reservation-actions";
+      const validTillWrap=document.createElement("div");
+      validTillWrap.className="field booking-reservation-valid-till";
+      validTillWrap.style.margin="10px 0";
+      const validTillLabel=document.createElement("label");
+      validTillLabel.textContent="Reservation Valid Till (তারিখ ও সময়)";
+      const validTillInput=document.createElement("input");
+      validTillInput.type="datetime-local";
+      validTillInput.required=true;
+      validTillInput.step="60";
+      const toLocalDateTimeValue=(date)=>{
+        const offset=date.getTimezoneOffset()*60000;
+        return new Date(date.getTime()-offset).toISOString().slice(0,16);
+      };
+      validTillInput.value=toLocalDateTimeValue(new Date(Date.now()+30*60000));
+      validTillInput.min=toLocalDateTimeValue(new Date(Date.now()+60000));
+      validTillLabel.appendChild(validTillInput);
+      const validTillHint=document.createElement("small");
+      validTillHint.textContent="Valid Till সময় Trip-এর Boarding সময়ের পরে দেওয়া যাবে না।";
+      validTillWrap.append(validTillLabel,validTillHint);
+      reservationActions.appendChild(validTillWrap);
       async function createInlineReservation(type,button) {
         if (button.disabled) return;
         if (!allowedReservationTypes.has(type)) { alert("এই Counter-এর জন্য এই Reservation Permission সক্রিয় নেই।"); return; }
@@ -5218,13 +5291,16 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         }
         const boarding=stops.find(x=>x.id===groupPassenger.boarding),dropping=stops.find(x=>x.id===groupPassenger.dropping);
         if(!boarding||!dropping||boarding.stop_order>=dropping.stop_order){alert("Boarding Stop অবশ্যই Dropping Stop-এর আগে হতে হবে।");return;}
+        if(!validTillInput.value){alert("Reservation-এর Valid Till তারিখ ও সময় নির্বাচন করুন।");validTillInput.focus();return;}
+        const validTillDate=new Date(validTillInput.value);
+        if(!Number.isFinite(validTillDate.getTime())||validTillDate.getTime()<=Date.now()){alert("Valid Till অবশ্যই বর্তমান সময়ের পরে হতে হবে।");validTillInput.focus();return;}
         const seatsToReserve=[...selectedSeats];button.disabled=true;const oldText=button.textContent;button.textContent="Reservation হচ্ছে...";
         try{
           const {data,error}=await supabase.rpc("busnex_create_reservation",{
             p_trip_id:trip.id,p_reservation_type:type,p_seat_numbers:seatsToReserve,
             p_passenger_name:groupPassenger.name.trim(),p_passenger_phone:groupPassenger.phone.trim(),
             p_passenger_gender:groupPassenger.gender,p_boarding_stop_id:groupPassenger.boarding,
-            p_dropping_stop_id:groupPassenger.dropping,p_valid_till:null,
+            p_dropping_stop_id:groupPassenger.dropping,p_valid_till:validTillDate.toISOString(),
             p_counter_id:currentProfile?.role==="counter_operator"?null:selectedReservationCounterId
           });
           if(error)throw error;
@@ -5357,6 +5433,15 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         : seat.seat_position <= 2
           ? seat.seat_position
           : seat.seat_position + 1;
+
+      if (isReservation) {
+        div.title="Reservation Slip দেখতে ক্লিক করুন";
+        div.setAttribute("role","button");
+        div.setAttribute("tabindex","0");
+        const openReservationSlip=()=>showReservationSlip(record.reservation_id);
+        div.addEventListener("click",openReservationSlip);
+        div.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();openReservationSlip();}});
+      }
 
       if (state === "sold") {
         let hoverTimer = null;
