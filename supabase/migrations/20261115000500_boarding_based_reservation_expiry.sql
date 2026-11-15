@@ -130,7 +130,7 @@ BEGIN
     RAISE EXCEPTION 'এই Counter-এর জন্য এই ধরনের Reservation Permission নেই';
   END IF;
 
-  SELECT ts.stop_order, ts.scheduled_time
+  SELECT ts.stop_order, ts.scheduled_time::time
     INTO v_board_order, v_boarding_time
   FROM public.trip_stops ts
   WHERE ts.id = p_boarding_stop_id AND ts.trip_id = p_trip_id
@@ -162,10 +162,10 @@ BEGIN
       RAISE EXCEPTION 'নির্বাচিত Boarding-এর ১৫ মিনিট আগের Reservation সময় পার হয়ে গেছে';
     END IF;
   ELSE
-    SELECT ts.scheduled_time INTO v_last_boarding_time
+    SELECT ts.scheduled_time::time INTO v_last_boarding_time
     FROM public.trip_stops ts
     WHERE ts.trip_id = p_trip_id AND ts.is_active = true
-      AND ts.stop_type IN ('boarding','both') AND ts.scheduled_time IS NOT NULL
+      AND ts.stop_type IN ('boarding','both')
     ORDER BY ts.stop_order DESC LIMIT 1;
 
     IF v_last_boarding_time IS NULL THEN
