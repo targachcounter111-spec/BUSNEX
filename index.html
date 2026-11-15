@@ -4594,6 +4594,23 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const inventoryBySeat = new Map(
       inventory.map(item => [item.seat_number,item])
     );
+    // Refresh-এর পরও Slip দেখানোর জন্য Reservation table থেকে Seat mapping পুনরায় পড়ুন।
+    const reservationIdBySeat = new Map();
+    const {data:activeReservations,error:reservationLookupError} = await supabase
+      .from("ticket_reservations")
+      .select("id,status,expires_at,ticket_reservation_seats(seat_number)")
+      .eq("trip_id",trip.id)
+      .in("status",["active","confirmed"]);
+    if (reservationLookupError) {
+      console.warn("RESERVATION SEAT LOOKUP:",reservationLookupError.message);
+    } else {
+      (activeReservations || []).forEach(reservation => {
+        if (reservation.expires_at && Date.parse(reservation.expires_at) <= Date.now()) return;
+        (reservation.ticket_reservation_seats || []).forEach(item => {
+          reservationIdBySeat.set(String(item.seat_number),reservation.id);
+        });
+      });
+    }
     const selectedSeats = new Set();
     let availableCount = 0;
     let soldCount = 0;
@@ -4616,10 +4633,28 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       const close=()=>overlay.remove();
       overlay.addEventListener("click",event=>{if(event.target===overlay)close();});
       try{
-        const {data:row,error}=await supabase.from("ticket_reservations")
-          .select("id,trip_id,counter_id,reservation_type,status,expires_at,confirmed_at,created_at,trips(departure_time,coach_number,routes(starting_point,ending_point)),counters(name),ticket_reservation_seats(seat_number,passenger_name,passenger_phone,ticket_price)")
+        let row, reservationSeats=[];
+        const {data:reservationRow,error:reservationError}=await supabase.from("ticket_reservations")
+          .select("id,trip_id,counter_id,reservation_type,status,expires_at,confirmed_at,created_at")
           .eq("id",reservationId).single();
-        if(error)throw error;
+        if(reservationError)throw reservationError;
+        row=reservationRow;
+        const {data:seatRows,error:seatRowsError}=await supabase.from("ticket_reservation_seats")
+          .select("seat_number,passenger_name,passenger_phone,ticket_price")
+          .eq("reservation_id",reservationId);
+        if(seatRowsError)throw seatRowsError;
+        reservationSeats=seatRows||[];
+        const [{data:tripRow},{data:counterRow}]=await Promise.all([
+          supabase.from("trips").select("departure_time,coach_number,route_id").eq("id",row.trip_id).maybeSingle(),
+          row.counter_id ? supabase.from("counters").select("name").eq("id",row.counter_id).maybeSingle() : Promise.resolve({data:null})
+        ]);
+        row.trips=tripRow||null;
+        row.counters=counterRow||null;
+        const {data:routeRow}=tripRow?.route_id
+          ? await supabase.from("routes").select("starting_point,ending_point").eq("id",tripRow.route_id).maybeSingle()
+          : {data:null};
+        if(row.trips) row.trips.routes=routeRow||null;
+        row.ticket_reservation_seats=reservationSeats;
         content.innerHTML="";
         const addLine=(label,value)=>{
           const line=document.createElement("p");line.style.cssText="margin:8px 0;padding:9px;background:#f4f7fb;border-radius:7px;";
@@ -5388,7 +5423,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     layout.forEach(seat => {
       const record = inventoryBySeat.get(seat.seat_number);
       const state = String(record?.status || "").toLowerCase();
-      const isReservation = Boolean(record?.reservation_id);
+      const reservationId = record?.reservation_id || reservationIdBySeat.get(String(seat.seat_number)) || null;
+      const isReservation = Boolean(reservationId);
       const holdUntilMs = record?.hold_until ? Date.parse(record.hold_until) : NaN;
       const activeTemporaryHold =
         state === "held" && !isReservation &&
@@ -5438,7 +5474,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         div.title="Reservation Slip দেখতে ক্লিক করুন";
         div.setAttribute("role","button");
         div.setAttribute("tabindex","0");
-        const openReservationSlip=()=>showReservationSlip(record.reservation_id);
+        const openReservationSlip=()=>showReservationSlip(reservationId);
         div.addEventListener("click",openReservationSlip);
         div.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();openReservationSlip();}});
       }
