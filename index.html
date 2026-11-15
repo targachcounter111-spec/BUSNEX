@@ -796,21 +796,17 @@ html,body{width:100%;min-width:320px;overflow-x:hidden}
             </div>
           </div>
 
-          <div class="trip-builder-section"><h3>✦ যাত্রার স্টপেজ</h3><p>প্রতি লাইনে স্থান|সময় লিখুন। সময় ২৪ ঘণ্টা ফরম্যাটে দিন।</p></div>
+                    <div class="trip-builder-section"><h3>✦ Custom Boarding & Dropping Points</h3><p>নিজে যেকোনো জায়গার নাম ও সময় যোগ করুন। প্রয়োজনমতো একাধিক Point যোগ বা বাদ দিতে পারবেন। সময় ২৪ ঘণ্টা ফরম্যাটে দিন।</p></div>
           <div class="form-row trip-points-grid">
             <div class="field">
               <label>Boarding Points / যাত্রী ওঠার স্থান</label>
-              <select id="boardingPointMode"><option value="setup">সহজ Setup — জায়গা ও সময় যোগ করুন</option><option value="custom">Custom — নিজের মতো লিখুন</option></select>
               <div id="boardingPointSetup" class="point-setup-list"></div>
-              <textarea id="boardingPoints" class="hidden" placeholder="Narayanganj|20:00&#10;Dhaka|22:00&#10;Gazipur|22:30"></textarea>
-              <div class="small muted">Setup-এ Add Point দিয়ে যত খুশি জায়গা ও সময় যোগ করুন। Custom-এ নিজের মতো লিখতে পারবেন।</div>
+              <div class="small muted">প্রতিটি জায়গার নাম ও Boarding Time লিখুন। “+ নতুন জায়গা যোগ করুন” দিয়ে আরও Point যোগ করুন।</div>
             </div>
             <div class="field">
               <label>Dropping Points / যাত্রী নামার স্থান</label>
-              <select id="droppingPointMode"><option value="setup">সহজ Setup — জায়গা ও সময় যোগ করুন</option><option value="custom">Custom — নিজের মতো লিখুন</option></select>
               <div id="droppingPointSetup" class="point-setup-list"></div>
-              <textarea id="droppingPoints" class="hidden" placeholder="Bogra|03:00&#10;Rangpur|05:30&#10;Borokhata|07:00"></textarea>
-              <div class="small muted">Setup-এ Add Point দিয়ে যত খুশি জায়গা ও সময় যোগ করুন। Custom-এ নিজের মতো লিখতে পারবেন।</div>
+              <div class="small muted">প্রতিটি জায়গার নাম ও Dropping Time লিখুন। “+ নতুন জায়গা যোগ করুন” দিয়ে আরও Point যোগ করুন।</div>
             </div>
           </div>
           <div class="trip-builder-section"><h3>✦ Trip-এর নিজস্ব Seat Plan</h3><p>প্রতি লাইনে Seat|Row|Position|Order লিখুন। খালি রাখলে Coach-এর বর্তমান Layout ব্যবহার হবে।</p></div>
@@ -1755,7 +1751,7 @@ function renderPointSetup(kind) {
   if (!host || host.dataset.ready === "1") return;
   host.dataset.ready = "1";
   const add = document.createElement("button");
-  add.type = "button"; add.className = "secondary";
+  add.type = "button"; add.className = "primary";
   add.textContent = "+ নতুন জায়গা যোগ করুন";
   add.addEventListener("click",() => addPointSetupRow(kind));
   host.appendChild(add);
@@ -1786,50 +1782,22 @@ function setPointSetupRows(kind,points) {
   const host = $(kind+"PointSetup");
   Array.from(host.querySelectorAll(".form-row")).forEach(row=>row.remove());
   (points && points.length ? points : [{}]).forEach(point=>addPointSetupRow(kind,point.name||point.point_name||"",point.time||point.boarding_time||""));
-  $(kind+"PointMode").value = "setup";
   host.classList.remove("hidden");
-  $(kind+"Points").classList.add("hidden");
 }
 function parseBoardingPoints() {
-  if ($("boardingPointMode").value === "setup") {
-    return setupPointRows("boarding").map((p,i) => {
-      if (!p.name || !p.time) throw new Error("প্রতিটি Boarding Point-এর জায়গার নাম ও সময় দিন।");
-      return {point_name:p.name,boarding_time:p.time,point_order:i+1};
-    });
-  }
-  const raw = $("boardingPoints").value.trim();
-  if (!raw) return [];
-  return raw.split(/\r?\n/).filter(line=>line.trim()).map((line,i) => {
-    const [name,time] = line.split("|").map(v=>(v||"").trim());
-    if (!name || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error("Boarding Point-এর প্রতিটি লাইনে নাম|সময় লিখুন।");
-    return {point_name:name,boarding_time:time,point_order:i+1};
+  return setupPointRows("boarding").map((p,i) => {
+    if (!p.name || !p.time) throw new Error("প্রতিটি Boarding Point-এর জায়গার নাম ও সময় দিন।");
+    return {point_name:p.name,boarding_time:p.time,point_order:i+1};
   });
 }
-function parseTripPointLines(elementId,label) {
-  const kind = elementId === "droppingPoints" ? "dropping" : "boarding";
-  if ($(kind+"PointMode").value === "setup") {
-    return setupPointRows(kind).map((p,i) => {
-      if (!p.name || !p.time) throw new Error("প্রতিটি "+label+"-এর জায়গার নাম ও সময় দিন।");
-      return {name:p.name,time:p.time,order:i+1};
-    });
-  }
-  const raw = $(elementId).value.trim();
-  if (!raw) return [];
-  return raw.split(/\r?\n/).filter(line=>line.trim()).map((line,i) => {
-    const parts = line.split("|"), name = (parts[0]||"").trim(), time = (parts[1]||"").trim();
-    if (!name || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error(label+"-এর প্রতিটি লাইনে স্থান|সময় লিখুন। উদাহরণ: Gazipur|22:30");
-    return {name,time,order:i+1};
+function parseTripPointLines(kind,label) {
+  return setupPointRows(kind).map((p,i) => {
+    if (!p.name || !p.time) throw new Error("প্রতিটি "+label+"-এর জায়গার নাম ও সময় দিন।");
+    return {name:p.name,time:p.time,order:i+1};
   });
 }
 function initPointSetupModes() {
-  ["boarding","dropping"].forEach(kind => {
-    renderPointSetup(kind);
-    $(kind+"PointMode").addEventListener("change",() => {
-      const setup = $(kind+"PointMode").value === "setup";
-      $(kind+"PointSetup").classList.toggle("hidden",!setup);
-      $(kind+"Points").classList.toggle("hidden",setup);
-    });
-  });
+  ["boarding","dropping"].forEach(renderPointSetup);
 }
 function parseCustomTripLayout() {
   const raw = $("tripSeatLayoutInput").value.trim();
@@ -2039,14 +2007,11 @@ function clearTripFormFields() {
   $("tripTime").value = "";
   $("tripDateEnd").value = $("tripDate").value;
   $("tripArrivalTime").value = "";
-  $("droppingPoints").value = "";
-  $("boardingPoints").value = "";
   setPointSetupRows("boarding",[]);
   setPointSetupRows("dropping",[]);
   $("tripSeatLayoutInput").value = "";
   $("tripPrice").value = "";
   $("tripSupervisor").value = "";
-  $("boardingPoints").value = "";
   $("tripBus").value = "";
   $("tripDate").value = new Date().toLocaleDateString("en-CA");
 }
@@ -2113,7 +2078,7 @@ $("tripSaveButton").addEventListener("click",async() => {
   let boardingPoints, droppingPoints, customLayout;
   try {
     boardingPoints = parseBoardingPoints();
-    droppingPoints = parseTripPointLines("droppingPoints","Dropping Point");
+    droppingPoints = parseTripPointLines("dropping","Dropping Point");
     customLayout = parseCustomTripLayout();
   } catch(error) {
     return tripMessage(error.message,"error");
@@ -2489,8 +2454,7 @@ async function editTrip(id) {
     setPointSetupRows("boarding",points.map(point=>({
       name:point.point_name,time:String(point.boarding_time||"").slice(0,5)
     })));
-    $("droppingPoints").value = "";
-    setPointSetupRows("dropping",[]);
+      setPointSetupRows("dropping",[]);
     $("tripSeatLayoutInput").value = "";
 
     editingTripId = trip.id;
