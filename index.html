@@ -3703,10 +3703,15 @@ $("createOperatorForm").addEventListener("submit", async event => {
     // Read it so the user sees the real server-side reason instead of a generic non-2xx message.
     try {
       if (error?.context && typeof error.context.clone === "function") {
-        const response = error.context.clone();
         let payload = null;
-        try { payload = await response.json(); }
-        catch { payload = {message:await response.text()}; }
+        try {
+          payload = await error.context.clone().json();
+        } catch {
+          try {
+            const rawBody = await error.context.clone().text();
+            payload = {message:rawBody};
+          } catch {}
+        }
         detail = payload?.message || payload?.error || payload?.details || detail;
         if (payload?.stage) detail += " (Stage: " + payload.stage + ")";
         if (payload?.code) detail += " (Code: " + payload.code + ")";
