@@ -118,7 +118,20 @@ Deno.serve(async (req: Request) => {
 
   const password = typeof body.password === "string" ? body.password : "";
   const fullName = typeof body.full_name === "string" ? body.full_name.trim() : "";
-  const companyId = typeof body.company_id === "string" ? body.company_id : "";
+  // A company_manager must always use the company_id from their authenticated profile.
+  // Never trust a company_id supplied by the browser for Manager actions.
+  const requestedCompanyId = typeof body.company_id === "string" ? body.company_id.trim() : "";
+  const companyId = caller.role === "company_manager"
+    ? (typeof caller.company_id === "string" ? caller.company_id : "")
+    : requestedCompanyId;
+
+  console.info("manage-company-users create request", {
+    action,
+    caller_role: caller.role,
+    caller_company_id: caller.company_id ?? null,
+    requested_company_id: requestedCompanyId || null,
+    effective_company_id: companyId || null,
+  });
 
   if (password.length < 8 || !fullName || !companyId) {
     return json(400, { success: false, message: "নাম, Company এবং কমপক্ষে ৮ অক্ষরের Password দিতে হবে।" }, origin);
