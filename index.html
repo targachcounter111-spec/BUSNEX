@@ -4684,12 +4684,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         if(row.status==="active"&&!row.confirmed_at){
           makeButton("✓ Confirm Reservation",async event=>{
             const b=event.currentTarget;b.disabled=true;
-            try{const {error}=await supabase.rpc("busnex_confirm_reservation",{p_reservation_id:row.id});if(error)throw error;alert("Reservation Confirm হয়েছে।");window.location.reload();}
+            try{const {error}=await supabase.rpc("busnex_confirm_reservation",{p_reservation_id:row.id});if(error)throw error;overlay.remove();alert("Reservation Confirm হয়েছে।");card.innerHTML="";await appendBookingSeatPicker(trip,card,confirmPastDate);}
             catch(err){alert("Confirm করা যায়নি: "+err.message);b.disabled=false;}
           });
           makeButton("✕ Cancel Reservation",async event=>{
             const b=event.currentTarget;if(!confirm("এই Reservation বাতিল করবেন?"))return;b.disabled=true;
-            try{const {error}=await supabase.rpc("busnex_cancel_reservation",{p_reservation_id:row.id});if(error)throw error;alert("Reservation Cancel হয়েছে; Seat মুক্ত করা হয়েছে।");window.location.reload();}
+            try{const {error}=await supabase.rpc("busnex_cancel_reservation",{p_reservation_id:row.id});if(error)throw error;overlay.remove();alert("Reservation Cancel হয়েছে; Seat মুক্ত করা হয়েছে।");card.innerHTML="";await appendBookingSeatPicker(trip,card,confirmPastDate);}
             catch(err){alert("Cancel করা যায়নি: "+err.message);b.disabled=false;}
           });
         }
