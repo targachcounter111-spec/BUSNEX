@@ -4171,14 +4171,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       if (error) throw error;
       allowedReservationTypes = new Set((permissionRows || []).map(row=>row.reservation_type));
     } else {
-      const {data:counterRows,error} = await supabase.from("counters")
-        .select("id,name,address")
-        .eq("company_id",companyId)
-        .eq("is_active",true)
-        .order("name");
+      const {data:counterRows,error} = await supabase.rpc("busnex_get_reservation_booking_counters",{
+        p_company_id:companyId
+      });
       if (error) throw error;
       reservationCounterChoices=(counterRows || []).map(counter=>({
-        id:counter.id,name:counter.name,address:counter.address,types:new Set(["standard","vip"])
+        id:counter.counter_id,name:counter.counter_name,address:counter.counter_address,types:new Set(["standard","vip"])
       }));
       selectedReservationCounterId=reservationCounterChoices[0]?.id || null;
       allowedReservationTypes=new Set(["standard","vip"]);
@@ -4262,7 +4260,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     reservationCounterSelect = document.createElement("select");
     reservationCounterSelect.className = "booking-reservation-counter";
     reservationCounterSelect.setAttribute("aria-label","Reservation Counter নির্বাচন");
-    reservationCounterSelect.innerHTML = '<option value="">Permission দেওয়া Counter নেই</option>';
+    reservationCounterSelect.innerHTML = '<option value="">Counter নির্বাচন করুন</option>';
     reservationCounterChoices.forEach(counter=>{
       const option=document.createElement("option");option.value=counter.id;
       option.textContent=counter.name+(counter.address?" — "+counter.address:"");
