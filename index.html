@@ -3998,9 +3998,9 @@ async function loadSeatInventory(tripId) {
       const rawStatus = String(record?.status || "").toLowerCase();
       let state = "unknown";
 
-      if (rawStatus === "available") state = "available";
-      else if (rawStatus === "sold") state = "sold";
-      else if (rawStatus === "reserved") state = "reserved";
+      if (rawStatus === "sold") state = "sold";
+      else if (rawStatus === "reserved" || record?.reservation_id) state = "reserved";
+      else if (rawStatus === "available") state = "available";
       else if (rawStatus === "held") {
         state = record?.reservation_id ? "reserved" : "held";
       }
@@ -5440,8 +5440,10 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         Number.isFinite(holdUntilMs) && holdUntilMs > Date.now();
       const div = document.createElement("div");
       seatButtons.set(seat.seat_number,div);
-      const isAvailable = state === "available" ||
-        (state === "held" && !isReservation && !activeTemporaryHold);
+      // A reservation_id always wins over the legacy available status.
+      // Otherwise the same reserved seat becomes selectable after a refresh.
+      const isAvailable = !isReservation && (state === "available" ||
+        (state === "held" && !activeTemporaryHold));
 
       if (isAvailable) availableCount++;
       else if (state === "sold") soldCount++;
