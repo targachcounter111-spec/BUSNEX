@@ -4286,13 +4286,17 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         box-shadow:0 7px 17px rgba(75,19,168,.27)!important
       }
       .booking-passenger-panel .btn.btn-primary:hover{filter:brightness(1.08)!important;transform:translateY(-1px)}
+      /* Reference match: lavender Booking Type strip with compact purple Paid pill */
       .booking-action-choice{
-        background:#f1f1f1!important;border:0!important;border-left:3px solid #16a34a!important;
-        border-radius:0!important;padding:8px 12px!important;color:#263449!important
+        display:flex!important;align-items:center!important;justify-content:space-between!important;
+        gap:12px!important;padding:8px 12px!important;min-height:56px!important;
+        background:#f3edff!important;border:1px solid #e5d8ff!important;
+        border-left:3px solid #6d28d9!important;border-radius:12px!important;color:#39215f!important
       }
       .booking-action-choice b{
-        min-width:145px!important;min-height:38px!important;border-radius:0!important;
-        background:#5cb85c!important;color:#fff!important
+        display:flex!important;align-items:center!important;justify-content:center!important;
+        min-width:145px!important;min-height:38px!important;padding:8px 18px!important;
+        border-radius:10px!important;background:linear-gradient(110deg,#4b13a8,#7c3aed)!important;color:#fff!important
       }
     `;
     document.head.appendChild(style);
