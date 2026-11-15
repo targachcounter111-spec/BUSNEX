@@ -4642,7 +4642,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           const b=document.createElement("button");b.type="button";b.textContent=label;b.addEventListener("click",handler);actions.appendChild(b);return b;
         };
         if(row.status==="active"&&!row.confirmed_at){
-          makeButton("✓ Confirm Ticket",async event=>{
+          makeButton("✓ Confirm Reservation",async event=>{
             const b=event.currentTarget;b.disabled=true;
             try{const {error}=await supabase.rpc("busnex_confirm_reservation",{p_reservation_id:row.id});if(error)throw error;alert("Reservation Confirm হয়েছে।");window.location.reload();}
             catch(err){alert("Confirm করা যায়নি: "+err.message);b.disabled=false;}
