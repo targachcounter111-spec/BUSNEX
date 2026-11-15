@@ -1020,11 +1020,7 @@ body{background:#f7f4ff!important;color:#24163e!important}
                 </select>
               </div>
             </div>
-            <div class="field">
-              <label>Route Stops / মাঝের স্টপেজ</label>
-              <textarea id="routeStopsInput" placeholder="Gazipur|22:30|BOTH|Boarding point&#10;Tangail|00:30|BOTH|&#10;Bogura|04:00|DROP|Final stop"></textarea>
-              <div class="small muted">প্রতি লাইনে: জায়গার নাম|সময়|BOTH / BOARD / DROP / NONE|নোট। সময় না থাকলে ফাঁকা রাখুন। যেকোনো জায়গার নাম লিখতে পারবেন।</div>
-            </div>
+            <textarea id="routeStopsInput" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
           </div>
 
           <div id="savedRouteEditor" class="trip-builder-section hidden">
@@ -2499,21 +2495,19 @@ $("tripSaveButton").addEventListener("click",async() => {
         const {error:boardingError} = await supabase.from("trip_boarding_points").insert(rows);
         if (boardingError) { boardingWarning = "Boarding Points সংরক্ষণ হয়নি: "+boardingError.message; break; }
       }
-      if (!isEditing) {
-        const {data:existingStops,error:stopReadError} = await supabase.from("trip_stops")
-          .select("stop_order").eq("trip_id",targetTripId).order("stop_order",{ascending:false}).limit(1);
-        if (stopReadError) { boardingWarning = "Trip Stop যাচাই হয়নি: "+stopReadError.message; break; }
-        let nextOrder = (existingStops?.[0]?.stop_order || 0)+1;
-        const stopRows = [
-          ...boardingPoints.map(point => ({trip_id:targetTripId,stop_name:point.point_name,
-            stop_type:"boarding",stop_order:nextOrder++,scheduled_time:point.boarding_time,is_active:true})),
-          ...droppingPoints.map(point => ({trip_id:targetTripId,stop_name:point.name,
-            stop_type:"dropping",stop_order:nextOrder++,scheduled_time:point.time,is_active:true}))
-        ];
-        if (stopRows.length) {
-          const {error:stopInsertError} = await supabase.from("trip_stops").insert(stopRows);
-          if (stopInsertError) { boardingWarning = "Boarding/Dropping Stop সংরক্ষণ হয়নি: "+stopInsertError.message; break; }
-        }
+      if (isEditing) {
+        const {error:deleteStopsError}=await supabase.from("trip_stops").delete().eq("trip_id",targetTripId);
+        if (deleteStopsError) { boardingWarning="পুরোনো Trip Stops আপডেট করা যায়নি: "+deleteStopsError.message; break; }
+      }
+      const stopRows = [
+        ...boardingPoints.map((point,index)=>({trip_id:targetTripId,stop_name:point.point_name,
+          stop_type:"boarding",stop_order:index+1,scheduled_time:point.boarding_time,is_active:true})),
+        ...droppingPoints.map((point,index)=>({trip_id:targetTripId,stop_name:point.name,
+          stop_type:"dropping",stop_order:boardingPoints.length+index+1,scheduled_time:point.time,is_active:true}))
+      ];
+      if (stopRows.length) {
+        const {error:stopInsertError}=await supabase.from("trip_stops").insert(stopRows);
+        if (stopInsertError) { boardingWarning="Boarding/Dropping Point সংরক্ষণ হয়নি: "+stopInsertError.message; break; }
       }
       const {data:inventory,error:inventoryError} = await supabase.from("trip_seats")
         .select("seat_number").eq("trip_id",targetTripId);
@@ -2745,7 +2739,8 @@ async function editTrip(id) {
         id,company_id,bus_id,route_id,departure_time,arrival_time,
         ticket_price,status,supervisor,supervisor_name,supervisor_phone,coach_number,
         routes(starting_point,ending_point),
-        trip_boarding_points(point_name,boarding_time,point_order)
+        trip_boarding_points(point_name,boarding_time,point_order),
+        trip_stops(id,stop_name,stop_type,stop_order,scheduled_time,is_active)
       `)
       .eq("id",id)
       .single();
@@ -2774,13 +2769,18 @@ async function editTrip(id) {
     $("tripSupervisor").value = trip.supervisor_name || trip.supervisor || "";
     $("tripSupervisorPhone").value = trip.supervisor_phone || "";
 
-    const points = (trip.trip_boarding_points || [])
-      .sort((a,b) => a.point_order - b.point_order);
-
-    setPointSetupRows("boarding",points.map(point=>({
-      name:point.point_name,time:String(point.boarding_time||"").slice(0,5)
+    const activeTripStops=(trip.trip_stops||[]).filter(stop=>stop.is_active!==false)
+      .sort((a,b)=>a.stop_order-b.stop_order);
+    const boardingStops=activeTripStops.filter(stop=>String(stop.stop_type).toLowerCase()==="boarding");
+    const droppingStops=activeTripStops.filter(stop=>String(stop.stop_type).toLowerCase()==="dropping");
+    const points=(trip.trip_boarding_points||[]).sort((a,b)=>a.point_order-b.point_order);
+    const boardingRows=boardingStops.length?boardingStops.map(stop=>({
+      name:stop.stop_name,time:String(stop.scheduled_time||"").slice(0,5)
+    })):points.map(point=>({name:point.point_name,time:String(point.boarding_time||"").slice(0,5)}));
+    setPointSetupRows("boarding",boardingRows);
+    setPointSetupRows("dropping",droppingStops.map(stop=>({
+      name:stop.stop_name,time:String(stop.scheduled_time||"").slice(0,5)
     })));
-      setPointSetupRows("dropping",[]);
     $("tripSeatLayoutInput").value = "";
 
     editingTripId = trip.id;
