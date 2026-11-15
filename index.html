@@ -4732,28 +4732,69 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           console.warn("Ticket cancellation permission check unavailable:",permissionError);
         }
         if(mayCancelTicket && groupTickets.every(item=>String(item.status||"").toLowerCase()==="sold")) {
+          const selectedCancelTicketIds = new Set();
+          if(groupTickets.length===1 && groupTickets[0].id) selectedCancelTicketIds.add(groupTickets[0].id);
+
+          if(groupTickets.length>1) {
+            const selectionPanel=document.createElement("section");
+            selectionPanel.className="busnex-cancel-seat-selection";
+            selectionPanel.style.cssText="width:100%;box-sizing:border-box;margin:14px 0;padding:14px;border:1px solid #ded8f5;border-radius:12px;background:#faf9ff;";
+            const selectionTitle=document.createElement("strong");
+            selectionTitle.textContent="কোন কোন Seat Cancel করবেন?";
+            selectionTitle.style.cssText="display:block;margin-bottom:5px;color:#33236f;font-size:15px;";
+            const selectionHint=document.createElement("div");
+            selectionHint.textContent="যে Seat বাতিল করতে চান, শুধু সেগুলোতে টিক দিন। শুরুতে কোনো Seat নির্বাচন করা নেই।";
+            selectionHint.style.cssText="font-size:12px;color:#666;margin-bottom:10px;";
+            const selectionList=document.createElement("div");
+            selectionList.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;";
+            const selectionCount=document.createElement("div");
+            selectionCount.textContent="নির্বাচিত Seat: ০";
+            selectionCount.style.cssText="margin-top:10px;font-weight:700;color:#4b328f;font-size:13px;";
+            groupTickets.forEach(item=>{
+              const seatLabel=document.createElement("label");
+              seatLabel.style.cssText="display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid #e4e0ef;border-radius:9px;background:#fff;cursor:pointer;font-size:13px;";
+              const checkbox=document.createElement("input");
+              checkbox.type="checkbox";
+              checkbox.value=String(item.id||"");
+              checkbox.style.cssText="width:17px;height:17px;accent-color:#6941c6;flex:0 0 auto;";
+              const seatText=document.createElement("span");
+              seatText.textContent="Seat "+String(item.seat_number||"—")+" · "+String(item.passenger_name||"যাত্রীর নাম নেই")+" · ৳"+Number(item.ticket_price||0).toFixed(2);
+              seatLabel.append(checkbox,seatText);
+              checkbox.addEventListener("change",()=>{
+                if(checkbox.checked && item.id) selectedCancelTicketIds.add(item.id);
+                else selectedCancelTicketIds.delete(item.id);
+                selectionCount.textContent="নির্বাচিত Seat: "+selectedCancelTicketIds.size;
+                cancel.disabled=selectedCancelTicketIds.size===0;
+              });
+              selectionList.appendChild(seatLabel);
+            });
+            selectionPanel.append(selectionTitle,selectionHint,selectionList,selectionCount);
+            actions.appendChild(selectionPanel);
+          }
+
           const cancel=document.createElement("button");
           cancel.type="button";
           cancel.className="danger";
-          cancel.textContent="✖ Cancel Ticket";
+          cancel.textContent="✖ Cancel Selected Seat"+(groupTickets.length>1?"(s)":"");
+          cancel.disabled=selectedCancelTicketIds.size===0;
           cancel.addEventListener("click",async()=>{
-            const ids=[...new Set(groupTickets.map(item=>item.id).filter(Boolean))];
-            if(!ids.length) { alert("Ticket ID পাওয়া যায়নি।"); return; }
-            if(!confirm("এই Ticket"+(ids.length>1?"গুলো":"")+" Cancel করবেন? Cancel হলে Seat আবার Available হবে।")) return;
+            const ids=[...selectedCancelTicketIds];
+            if(!ids.length) { alert("Cancel করার জন্য অন্তত একটি Seat নির্বাচন করুন।"); return; }
+            if(!confirm("নির্বাচিত "+ids.length+"টি Seat-এর Ticket Cancel করবেন? শুধু নির্বাচিত Seat-গুলোই Available হবে।")) return;
             cancel.disabled=true;
             cancel.textContent="Cancel হচ্ছে...";
             try {
               const {data:cancelled,error:cancelError}=await supabase.rpc("busnex_cancel_tickets",{p_ticket_ids:ids});
               if(cancelError) throw cancelError;
               if(cancelled!==true) throw new Error("Database Ticket Cancel নিশ্চিত করেনি।");
-              alert("Ticket সফলভাবে Cancel হয়েছে। Seat আবার Available করা হয়েছে।");
+              alert("নির্বাচিত "+ids.length+"টি Ticket সফলভাবে Cancel হয়েছে। শুধু ওই Seat-গুলো Available করা হয়েছে।");
               closeModal();
               window.location.reload();
             } catch(cancelError) {
               console.error("BUSNEX TICKET CANCEL ERROR:",cancelError);
               alert("Ticket Cancel হয়নি: "+(cancelError.message||"অজানা সমস্যা"));
-              cancel.disabled=false;
-              cancel.textContent="✖ Cancel Ticket";
+              cancel.disabled=selectedCancelTicketIds.size===0;
+              cancel.textContent="✖ Cancel Selected Seat"+(groupTickets.length>1?"(s)":"");
             }
           });
           actions.appendChild(cancel);
