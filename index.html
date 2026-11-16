@@ -4503,6 +4503,10 @@ async function loadSeatInventory(tripId) {
         : seat.seat_position <= 2
           ? seat.seat_position
           : seat.seat_position + 1;
+      // K-5 must be physically centered in the five-seat rear row.
+      if (String(seat.seat_number).trim().toUpperCase() === "K-5") {
+        div.style.setProperty("grid-column", "3", "important");
+      }
       $("seatLayout").appendChild(div);
     });
 
@@ -5963,6 +5967,10 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         : seat.seat_position <= 2
           ? seat.seat_position
           : seat.seat_position + 1;
+      // K-5 must be physically centered in the five-seat rear row.
+      if (String(seat.seat_number).trim().toUpperCase() === "K-5") {
+        div.style.setProperty("grid-column", "3", "important");
+      }
 
       if (isReservation) {
         div.title="Reservation Slip দেখতে ক্লিক করুন";
