@@ -2476,6 +2476,36 @@ $("tripSaveButton").addEventListener("click",async() => {
       throw new Error("নির্বাচিত Bus পাওয়া যায়নি। আবার Bus নির্বাচন করুন।");
     }
 
+    // Coach-এর আসন তালিকা Trip তৈরি/পরিবর্তনের আগেই যাচাই করুন।
+    const {data:coachLayout,error:coachLayoutError} = await supabase
+      .from("bus_seat_layouts")
+      .select("seat_number,row_label,seat_position,seat_order")
+      .eq("bus_id",busId)
+      .order("seat_order",{ascending:true});
+    if (coachLayoutError) throw new Error("Coach Seat Layout পড়া যায়নি: "+coachLayoutError.message);
+    if (!coachLayout?.length) throw new Error("এই Coach-এর Seat Layout নেই। আগে Coach-এর সব Seat Number সংরক্ষণ করুন।");
+
+    const coachNumbers = coachLayout.map(seat=>String(seat.seat_number));
+    if (new Set(coachNumbers).size !== coachNumbers.length) {
+      throw new Error("Coach Layout-এ একই Seat Number একাধিকবার আছে। Coach Layout ঠিক করুন।");
+    }
+    const selectedLayout = customLayout.length ? customLayout : coachLayout;
+    const selectedNumbers = selectedLayout.map(seat=>String(seat.seat_number));
+    if (new Set(selectedNumbers).size !== selectedNumbers.length) {
+      throw new Error("Trip Seat Layout-এ একই Seat Number একাধিকবার আছে।");
+    }
+    const sortedCoachNumbers = [...coachNumbers].sort();
+    const sortedSelectedNumbers = [...selectedNumbers].sort();
+    if (sortedCoachNumbers.length !== sortedSelectedNumbers.length ||
+        sortedCoachNumbers.some((seat,index)=>seat!==sortedSelectedNumbers[index])) {
+      const missing = sortedCoachNumbers.filter(seat=>!selectedNumbers.includes(seat));
+      const extra = sortedSelectedNumbers.filter(seat=>!coachNumbers.includes(seat));
+      throw new Error("Trip Seat Layout Coach-এর সঙ্গে মিলছে না।"+
+        (missing.length ? " বাদ পড়েছে: "+missing.join(",")+".":"")+
+        (extra.length ? " অতিরিক্ত: "+extra.join(",")+".":"")+
+        " Coach-এর সব Seat Number হুবহু দিন।");
+    }
+
     let routeId;
     const selectedRouteId = $("tripRouteSelect").value;
     if (isEditing) {
@@ -2598,17 +2628,51 @@ $("tripSaveButton").addEventListener("click",async() => {
       const {data:inventory,error:inventoryError} = await supabase.from("trip_seats")
         .select("seat_number").eq("trip_id",targetTripId);
       if (inventoryError) { boardingWarning = "Seat Inventory যাচাই হয়নি: "+inventoryError.message; break; }
-      const {data:busLayout,error:layoutError} = await supabase.from("bus_seat_layouts")
-        .select("seat_number,row_label,seat_position,seat_order").eq("bus_id",busId).order("seat_order",{ascending:true});
-      if (layoutError) { boardingWarning = "Coach Layout পড়া যায়নি: "+layoutError.message; break; }
-      const seatSource = customLayout.length ? customLayout : (busLayout || []);
-      const inventoryNumbers = (inventory || []).map(x=>x.seat_number).sort();
-      const layoutNumbers = seatSource.map(x=>x.seat_number).sort();
-      if (!inventoryNumbers.length || inventoryNumbers.length !== layoutNumbers.length ||
-          inventoryNumbers.some((seat,index)=>seat!==layoutNumbers[index])) {
-        boardingWarning = "Seat Layout সংরক্ষণ হয়নি: Coach-এর সব Seat Number হুবহু মিলতে হবে এবং কোনো Seat বাদ/বাড়তি রাখা যাবে না।";
+      const seatSource = selectedLayout;
+      const inventoryNumbers = (inventory || []).map(x=>String(x.seat_number));
+      const expectedNumbers = seatSource.map(x=>String(x.seat_number));
+      const inventorySet = new Set(inventoryNumbers);
+      const expectedSet = new Set(expectedNumbers);
+      const extraInventory = inventoryNumbers.filter(seat=>!expectedSet.has(seat));
+      if (extraInventory.length) {
+        boardingWarning = "Seat Inventory-তে Coach-এর বাইরের Seat আছে: "+extraInventory.join(", ")+". নিরাপত্তার জন্য কোনো Seat মুছে ফেলা হয়নি; আগে এই Trip-এর অতিরিক্ত Seat পরীক্ষা করুন।";
         break;
       }
+
+      // Trigger আগে Inventory না বানালে, কেবল অনুপস্থিত Seat যোগ করুন; Sold/Held/Reserved Seat স্পর্শ করবেন না।
+      const missingInventoryRows = seatSource
+        .filter(seat=>!inventorySet.has(String(seat.seat_number)))
+        .map(seat=>({trip_id:targetTripId,seat_number:seat.seat_number,status:"available"}));
+      if (missingInventoryRows.length) {
+        const {error:inventoryInsertError} = await supabase.from("trip_seats").insert(missingInventoryRows);
+        if (inventoryInsertError) {
+          boardingWarning = "Seat Inventory তৈরি হয়নি: "+inventoryInsertError.message;
+          break;
+        }
+      }
+
+      const {data:verifiedInventory,error:verifyInventoryError} = await supabase
+        .from("trip_seats").select("seat_number").eq("trip_id",targetTripId);
+      if (verifyInventoryError) { boardingWarning = "Seat Inventory পুনরায় যাচাই হয়নি: "+verifyInventoryError.message; break; }
+      const verifiedNumbers = (verifiedInventory || []).map(x=>String(x.seat_number)).sort();
+      const expectedSorted = [...expectedNumbers].sort();
+      if (verifiedNumbers.length !== expectedSorted.length ||
+          verifiedNumbers.some((seat,index)=>seat!==expectedSorted[index])) {
+        boardingWarning = "Seat Inventory Coach Layout-এর সঙ্গে হুবহু মেলেনি। কোনো পুরোনো Seat মুছে ফেলা হয়নি।";
+        break;
+      }
+
+      const {data:oldTripLayout,error:oldTripLayoutError} = await supabase
+        .from("trip_seat_layouts").select("seat_number").eq("trip_id",targetTripId);
+      if (oldTripLayoutError) { boardingWarning = "আগের Trip Layout যাচাই হয়নি: "+oldTripLayoutError.message; break; }
+      const staleLayoutSeats = (oldTripLayout || [])
+        .map(x=>String(x.seat_number)).filter(seat=>!expectedSet.has(seat));
+      if (staleLayoutSeats.length) {
+        const {error:deleteStaleLayoutError} = await supabase.from("trip_seat_layouts")
+          .delete().eq("trip_id",targetTripId).in("seat_number",staleLayoutSeats);
+        if (deleteStaleLayoutError) { boardingWarning = "পুরোনো অতিরিক্ত Trip Layout সরানো যায়নি: "+deleteStaleLayoutError.message; break; }
+      }
+
       const layoutRows = seatSource.map(seat=>({trip_id:targetTripId,...seat}));
       const {error:layoutSaveError} = await supabase.from("trip_seat_layouts")
         .upsert(layoutRows,{onConflict:"trip_id,seat_number"});
