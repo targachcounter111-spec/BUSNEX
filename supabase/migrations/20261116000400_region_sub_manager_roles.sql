@@ -33,6 +33,22 @@ ALTER TABLE public.profiles
     AND (role <> 'dhaka_sub_manager' OR region = 'DHAKA')
   );
 
+CREATE OR REPLACE FUNCTION public.busnex_user_region()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $
+  SELECT p.region
+  FROM public.profiles p
+  WHERE p.id = auth.uid()
+  LIMIT 1
+$;
+
+REVOKE ALL ON FUNCTION public.busnex_user_region() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.busnex_user_region() TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.busnex_is_region_sub_manager(p_region text)
 RETURNS boolean
 LANGUAGE sql
@@ -304,8 +320,6 @@ CREATE POLICY profiles_sub_manager_select ON public.profiles
 FOR SELECT TO authenticated
 USING (
   company_id = public.busnex_company_id()
-  AND region = (
-    SELECT p.region FROM public.profiles p WHERE p.id = auth.uid()
-  )
+  AND region = public.busnex_user_region()
   AND public.busnex_user_role() IN ('nb_sub_manager','dhaka_sub_manager')
 );
