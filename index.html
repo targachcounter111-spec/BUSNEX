@@ -1091,6 +1091,12 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
   #appScreen .sidebar{transition:none!important}
 }
 </style>
+<style id="busnex-global-footer-style">
+.busnex-site-footer{display:block;width:100%;box-sizing:border-box;text-align:center;padding:13px 12px;margin:18px auto 8px;color:#647568;font-size:12px;font-weight:700;letter-spacing:.55px;border-top:1px solid #dce9df;background:transparent;overflow-wrap:anywhere}
+#loginScreen .busnex-site-footer{margin-top:18px;border-top-color:#e5eee7;color:#647568}
+#globalCompanyHub .busnex-site-footer{margin-top:22px}
+@media(max-width:650px){.busnex-site-footer{font-size:11px;padding:12px 8px}}
+</style>
 </head>
 
 <body>
@@ -1137,6 +1143,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
     <p id="loginFooter" class="small muted" style="text-align:center;margin:18px 0 0">
       BUSNEX • Secure Counter Access
     </p>
+    <div class="busnex-site-footer" data-busnex-footer>BUSNEX BD CONCERN OF TAFSIR</div>
   </div>
 </div>
 
@@ -1191,6 +1198,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
       </form>
       <div id="managerCreateMessage" class="message" aria-live="polite">নতুন Company তৈরি করার পর Manager Login তৈরি করুন।</div>
     </div>
+    <div id="footerSettingsPanel" class="company-add-panel section">
+      <h2>Website Footer পরিচালনা</h2>
+      <p class="muted">এই লেখা Login Screen-সহ পুরো BUSNEX Website-এর Footer-এ দেখাবে।</p>
+      <div class="form-row">
+        <div class="field"><label for="footerTextInput">Footer Text</label><input id="footerTextInput" maxlength="180" value="BUSNEX BD CONCERN OF TAFSIR" placeholder="Footer-এর লেখা লিখুন"></div>
+        <div class="field"><label>&nbsp;</label><button id="saveFooterSettingsButton" class="primary" type="button">Footer Save করুন</button></div>
+      </div>
+      <div id="footerSettingsMessage" class="message" aria-live="polite">Footer-এর লেখা লোড হচ্ছে...</div>
+    </div>
+    <div class="busnex-site-footer" data-busnex-footer>BUSNEX BD CONCERN OF TAFSIR</div>
   </section>
   <div class="layout">
     <aside class="sidebar">
@@ -1568,7 +1585,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
           <div id="billingPaymentHistory" class="table-wrap"><div class="empty">Payment History লোড হয়নি।</div></div>
         </div>
       </section>
-      <div class="footer">BUSNEX • Bus Counter Management System</div>
+      <div class="footer busnex-site-footer" data-busnex-footer>BUSNEX BD CONCERN OF TAFSIR</div>
     </main>
   </div>
 </div>
@@ -1640,6 +1657,76 @@ function tripMessage(message,type) {
   $("tripFormMessage").textContent = message;
   $("tripFormMessage").className = "message " + type;
 }
+
+const DEFAULT_SITE_FOOTER = "BUSNEX BD CONCERN OF TAFSIR";
+
+function setSiteFooterText(value) {
+  const footerText = String(value || DEFAULT_SITE_FOOTER).trim() || DEFAULT_SITE_FOOTER;
+  document.querySelectorAll("[data-busnex-footer]").forEach(node => {
+    node.textContent = footerText;
+  });
+}
+
+async function loadPublicFooter() {
+  setSiteFooterText(DEFAULT_SITE_FOOTER);
+  try {
+    const {data,error} = await supabase.from("busnex_site_settings")
+      .select("footer_text").eq("id",1).maybeSingle();
+    if (error) throw error;
+    if (data?.footer_text) setSiteFooterText(data.footer_text);
+  } catch(error) {
+    console.warn("SITE FOOTER LOAD:",error.message);
+  }
+}
+
+async function loadFooterSettingsAdmin() {
+  if (currentProfile?.role !== "super_admin") return;
+  const message = $("footerSettingsMessage");
+  try {
+    const {data,error} = await supabase.from("busnex_site_settings")
+      .select("footer_text").eq("id",1).maybeSingle();
+    if (error) throw error;
+    $("footerTextInput").value = data?.footer_text || DEFAULT_SITE_FOOTER;
+    message.textContent = "বর্তমান Footer Text লোড হয়েছে।";
+    message.className = "message ok";
+  } catch(error) {
+    message.textContent = "Footer Settings লোড হয়নি: " + error.message;
+    message.className = "message error";
+  }
+}
+
+$("saveFooterSettingsButton").addEventListener("click",async()=>{
+  const button=$("saveFooterSettingsButton");
+  const message=$("footerSettingsMessage");
+  if(currentProfile?.role!=="super_admin"){
+    message.textContent="শুধু Super Admin Footer পরিবর্তন করতে পারবেন।";
+    message.className="message error";
+    return;
+  }
+  const footerText=$("footerTextInput").value.trim();
+  if(!footerText || footerText.length>180){
+    message.textContent="Footer Text খালি রাখা যাবে না এবং সর্বোচ্চ ১৮০ অক্ষর হতে পারবে।";
+    message.className="message error";
+    return;
+  }
+  button.disabled=true;
+  button.textContent="সংরক্ষণ হচ্ছে...";
+  try{
+    const {error}=await supabase.from("busnex_site_settings")
+      .update({footer_text:footerText,updated_at:new Date().toISOString()})
+      .eq("id",1);
+    if(error)throw error;
+    setSiteFooterText(footerText);
+    message.textContent="Footer Text সফলভাবে সংরক্ষণ হয়েছে।";
+    message.className="message ok";
+  }catch(error){
+    message.textContent="Footer সংরক্ষণ হয়নি: "+error.message;
+    message.className="message error";
+  }finally{
+    button.disabled=false;
+    button.textContent="Footer Save করুন";
+  }
+});
 
 function roleText(role) {
   return ({
@@ -1789,6 +1876,7 @@ function showDashboard(profile) {
     $("counterCompanyBrand").classList.add("hidden");
     document.title = "BUSNEX | Super Admin Global";
     loadGlobalCompanyHub();
+    loadFooterSettingsAdmin();
     return;
   }
 
