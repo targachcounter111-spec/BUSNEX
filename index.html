@@ -1531,6 +1531,18 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
           </div>
           <div id="counterCreateMessage" class="message">নতুন Counter তৈরি করতে নাম লিখুন।</div>
         </div>
+        <div class="card section" id="subManagerCreatePanel">
+          <h2>নতুন Sub Manager Login তৈরি করুন</h2>
+          <div class="notice">Company Manager নিজের Company-তে এবং Super Admin নির্বাচিত Company-তে NB অথবা Dhaka Sub Manager ID তৈরি করতে পারবেন। Sub Manager নিজের Region-এর মধ্যেই কাজ করতে পারবেন।</div>
+          <form id="createSubManagerForm" class="form-row section">
+            <div class="field"><label for="newSubManagerRegion">Sub Manager Region *</label><select id="newSubManagerRegion" required><option value="NB">North Bengal (NB)</option><option value="DHAKA">Dhaka</option></select></div>
+            <div class="field"><label for="newSubManagerName">Sub Manager-এর নাম *</label><input id="newSubManagerName" maxlength="120" required placeholder="পূর্ণ নাম"></div>
+            <div class="field"><label for="newSubManagerLogin">Login ID *</label><input id="newSubManagerLogin" maxlength="40" required autocomplete="off" placeholder="যেমন: NBSUBMANAGER01"></div>
+            <div class="field"><label for="newSubManagerPassword">Password * (কমপক্ষে ৮ অক্ষর)</label><input id="newSubManagerPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></div>
+            <div class="field"><label>&nbsp;</label><button id="createSubManagerButton" class="primary" type="submit">Create Sub Manager ID</button></div>
+          </form>
+          <div id="subManagerCreateMessage" class="message" aria-live="polite">Region, নাম, Login ID ও Password দিয়ে Sub Manager তৈরি করুন।</div>
+        </div>
         <div class="card section" id="operatorCreatePanel">
           <h2>নতুন Counter Operator Login তৈরি করুন</h2>
           <div class="notice">প্রথমে Counter তৈরি করুন। এরপর Counter নির্বাচন করে Operator-এর Login ID ও Password তৈরি করুন। একটি Counter-এ একসঙ্গে একটি Active Operator ID রাখা যাবে।</div>
@@ -4290,6 +4302,50 @@ function updateCustomBoardingPointField() {
   if (!isCustom) $("customBoardingPointInput").value = "";
 }
 $("operatorDefaultBoardingPoint").addEventListener("change", updateCustomBoardingPointField);
+
+$("createSubManagerForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!isAdmin() || !["super_admin","company_manager"].includes(currentProfile?.role)) return;
+  const company_id = currentProfile.role === "super_admin" ? activeCompanyId : currentProfile.company_id;
+  const region = $("newSubManagerRegion").value;
+  const full_name = $("newSubManagerName").value.trim();
+  const login_id = $("newSubManagerLogin").value.trim().toUpperCase();
+  const password = $("newSubManagerPassword").value;
+  const button = $("createSubManagerButton");
+  const message = $("subManagerCreateMessage");
+  if (!company_id || !["NB","DHAKA"].includes(region) || !full_name || !login_id || password.length < 8) {
+    message.textContent = "Company নির্বাচন/নির্ধারণ, Region, নাম, Login ID এবং কমপক্ষে ৮ অক্ষরের Password নিশ্চিত করুন।";
+    message.className = "message error";
+    return;
+  }
+  button.disabled = true;
+  message.textContent = "Sub Manager Login তৈরি হচ্ছে...";
+  message.className = "message";
+  try {
+    const {data,error} = await supabase.functions.invoke("manage-company-users", {
+      body: {action:"create_sub_manager",company_id,region,full_name,login_id,password}
+    });
+    if (error) throw new Error(data?.message || error.message || "Backend request failed");
+    if (!data?.success) throw new Error(data?.message || "Sub Manager ID তৈরি হয়নি।");
+    $("newSubManagerName").value = "";
+    $("newSubManagerLogin").value = "";
+    $("newSubManagerPassword").value = "";
+    message.textContent = "Sub Manager ID তৈরি হয়েছে | Login ID: " + (data.profile?.login_id || login_id);
+    message.className = "message ok";
+  } catch(error) {
+    let detail = error?.message || "Backend request failed";
+    try {
+      if (error?.context && typeof error.context.clone === "function") {
+        const payload = await error.context.clone().json().catch(()=>null);
+        detail = payload?.message || payload?.error || detail;
+      }
+    } catch {}
+    message.textContent = "Sub Manager ID তৈরি হয়নি: " + detail;
+    message.className = "message error";
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("createOperatorForm").addEventListener("submit", async event => {
   event.preventDefault();
