@@ -4646,7 +4646,13 @@ async function fetchBookingTrips(dateValue) {
     .gte("departure_time",range.start)
     .lt("departure_time",range.end)
     .order("departure_time",{ascending:true});
-  if (currentProfile?.role === "super_admin" && activeCompanyId) bookingQuery = bookingQuery.eq("company_id",activeCompanyId);
+  if (currentProfile?.role === "super_admin" && activeCompanyId) {
+    bookingQuery = bookingQuery.eq("company_id",activeCompanyId);
+  } else if (currentProfile?.role === "counter_operator") {
+    // Keep Counter ID schedule searches explicitly inside its own Company.
+    if (!currentProfile.company_id) throw new Error("এই Counter ID-এর Company তথ্য পাওয়া যায়নি।");
+    bookingQuery = bookingQuery.eq("company_id",currentProfile.company_id);
+  }
   const {data,error} = await bookingQuery;
 
   if (error) throw error;
