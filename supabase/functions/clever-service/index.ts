@@ -139,7 +139,7 @@ Deno.serve(async (req: Request) => {
     const { data: profile, error: profileError } = await admin
       .from("profiles")
       .select(
-        "id, login_id, full_name, role, company_id, counter_id, region, id_type, is_active",
+        "id, login_id, full_name, role, company_id, counter_id, region, id_type, default_boarding_point, is_active",
       )
       .eq("login_id", loginId)
       .maybeSingle();
