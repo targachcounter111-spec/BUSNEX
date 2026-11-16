@@ -4623,7 +4623,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     });
     if (expireHoldsError) throw expireHoldsError;
 
-    const [layoutResult,inventoryResult,ticketGenderResult] = await Promise.all([
+    const [tripLayoutResult,layoutResult,inventoryResult,ticketGenderResult] = await Promise.all([
+      supabase
+        .from("trip_seat_layouts")
+        .select("seat_number,row_label,seat_position,seat_order")
+        .eq("trip_id",trip.id)
+        .order("seat_order",{ascending:true}),
       supabase
         .from("bus_seat_layouts")
         .select("seat_number,row_label,seat_position,seat_order")
@@ -4640,11 +4645,14 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         .eq("status","sold")
     ]);
 
+    if (tripLayoutResult.error) throw tripLayoutResult.error;
     if (layoutResult.error) throw layoutResult.error;
     if (inventoryResult.error) throw inventoryResult.error;
     if (ticketGenderResult.error) console.warn("Seat gender colours unavailable:",ticketGenderResult.error);
 
-    const layout = layoutResult.data || [];
+    // Trip-specific Layout-ই অগ্রাধিকার পাবে; কেবল পুরোনো Trip-এ সেটি না থাকলে Coach Layout fallback।
+    const layout = (tripLayoutResult.data && tripLayoutResult.data.length)
+      ? tripLayoutResult.data : (layoutResult.data || []);
     const inventory = inventoryResult.data || [];
     const genderBySeat = new Map((ticketGenderResult.data || []).map(ticket => [
       ticket.seat_number,String(ticket.passenger_gender || "").toLowerCase()
