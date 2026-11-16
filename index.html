@@ -2676,16 +2676,15 @@ $("tripSaveButton").addEventListener("click",async() => {
         break;
       }
 
-      // Trigger আগে Inventory না বানালে, কেবল অনুপস্থিত Seat যোগ করুন; Sold/Held/Reserved Seat স্পর্শ করবেন না।
-      const missingInventoryRows = seatSource
-        .filter(seat=>!inventorySet.has(String(seat.seat_number)))
-        .map(seat=>({trip_id:targetTripId,seat_number:seat.seat_number,status:"available"}));
-      if (missingInventoryRows.length) {
-        const {error:inventoryInsertError} = await supabase.from("trip_seats").insert(missingInventoryRows);
-        if (inventoryInsertError) {
-          boardingWarning = "Seat Inventory তৈরি হয়নি: "+inventoryInsertError.message;
-          break;
-        }
+      // নিরাপদ RPC দিয়ে Coach Layout অনুযায়ী শুধু অনুপস্থিত Seat তৈরি করুন।
+      // RPC বিদ্যমান Sold/Held/Reserved/Blocked Seat পরিবর্তন করে না।
+      const {error:inventorySyncError} = await supabase.rpc(
+        "busnex_sync_trip_seats",
+        {p_trip_id:targetTripId}
+      );
+      if (inventorySyncError) {
+        boardingWarning = "Seat Inventory তৈরি হয়নি: "+inventorySyncError.message;
+        break;
       }
 
       const {data:verifiedInventory,error:verifyInventoryError} = await supabase
