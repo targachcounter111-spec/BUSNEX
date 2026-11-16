@@ -1242,6 +1242,7 @@ body{background:#f7f4ff!important;color:#24163e!important}
             <div class="field"><label for="newOperatorLogin">Operator Login ID *</label><input id="newOperatorLogin" maxlength="40" required autocomplete="off" placeholder="যেমন: BNGAZIPURA28"></div>
             <div class="field"><label for="newOperatorPassword">Password * (কমপক্ষে ৮ অক্ষর)</label><input id="newOperatorPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></div>
             <div class="field"><label for="operatorRegion">Region *</label><select id="operatorRegion" required><option value="ALL">All</option><option value="NB">North Bengal (NB)</option><option value="SB">South Bengal (SB)</option><option value="DHAKA">Dhaka</option></select></div>
+            <div class="field"><label for="operatorDefaultBoardingPoint">Default Boarding Point / নির্ধারিত ওঠার স্থান *</label><select id="operatorDefaultBoardingPoint" required><option value="">আগে Region নির্বাচন করুন</option></select></div>
             <div class="field"><label for="operatorIdType">ID Type *</label><select id="operatorIdType" required><option value="OPERATOR">Operator</option><option value="AGENT">Agent</option></select></div>
             <div class="field"><label>&nbsp;</label><button id="createOperatorButton" class="primary" type="submit">Create Operator ID</button></div>
           </form>
@@ -3898,6 +3899,43 @@ $("reservationRefresh").addEventListener("click",loadReservationsPage);
 $("counterRefresh").addEventListener("click",loadCounterDirectory);
 $("createCounterButton").addEventListener("click",createCounter);
 
+async function loadOperatorDefaultBoardingPoints() {
+  const select = $("operatorDefaultBoardingPoint");
+  const companyId = currentProfile?.role === "super_admin" ? activeCompanyId : currentProfile?.company_id;
+  const region = $("operatorRegion").value;
+  select.innerHTML = '<option value="">Boarding Point লোড হচ্ছে...</option>';
+  select.disabled = true;
+  try {
+    if (!companyId) throw new Error("Company Workspace নির্বাচন করুন।");
+    let query = supabase.from("route_stops")
+      .select("stop_name,routes!inner(company_id,region)")
+      .eq("routes.company_id", companyId)
+      .eq("can_board", true);
+    if (region !== "ALL") query = query.eq("routes.region", region);
+    const {data,error} = await query.order("stop_name");
+    if (error) throw error;
+    const names = [...new Set((data || []).map(row => String(row.stop_name || "").trim()).filter(Boolean))];
+    select.innerHTML = '<option value="">Default Boarding Point নির্বাচন করুন</option>';
+    names.forEach(name => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      select.appendChild(option);
+    });
+    if (!names.length) {
+      select.innerHTML = '<option value="">এই Region-এ Boarding Point পাওয়া যায়নি</option>';
+    }
+  } catch(error) {
+    select.innerHTML = '<option value="">Boarding Point লোড হয়নি</option>';
+    $("operatorCreateMessage").textContent = "Boarding Point লোড হয়নি: " + error.message;
+    $("operatorCreateMessage").className = "message error";
+  } finally {
+    select.disabled = false;
+  }
+}
+
+$("operatorRegion").addEventListener("change", loadOperatorDefaultBoardingPoints);
+
 $("createOperatorForm").addEventListener("submit", async event => {
   event.preventDefault();
   if (!isAdmin()) return;
@@ -3908,10 +3946,11 @@ $("createOperatorForm").addEventListener("submit", async event => {
   const password = $("newOperatorPassword").value;
   const region = $("operatorRegion").value;
   const id_type = $("operatorIdType").value;
+  const default_boarding_point = $("operatorDefaultBoardingPoint").value;
   const button = $("createOperatorButton");
   const message = $("operatorCreateMessage");
-  if (!company_id || !counter_id || !full_name || !login_id || password.length < 8) {
-    message.textContent = "Company, Counter, নাম, Login ID ও কমপক্ষে ৮ অক্ষরের Password দিন।";
+  if (!company_id || !counter_id || !full_name || !login_id || !default_boarding_point || password.length < 8) {
+    message.textContent = "Company, Counter, নাম, Login ID, Default Boarding Point ও কমপক্ষে ৮ অক্ষরের Password দিন।";
     message.className = "message error";
     return;
   }
@@ -3920,13 +3959,14 @@ $("createOperatorForm").addEventListener("submit", async event => {
   message.className = "message";
   try {
     const {data,error} = await supabase.functions.invoke("manage-company-users", {
-      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type}
+      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type,default_boarding_point}
     });
     if (error) throw new Error(data?.message || error.message || "Backend request failed");
     if (!data?.success) throw new Error(data?.message || "Operator ID তৈরি হয়নি।");
     $("newOperatorName").value = "";
     $("newOperatorLogin").value = "";
     $("newOperatorPassword").value = "";
+    $("operatorDefaultBoardingPoint").value = "";
     message.textContent = data.message + " | Login ID: " + data.profile.login_id;
     message.className = "message ok";
   } catch(error) {
