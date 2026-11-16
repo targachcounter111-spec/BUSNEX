@@ -301,6 +301,15 @@ USING (EXISTS (
     AND public.busnex_is_region_sub_manager(r.region)
 ));
 
+CREATE POLICY trip_seats_sub_manager_select ON public.trip_seats
+FOR SELECT TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM public.trips t JOIN public.routes r ON r.id = t.route_id
+  WHERE t.id = trip_seats.trip_id
+    AND t.company_id = public.busnex_company_id()
+    AND public.busnex_is_region_sub_manager(r.region)
+));
+
 -- Sub-managers need buses and counters for schedule/Counter-ID management.
 CREATE POLICY buses_sub_manager_select ON public.buses
 FOR SELECT TO authenticated
