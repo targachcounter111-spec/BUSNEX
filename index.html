@@ -2266,7 +2266,7 @@ $("createCustomBusButton").addEventListener("click",async() => {
   if (!raw) { message.textContent="Seat Layout লিখুন।"; return; }
   let layout;
   try {
-    layout=raw.split(/\\r?\\n/).filter(line=>line.trim()).map(line=>{
+    layout=raw.split(/\r?\n/).filter(line=>line.trim()).map(line=>{
       const parts=line.split("|").map(v=>(v||"").trim());
       const [seat,row,position,order]=parts;
       if (!seat || !row || parts.length!==4 ||
