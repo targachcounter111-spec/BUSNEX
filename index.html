@@ -2817,40 +2817,21 @@ $("tripSaveButton").addEventListener("click",async() => {
     if (coachLayoutError) throw new Error("Coach Seat Layout পড়া যায়নি: "+coachLayoutError.message);
     if (!coachLayout?.length) throw new Error("এই Coach-এর Seat Layout নেই। আগে Coach-এর সব Seat Number সংরক্ষণ করুন।");
 
-    // R-1 নির্বাচন করা হলে Coach Layout-এও প্রথম সারিতে এটি যোগ করুন।
-    // আগে থেকে থাকা Seat বা তাদের বিক্রির/হোল্ডের অবস্থা পরিবর্তন করা হয় না।
-    const tripHasR1 = customLayout.some(seat=>String(seat.seat_number)==="R-1");
-    if (tripHasR1 && !coachLayout.some(seat=>String(seat.seat_number)==="R-1")) {
-      const {error:r1InsertError} = await supabase.from("bus_seat_layouts").insert({
-        bus_id:busId,seat_number:"R-1",row_label:"@",seat_position:1,seat_order:1
-      });
-      if (r1InsertError) throw new Error("Coach Layout-এ R-1 যোগ করা যায়নি: "+r1InsertError.message);
-      const refreshedCoach = await supabase.from("bus_seat_layouts")
-        .select("seat_number,row_label,seat_position,seat_order")
-        .eq("bus_id",busId).order("seat_order",{ascending:true});
-      if (refreshedCoach.error) throw new Error("R-1 যোগের পর Coach Layout যাচাই করা যায়নি: "+refreshedCoach.error.message);
-      coachLayout = refreshedCoach.data || [];
-    }
-
+    // Trip-এর নির্বাচিত Layout আলাদা থাকবে; Bus-এর স্থায়ী Layout পরিবর্তন করা হবে না।
     const coachNumbers = coachLayout.map(seat=>String(seat.seat_number));
     if (new Set(coachNumbers).size !== coachNumbers.length) {
       throw new Error("Coach Layout-এ একই Seat Number একাধিকবার আছে। Coach Layout ঠিক করুন।");
     }
     const selectedLayout = customLayout.length ? customLayout : coachLayout;
+    if (!selectedLayout.length) throw new Error("Trip-এর জন্য Seat Format নির্বাচন করুন বা Layout লিখুন।");
     const selectedNumbers = selectedLayout.map(seat=>String(seat.seat_number));
     if (new Set(selectedNumbers).size !== selectedNumbers.length) {
       throw new Error("Trip Seat Layout-এ একই Seat Number একাধিকবার আছে।");
     }
-    const sortedCoachNumbers = [...coachNumbers].sort();
-    const sortedSelectedNumbers = [...selectedNumbers].sort();
-    if (sortedCoachNumbers.length !== sortedSelectedNumbers.length ||
-        sortedCoachNumbers.some((seat,index)=>seat!==sortedSelectedNumbers[index])) {
-      const missing = sortedCoachNumbers.filter(seat=>!selectedNumbers.includes(seat));
-      const extra = sortedSelectedNumbers.filter(seat=>!coachNumbers.includes(seat));
-      throw new Error("Trip Seat Layout Coach-এর সঙ্গে মিলছে না।"+
-        (missing.length ? " বাদ পড়েছে: "+missing.join(",")+".":"")+
-        (extra.length ? " অতিরিক্ত: "+extra.join(",")+".":"")+
-        " Coach-এর সব Seat Number হুবহু দিন।");
+    if (new Set(selectedLayout.map(seat=>Number(seat.seat_order))).size !== selectedLayout.length ||
+        selectedLayout.some(seat=>!seat.row_label || !Number.isInteger(Number(seat.seat_position)) || Number(seat.seat_position)<1 ||
+          !Number.isInteger(Number(seat.seat_order)) || Number(seat.seat_order)<1)) {
+      throw new Error("প্রতিটি Seat-এর Row, Position ও আলাদা Order সঠিকভাবে দিন।");
     }
 
     let routeId;
@@ -2982,7 +2963,7 @@ $("tripSaveButton").addEventListener("click",async() => {
       const expectedSet = new Set(expectedNumbers);
       const extraInventory = inventoryNumbers.filter(seat=>!expectedSet.has(seat));
       if (extraInventory.length) {
-        boardingWarning = "Seat Inventory-তে Coach-এর বাইরের Seat আছে: "+extraInventory.join(", ")+". নিরাপত্তার জন্য কোনো Seat মুছে ফেলা হয়নি; আগে এই Trip-এর অতিরিক্ত Seat পরীক্ষা করুন।";
+        boardingWarning = "Seat Inventory-তে নির্বাচিত Layout-এর বাইরের Seat আছে: "+extraInventory.join(", ")+". নিরাপত্তার জন্য কোনো Seat মুছে ফেলা হয়নি; আগে এই Trip-এর অতিরিক্ত Seat পরীক্ষা করুন।";
         break;
       }
 
@@ -2990,7 +2971,15 @@ $("tripSaveButton").addEventListener("click",async() => {
       // RPC বিদ্যমান Sold/Held/Reserved/Blocked Seat পরিবর্তন করে না।
       const {error:inventorySyncError} = await supabase.rpc(
         "busnex_sync_trip_seats",
-        {p_trip_id:targetTripId}
+        {
+          p_trip_id:targetTripId,
+          p_layout:seatSource.map(seat=>({
+            seat_number:String(seat.seat_number),
+            row_label:String(seat.row_label),
+            seat_position:Number(seat.seat_position),
+            seat_order:Number(seat.seat_order)
+          }))
+        }
       );
       if (inventorySyncError) {
         boardingWarning = "Seat Inventory তৈরি হয়নি: "+inventorySyncError.message;
@@ -3004,7 +2993,7 @@ $("tripSaveButton").addEventListener("click",async() => {
       const expectedSorted = [...expectedNumbers].sort();
       if (verifiedNumbers.length !== expectedSorted.length ||
           verifiedNumbers.some((seat,index)=>seat!==expectedSorted[index])) {
-        boardingWarning = "Seat Inventory Coach Layout-এর সঙ্গে হুবহু মেলেনি। কোনো পুরোনো Seat মুছে ফেলা হয়নি।";
+        boardingWarning = "Seat Inventory নির্বাচিত Trip Layout-এর সঙ্গে হুবহু মেলেনি। কোনো পুরোনো Seat মুছে ফেলা হয়নি।";
         break;
       }
 
