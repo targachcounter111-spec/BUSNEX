@@ -3061,161 +3061,124 @@ async function loadTrips(view) {
   $("tripHistoryButton").className = tripListView === "history" ? "primary" : "secondary";
   $("tripList").innerHTML = "Trip লোড হচ্ছে...";
 
-  // Keep the main Trip query independent from optional Boarding Point relations.
-  // A missing/uncached PostgREST relationship must not block the entire Trip list.
-  let query = supabase
-    .from("trips")
-    .select(`
-      id,company_id,bus_id,route_id,departure_time,arrival_time,
-      ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,schedule_group_id,
-      buses(bus_name),
-      routes(starting_point,ending_point)
-    `)
-    .order("departure_time",{ascending:true})
-    .limit(1000);
+  try {
+    // Load Trip rows without PostgREST relationship joins. A relationship-cache
+    // issue in buses/routes/boarding points must never block the main Trip list.
+    let query = supabase
+      .from("trips")
+      .select("id,company_id,bus_id,route_id,departure_time,arrival_time,ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,schedule_group_id")
+      .order("departure_time",{ascending:true})
+      .limit(1000);
 
-  if (currentProfile.role === "company_manager") {
-    query = query.eq("company_id",currentProfile.company_id);
-  } else if (currentProfile.role === "super_admin" && activeCompanyId) {
-    query = query.eq("company_id",activeCompanyId);
-  }
-
-  const {data,error} = await query;
-
-  if (error) {
-    $("tripList").innerHTML =
-      '<div class="empty">Trip লোড হয়নি: ' +
-      escapeHtml(error.message) + '</div>';
-    return;
-  }
-
-  const trips = data || [];
-  const tripIds = trips.map(trip => trip.id).filter(Boolean);
-  const boardingPointsByTrip = new Map();
-  if (tripIds.length) {
-    try {
-      const {data:boardingRows,error:boardingError} = await supabase
-        .from("trip_boarding_points")
-        .select("trip_id,point_name,boarding_time,point_order")
-        .in("trip_id",tripIds)
-        .order("point_order",{ascending:true});
-      if (boardingError) throw boardingError;
-      (boardingRows || []).forEach(point => {
-        if (!boardingPointsByTrip.has(point.trip_id)) boardingPointsByTrip.set(point.trip_id,[]);
-        boardingPointsByTrip.get(point.trip_id).push(point);
-      });
-    } catch(boardingError) {
-      console.warn("TRIP BOARDING POINTS LOAD WARNING:",boardingError.message);
-      // Trip cards still render; only the optional boarding-point labels are omitted.
+    if (currentProfile.role === "company_manager") {
+      query = query.eq("company_id",currentProfile.company_id);
+    } else if (currentProfile.role === "super_admin" && activeCompanyId) {
+      query = query.eq("company_id",activeCompanyId);
     }
+
+    const tripResult = await query;
+    if (tripResult.error) throw new Error("Trip তথ্য: " + tripResult.error.message);
+    const trips = tripResult.data || [];
+
+    const busIds = [...new Set(trips.map(trip => trip.bus_id).filter(Boolean))];
+    const routeIds = [...new Set(trips.map(trip => trip.route_id).filter(Boolean))];
+    const tripIds = trips.map(trip => trip.id).filter(Boolean);
+    const busesById = new Map();
+    const routesById = new Map();
+    const boardingPointsByTrip = new Map();
+
+    const optionalLoads = await Promise.allSettled([
+      busIds.length
+        ? supabase.from("buses").select("id,bus_name").in("id",busIds)
+        : Promise.resolve({data:[],error:null}),
+      routeIds.length
+        ? supabase.from("routes").select("id,starting_point,ending_point").in("id",routeIds)
+        : Promise.resolve({data:[],error:null}),
+      tripIds.length
+        ? supabase.from("trip_boarding_points").select("trip_id,point_name,boarding_time,point_order").in("trip_id",tripIds).order("point_order",{ascending:true})
+        : Promise.resolve({data:[],error:null})
+    ]);
+
+    const busResult = optionalLoads[0].status === "fulfilled" ? optionalLoads[0].value : null;
+    const routeResult = optionalLoads[1].status === "fulfilled" ? optionalLoads[1].value : null;
+    const boardingResult = optionalLoads[2].status === "fulfilled" ? optionalLoads[2].value : null;
+    if (busResult?.error) console.warn("TRIP BUS DETAILS:",busResult.error.message);
+    if (routeResult?.error) console.warn("TRIP ROUTE DETAILS:",routeResult.error.message);
+    if (boardingResult?.error) console.warn("TRIP BOARDING POINTS:",boardingResult.error.message);
+    (busResult?.data || []).forEach(bus => busesById.set(bus.id,bus));
+    (routeResult?.data || []).forEach(route => routesById.set(route.id,route));
+    (boardingResult?.data || []).forEach(point => {
+      if (!boardingPointsByTrip.has(point.trip_id)) boardingPointsByTrip.set(point.trip_id,[]);
+      boardingPointsByTrip.get(point.trip_id).push(point);
+    });
+
+    trips.forEach(trip => {
+      trip.buses = busesById.get(trip.bus_id) || {};
+      trip.routes = routesById.get(trip.route_id) || {};
+      trip.trip_boarding_points = boardingPointsByTrip.get(trip.id) || [];
+    });
+
+    const now = Date.now();
+    const visibleTrips = trips.filter(trip => {
+      const departureMs = new Date(trip.departure_time).getTime();
+      return tripListView === "history" ? departureMs < now : departureMs >= now;
+    });
+
+    if (!visibleTrips.length) {
+      $("tripList").innerHTML = tripListView === "history"
+        ? '<div class="empty">এখনো কোনো অতীতের Trip নেই। History খালি।</div>'
+        : '<div class="empty">এখন কোনো চলতি বা ভবিষ্যতের Trip নেই।</div>';
+      return;
+    }
+
+    $("tripList").innerHTML = "";
+    visibleTrips.forEach(trip => {
+      const route = trip.routes || {};
+      const bus = trip.buses || {};
+      const points = (trip.trip_boarding_points || []).sort((a,b) => a.point_order - b.point_order);
+      const departure = new Date(trip.departure_time);
+      const dateText = departure.toLocaleDateString("en-GB");
+      const timeText = formatDhakaTime(departure);
+      const card = document.createElement("div");
+      card.className = "trip-card";
+      const status = trip.status || "scheduled";
+      const busIsOff = trip.is_active === false;
+
+      card.innerHTML = `
+        <h3>${escapeHtml(route.starting_point || "—")} → ${escapeHtml(route.ending_point || "—")}</h3>
+        <div class="trip-info">
+          <span><b>Bus:</b> ${escapeHtml(bus.bus_name || "—")}</span>
+          <span><b>Coach:</b> ${escapeHtml(trip.coach_number || "—")}</span>
+          <span><b>Date:</b> ${escapeHtml(dateText)}</span>
+          <span><b>Time:</b> ${escapeHtml(timeText)}</span>
+          <span><b>Fare:</b> ৳${escapeHtml(String(trip.ticket_price))}</span>
+          <span><b>Supervisor:</b> ${escapeHtml(trip.supervisor_name || trip.supervisor || "—")}</span>
+          <span><b>Supervisor Phone:</b> ${escapeHtml(trip.supervisor_phone || "—")}</span>
+          ${trip.schedule_group_id ? '<span><b>Schedule Group:</b> একই Group</span>' : ""}
+          <span class="status ${escapeHtml(status)}">${escapeHtml(status)}</span>
+          ${busIsOff ? '<strong class="status cancelled">BUS OFF — TICKET SALE STOPPED</strong>' : ''}
+        </div>
+        <div class="boarding-list"><b>Boarding Points:</b>
+          ${points.length ? points.map(point => escapeHtml(point.point_name) + " — " + escapeHtml(formatClock12(point.boarding_time))).join(" | ") : "কোনো Boarding Point নেই"}
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button class="secondary edit-trip" data-id="${escapeHtml(trip.id)}">Edit Trip</button>
+          ${status === "scheduled" ? `<button class="${busIsOff ? 'secondary' : 'danger'} toggle-bus-off" data-id="${escapeHtml(trip.id)}" data-active="${busIsOff ? 'false' : 'true'}">${busIsOff ? 'BUS ON — চালু করুন' : 'BUS OFF — Ticket বন্ধ করুন'}</button>` : ''}
+          ${status !== "cancelled" ? `<button class="danger cancel-trip" data-id="${escapeHtml(trip.id)}">Trip বাতিল</button>` : ""}
+          <button class="danger delete-trip" data-id="${escapeHtml(trip.id)}">Delete Trip</button>
+        </div>
+      `;
+      $("tripList").appendChild(card);
+    });
+
+    document.querySelectorAll(".edit-trip").forEach(button => button.addEventListener("click",() => editTrip(button.dataset.id)));
+    document.querySelectorAll(".cancel-trip").forEach(button => button.addEventListener("click",() => cancelTrip(button.dataset.id,button)));
+    document.querySelectorAll(".toggle-bus-off").forEach(button => button.addEventListener("click",() => toggleBusOff(button.dataset.id,button)));
+    document.querySelectorAll(".delete-trip").forEach(button => button.addEventListener("click",() => deleteTrip(button.dataset.id,button)));
+  } catch(error) {
+    console.error("TRIP LIST LOAD FAILED:",error);
+    $("tripList").innerHTML = '<div class="empty">Trip লোড হয়নি: ' + escapeHtml(error?.message || String(error)) + '</div>';
   }
-  trips.forEach(trip => {
-    trip.trip_boarding_points = boardingPointsByTrip.get(trip.id) || [];
-  });
-
-  const now = Date.now();
-  const visibleTrips = trips.filter(trip => {
-    const departureMs = new Date(trip.departure_time).getTime();
-    return tripListView === "history" ? departureMs < now : departureMs >= now;
-  });
-
-  if (!visibleTrips.length) {
-    $("tripList").innerHTML = tripListView === "history"
-      ? '<div class="empty">এখনো কোনো অতীতের Trip নেই। History খালি।</div>'
-      : '<div class="empty">এখন কোনো চলতি বা ভবিষ্যতের Trip নেই।</div>';
-    return;
-  }
-
-  $("tripList").innerHTML = "";
-
-  visibleTrips.forEach(trip => {
-    const route = trip.routes || {};
-    const bus = trip.buses || {};
-
-    const points = (trip.trip_boarding_points || [])
-      .sort((a,b) => a.point_order - b.point_order);
-
-    const departure = new Date(trip.departure_time);
-    const dateText = departure.toLocaleDateString("en-GB");
-
-    const timeText = formatDhakaTime(departure);
-
-    const card = document.createElement("div");
-    card.className = "trip-card";
-
-    const status = trip.status || "scheduled";
-    const busIsOff = trip.is_active === false;
-
-    card.innerHTML = `
-      <h3>
-        ${escapeHtml(route.starting_point || "—")}
-        → ${escapeHtml(route.ending_point || "—")}
-      </h3>
-
-      <div class="trip-info">
-        <span><b>Bus:</b> ${escapeHtml(bus.bus_name || "—")}</span>
-        <span><b>Coach:</b> ${escapeHtml(trip.coach_number || "—")}</span>
-        <span><b>Date:</b> ${escapeHtml(dateText)}</span>
-        <span><b>Time:</b> ${escapeHtml(timeText)}</span>
-        <span><b>Fare:</b> ৳${escapeHtml(String(trip.ticket_price))}</span>
-        <span><b>Supervisor:</b> ${escapeHtml(trip.supervisor_name || trip.supervisor || "—")}</span>
-        <span><b>Supervisor Phone:</b> ${escapeHtml(trip.supervisor_phone || "—")}</span>
-        ${trip.schedule_group_id ? '<span><b>Schedule Group:</b> একই Group</span>' : ""}
-        <span class="status ${escapeHtml(status)}">${escapeHtml(status)}</span>
-        ${busIsOff ? '<strong class="status cancelled">BUS OFF — TICKET SALE STOPPED</strong>' : ''}
-      </div>
-
-      <div class="boarding-list">
-        <b>Boarding Points:</b>
-        ${points.length
-          ? points.map(point =>
-              escapeHtml(point.point_name) + " — " +
-              escapeHtml(formatClock12(point.boarding_time))
-            ).join(" | ")
-          : "কোনো Boarding Point নেই"}
-      </div>
-
-      <div class="actions" style="margin-top:12px">
-        <button class="secondary edit-trip" data-id="${escapeHtml(trip.id)}">
-          Edit Trip
-        </button>
-
-        ${status === "scheduled" ? `
-          <button class="${busIsOff ? 'secondary' : 'danger'} toggle-bus-off" data-id="${escapeHtml(trip.id)}" data-active="${busIsOff ? 'false' : 'true'}">
-            ${busIsOff ? 'BUS ON — চালু করুন' : 'BUS OFF — Ticket বন্ধ করুন'}
-          </button>
-        ` : ''}
-
-        ${status !== "cancelled" ? `
-          <button class="danger cancel-trip" data-id="${escapeHtml(trip.id)}">
-            Trip বাতিল
-          </button>
-        ` : ""}
-
-        <button class="danger delete-trip" data-id="${escapeHtml(trip.id)}">
-          Delete Trip
-        </button>
-      </div>
-    `;
-
-    $("tripList").appendChild(card);
-  });
-
-  document.querySelectorAll(".edit-trip").forEach(button => {
-    button.addEventListener("click",() => editTrip(button.dataset.id));
-  });
-
-  document.querySelectorAll(".cancel-trip").forEach(button => {
-    button.addEventListener("click",() => cancelTrip(button.dataset.id,button));
-  });
-
-  document.querySelectorAll(".toggle-bus-off").forEach(button => {
-    button.addEventListener("click",() => toggleBusOff(button.dataset.id,button));
-  });
-
-  document.querySelectorAll(".delete-trip").forEach(button => {
-    button.addEventListener("click",() => deleteTrip(button.dataset.id,button));
-  });
 }
 
 function formatDhakaDateTime(value, options = {}) {
