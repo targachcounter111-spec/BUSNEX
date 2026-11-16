@@ -1196,7 +1196,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
     <aside class="sidebar">
       <button class="nav-btn active" data-page="dashboard">▦ Dashboard</button>
       <button class="nav-btn" data-page="booking">▣ Ticket Booking</button>
-      <button class="nav-btn admin-only" data-page="trips">⇄ Trip Management</button>
+      <button class="nav-btn trip-manager-only" data-page="trips">⇄ Trip Management</button>
       <button class="nav-btn" data-page="seats">▤ Seat Layout</button>
       <button class="nav-btn" data-page="sheet">☷ Trip Sheet</button>
       <button class="nav-btn" data-page="reservations">▣ Reservations</button>
@@ -1645,6 +1645,8 @@ function roleText(role) {
   return ({
     super_admin:"Super Admin",
     company_manager:"Company Manager",
+    nb_sub_manager:"NB SUB MANAGER",
+    dhaka_sub_manager:"DHAKA SUB MANAGER",
     counter_operator:"Counter Operator"
   })[role] || role || "User";
 }
@@ -1652,6 +1654,12 @@ function roleText(role) {
 function isAdmin() {
   return currentProfile &&
     ["super_admin","company_manager"].includes(currentProfile.role);
+}
+
+// Sub Managers can manage Trips only; they do not inherit general admin access.
+function isTripManager() {
+  return currentProfile &&
+    ["super_admin","company_manager","nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role);
 }
 
 async function loadBillingDashboardNotice() {
@@ -1771,6 +1779,7 @@ function showDashboard(profile) {
   $("roleLabel").textContent = roleText(currentProfile.role);
   $("counterRoleTag").textContent = roleText(currentProfile.role);
   document.querySelectorAll(".admin-only").forEach(button => button.classList.toggle("hidden",!isAdmin()));
+  document.querySelectorAll(".trip-manager-only").forEach(button => button.classList.toggle("hidden",!isTripManager()));
 
   if (currentProfile.role === "super_admin") {
     $("globalCompanyHub").classList.remove("hidden");
@@ -2273,7 +2282,7 @@ async function loadBuses() {
 }
 
 async function prepareTripManagement() {
-  if (!isAdmin()) {
+  if (!isTripManager()) {
     tripMessage("এই বিভাগ ব্যবহারের অনুমতি নেই।","error");
     return;
   }
@@ -2827,7 +2836,7 @@ $("tripResetButton").addEventListener("click",() => {
 $("tripEditCancelButton").addEventListener("click",stopEditing);
 
 $("tripSaveButton").addEventListener("click",async() => {
-  if (!isAdmin()) {
+  if (!isTripManager()) {
     tripMessage("আপনার Trip তৈরি করার অনুমতি নেই।","error");
     return;
   }
@@ -3130,7 +3139,7 @@ $("tripSaveButton").addEventListener("click",async() => {
 });
 
 async function loadTrips(view) {
-  if (!isAdmin()) return;
+  if (!isTripManager()) return;
   if (view === "upcoming" || view === "history") tripListView = view;
   $("tripUpcomingButton").className = tripListView === "upcoming" ? "primary" : "secondary";
   $("tripHistoryButton").className = tripListView === "history" ? "primary" : "secondary";
@@ -3240,7 +3249,7 @@ async function loadTrips(view) {
           <button class="secondary edit-trip" data-id="${escapeHtml(trip.id)}">Edit Trip</button>
           ${status === "scheduled" ? `<button class="${busIsOff ? 'secondary' : 'danger'} toggle-bus-off" data-id="${escapeHtml(trip.id)}" data-active="${busIsOff ? 'false' : 'true'}">${busIsOff ? 'BUS ON — চালু করুন' : 'BUS OFF — Ticket বন্ধ করুন'}</button>` : ''}
           ${status !== "cancelled" ? `<button class="danger cancel-trip" data-id="${escapeHtml(trip.id)}">Trip বাতিল</button>` : ""}
-          <button class="danger delete-trip" data-id="${escapeHtml(trip.id)}">Delete Trip</button>
+          ${isAdmin() ? `<button class="danger delete-trip" data-id="${escapeHtml(trip.id)}">Delete Trip</button>` : ""}
         </div>
       `;
       $("tripList").appendChild(card);
@@ -3401,7 +3410,7 @@ $("managedAccountsList").addEventListener("click", async event => {
 });
 
 async function editTrip(id) {
-  if (!isAdmin()) return;
+  if (!isTripManager()) return;
 
   try {
     const {data:trip,error} = await supabase
@@ -3481,7 +3490,7 @@ async function editTrip(id) {
 }
 
 async function toggleBusOff(id,button) {
-  if (!isAdmin()) return;
+  if (!isTripManager()) return;
   const turningOff = button.dataset.active === "true";
   const promptText = turningOff
     ? "এই Bus OFF করলে এই Trip-এর বাকি Ticket বিক্রি বন্ধ হবে। ইতিমধ্যে বিক্রি হওয়া Ticket ও যাত্রীদের তথ্য অক্ষত থাকবে। নিশ্চিত?"
@@ -3514,7 +3523,7 @@ async function toggleBusOff(id,button) {
 }
 
 async function cancelTrip(id,button) {
-  if (!isAdmin()) return;
+  if (!isTripManager()) return;
   if (!confirm("এই Trip বাতিল করতে চাও?")) return;
 
   button.disabled = true;
@@ -3595,7 +3604,7 @@ $("topbarSearchButton").addEventListener("click",() => {
 
 document.querySelectorAll(".nav-btn").forEach(button => {
   button.addEventListener("click",async() => {
-    if (button.dataset.page === "trips" && !isAdmin()) return;
+    if (button.dataset.page === "trips" && !isTripManager()) return;
 
     document.querySelectorAll(".nav-btn").forEach(item => {
       item.classList.remove("active");
