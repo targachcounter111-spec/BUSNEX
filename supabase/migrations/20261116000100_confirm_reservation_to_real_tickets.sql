@@ -202,19 +202,8 @@ BEGIN
       v_res_seat.ticket_price,
       'sold'
     )
-    ON CONFLICT (trip_id, seat_number)
-    DO UPDATE SET
-      passenger_name = EXCLUDED.passenger_name,
-      passenger_phone = EXCLUDED.passenger_phone,
-      passenger_gender = EXCLUDED.passenger_gender,
-      counter_id = EXCLUDED.counter_id,
-      sold_by = EXCLUDED.sold_by,
-      boarding_stop_id = EXCLUDED.boarding_stop_id,
-      dropping_stop_id = EXCLUDED.dropping_stop_id,
-      ticket_price = EXCLUDED.ticket_price,
-      status = 'sold',
-      created_at = now()
-    WHERE public.tickets.status = 'cancelled'
+    ON CONFLICT (trip_id, seat_number) WHERE (status = 'sold')
+    DO NOTHING
     RETURNING id INTO v_ticket_id;
 
     IF v_ticket_id IS NULL THEN
