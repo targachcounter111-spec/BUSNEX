@@ -1008,6 +1008,18 @@ body{background:#f7f4ff!important;color:#24163e!important}
               <option value="">আগে Company নির্বাচন করুন</option>
             </select>
           </div>
+          <div id="newBusPanel" class="card hidden" style="margin:12px 0;padding:16px;border:1px solid #b8c9bf;background:#f8fbf8">
+            <h3 style="margin-top:0">＋ নতুন Custom Bus তৈরি করুন</h3>
+            <p class="small muted">এই Bus-এর নিজস্ব Seat Layout স্থায়ীভাবে সংরক্ষিত হবে।</p>
+            <div class="form-row">
+              <div class="field"><label>Bus / Coach Name *</label><input id="newBusName" placeholder="যেমন: SHAMOL - 202"></div>
+              <div class="field"><label>Registration Number</label><input id="newBusRegistration" placeholder="যেমন: ঢাকা মেট্রো-ব ১২-৩৪৫৬"></div>
+              <div class="field"><label>Bus Type *</label><select id="newBusType"><option value="AC">AC</option><option value="Non AC">Non AC</option><option value="Sleeper">Sleeper</option><option value="Business">Business Class</option><option value="VIP">VIP</option><option value="Other">Other</option></select></div>
+            </div>
+            <div class="field"><label>নিজের Bus-এর Seat Layout *</label><textarea id="newBusSeatLayout" class="trip-layout-input" placeholder="R-1|@|1|1&#10;A-1|A|1|2&#10;A-2|A|2|3&#10;A-3|A|3|4&#10;A-4|A|4|5"></textarea><div class="small muted">প্রতি লাইন: Seat Number|Row|Position|Order। যতগুলো লাইন দেবেন, Bus-এর Seat সংখ্যা তত হবে।</div></div>
+            <div class="actions"><button id="createCustomBusButton" class="primary" type="button">Bus ও Seat Layout সংরক্ষণ</button><button id="cancelCustomBusButton" class="secondary" type="button">বাতিল</button></div>
+            <p id="newBusMessage" class="small muted"></p>
+          </div>
 
           <div class="trip-builder-section"><h3>✦ Saved Route Library</h3><p>আগের সংরক্ষিত Route ব্যবহার করুন অথবা নতুন Route তৈরি করুন। Route একবার তৈরি হলে কোম্পানির Library-তে থাকবে।</p></div>
           <div class="field">
@@ -1969,6 +1981,13 @@ async function loadBuses() {
     $("tripBus").innerHTML =
       '<option value="">এই Company-তে Bus পাওয়া যায়নি</option>';
   }
+
+  if (isAdmin()) {
+    const createOption = document.createElement("option");
+    createOption.value = "__create_bus__";
+    createOption.textContent = "＋ নতুন Custom Bus তৈরি করুন";
+    $("tripBus").appendChild(createOption);
+  }
 }
 
 async function prepareTripManagement() {
@@ -2209,6 +2228,98 @@ function initSeatFormatLibrary() {
 let savedRouteCache = [];
 
 initSeatFormatLibrary();
+
+function closeCustomBusPanel() {
+  $("newBusPanel").classList.add("hidden");
+  $("tripBus").value = "";
+  $("newBusMessage").textContent = "";
+}
+$("tripBus").addEventListener("change",() => {
+  const panel = $("newBusPanel");
+  if ($("tripBus").value === "__create_bus__") {
+    if (!isAdmin() || editingTripId) {
+      tripMessage("নতুন Bus তৈরি করতে নতুন Trip ফর্ম ব্যবহার করুন।","error");
+      $("tripBus").value = "";
+      return;
+    }
+    panel.classList.remove("hidden");
+    $("newBusMessage").textContent = "";
+    if (!$("newBusSeatLayout").value.trim() && $("tripSeatLayoutInput").value.trim()) {
+      $("newBusSeatLayout").value = $("tripSeatLayoutInput").value;
+    }
+  } else {
+    panel.classList.add("hidden");
+  }
+});
+$("cancelCustomBusButton").addEventListener("click",closeCustomBusPanel);
+$("createCustomBusButton").addEventListener("click",async() => {
+  const button=$("createCustomBusButton");
+  const message=$("newBusMessage");
+  if (!isAdmin()) { message.textContent="আপনার Bus তৈরি করার অনুমতি নেই।"; return; }
+  const companyId=selectedCompanyId();
+  const busName=$("newBusName").value.trim();
+  const registration=$("newBusRegistration").value.trim();
+  const busType=$("newBusType").value;
+  const raw=$("newBusSeatLayout").value.trim();
+  if (!companyId) { message.textContent="আগে Company নির্বাচন করুন।"; return; }
+  if (!busName) { message.textContent="Bus / Coach Name লিখুন।"; return; }
+  if (!raw) { message.textContent="Seat Layout লিখুন।"; return; }
+  let layout;
+  try {
+    layout=raw.split(/\\r?\\n/).filter(line=>line.trim()).map(line=>{
+      const parts=line.split("|").map(v=>(v||"").trim());
+      const [seat,row,position,order]=parts;
+      if (!seat || !row || parts.length!==4 ||
+          !Number.isInteger(Number(position)) || Number(position)<1 ||
+          !Number.isInteger(Number(order)) || Number(order)<1) {
+        throw new Error("প্রতিটি লাইন Seat|Row|Position|Order ফরম্যাটে লিখুন।");
+      }
+      return {seat_number:seat,row_label:row,seat_position:Number(position),seat_order:Number(order)};
+    });
+    const seatNames=layout.map(x=>x.seat_number.toUpperCase());
+    if (new Set(seatNames).size!==layout.length) throw new Error("একই Seat Number একাধিকবার দেওয়া হয়েছে।");
+    if (new Set(layout.map(x=>x.seat_order)).size!==layout.length) throw new Error("প্রতিটি Seat-এর Order আলাদা হতে হবে।");
+    if (new Set(layout.map(x=>x.seat_number)).size!==layout.length) throw new Error("একই Seat Number একাধিকবার দেওয়া হয়েছে।");
+  } catch(error) { message.textContent=error.message; return; }
+  button.disabled=true;
+  button.textContent="Bus তৈরি হচ্ছে...";
+  message.textContent="Bus ও Seat Layout সংরক্ষণ হচ্ছে...";
+  let createdBusId=null;
+  try {
+    const {data:createdBus,error:busError}=await supabase.from("buses").insert({
+      company_id:companyId,
+      bus_name:busName,
+      registration_number:registration || null,
+      bus_type:busType,
+      total_seats:layout.length
+    }).select("id,bus_name,registration_number,bus_type,total_seats").single();
+    if (busError) throw busError;
+    createdBusId=createdBus.id;
+    const {error:layoutError}=await supabase.from("bus_seat_layouts").insert(
+      layout.map(seat=>({...seat,bus_id:createdBusId}))
+    );
+    if (layoutError) {
+      const {error:cleanupError}=await supabase.from("buses").delete().eq("id",createdBusId);
+      if (cleanupError) throw new Error("Seat Layout সংরক্ষণ হয়নি: "+layoutError.message+"। Bus cleanup-ও হয়নি: "+cleanupError.message);
+      createdBusId=null;
+      throw new Error("Seat Layout সংরক্ষণ হয়নি; অসম্পূর্ণ Bus সরিয়ে দেওয়া হয়েছে। কারণ: "+layoutError.message);
+    }
+    await loadBuses();
+    $("tripBus").value=createdBusId;
+    $("tripSeatLayoutInput").value="";
+    $("newBusName").value="";
+    $("newBusRegistration").value="";
+    $("newBusSeatLayout").value="";
+    $("newBusPanel").classList.add("hidden");
+    message.textContent="নতুন Bus সফলভাবে তৈরি হয়েছে — "+createdBus.bus_name+" ("+layout.length+" Seats)। এখন এই Bus নির্বাচিত আছে।";
+    tripMessage("নতুন Custom Bus ও "+layout.length+"টি Seat সংরক্ষিত হয়েছে।","ok");
+  } catch(error) {
+    message.textContent="Bus তৈরি হয়নি: "+error.message;
+  } finally {
+    button.disabled=false;
+    button.textContent="Bus ও Seat Layout সংরক্ষণ";
+  }
+});
 
 function parseRouteStopsInputFrom(elementId) {
   const raw = $(elementId).value.trim();
