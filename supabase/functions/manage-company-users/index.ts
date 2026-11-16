@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
     return json(200, { success: true, message: active ? "Operator ID Active করা হয়েছে।" : "Operator ID Deactivate করা হয়েছে।" }, origin);
   }
 
-  if (action !== "create_manager" && action !== "create_operator") {
+  if (action !== "create_manager" && action !== "create_operator" && action !== "create_sub_manager") {
     return json(400, { success: false, message: "Action সঠিক নয়।" }, origin);
   }
 
@@ -188,6 +188,9 @@ Deno.serve(async (req: Request) => {
 
   if (caller.role !== "super_admin" && caller.role !== "company_manager") {
     return json(403, { success: false, message: "আপনার নতুন Login ID তৈরির অনুমতি নেই।" }, origin);
+  }
+  if (action === "create_sub_manager" && !["super_admin", "company_manager"].includes(caller.role)) {
+    return json(403, { success: false, message: "শুধু Company Manager বা Super Admin Sub Manager ID তৈরি করতে পারবেন।" }, origin);
   }
 
   if (caller.role === "company_manager" && caller.company_id !== companyId) {
@@ -228,7 +231,7 @@ Deno.serve(async (req: Request) => {
     }, origin);
   }
 
-  let role: "company_manager" | "counter_operator";
+  let role: "company_manager" | "counter_operator" | "nb_sub_manager" | "dhaka_sub_manager";
   let counterId: string | null = null;
   let region: string | null = null;
   let idType: string | null = null;
@@ -239,6 +242,13 @@ Deno.serve(async (req: Request) => {
       return json(403, { success: false, message: "শুধু Super Admin Manager ID তৈরি করতে পারবেন।" }, origin);
     }
     role = "company_manager";
+  } else if (action === "create_sub_manager") {
+    const requestedRegion = typeof body.region === "string" ? body.region.toUpperCase() : "";
+    if (!["NB", "DHAKA"].includes(requestedRegion)) {
+      return json(400, { success: false, message: "Sub Manager-এর Region NB অথবা DHAKA হতে হবে।" }, origin);
+    }
+    region = requestedRegion;
+    role = requestedRegion === "NB" ? "nb_sub_manager" : "dhaka_sub_manager";
   } else {
     role = "counter_operator";
     counterId = typeof body.counter_id === "string" ? body.counter_id : null;
