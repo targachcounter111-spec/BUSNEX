@@ -5581,7 +5581,10 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           : isReservation
             ? "Reservation করা আছে"
             : "এই Seat নির্বাচন করা যাবে না";
-      div.style.gridRow = "ABCDEFGHIJKLMN".indexOf(seat.row_label) + 1;
+      const hasFrontR1 = layout.some(item => String(item.seat_number)==="R-1");
+      div.style.gridRow = String(seat.seat_number)==="R-1"
+        ? 1
+        : "ABCDEFGHIJKLMN".indexOf(seat.row_label) + (hasFrontR1 ? 2 : 1);
 
       const rowHasFifthSeat = layout.some(item =>
         item.row_label === seat.row_label &&
