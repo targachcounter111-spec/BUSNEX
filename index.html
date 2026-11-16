@@ -2144,7 +2144,7 @@ function parseCustomTripLayout() {
 const BUSNEX_SEAT_FORMATS = {
   economy: Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((row,r)=>[1,2,3,4].map((n)=>({seat_number:row+"-"+n,row_label:row,seat_position:n,seat_order:r*4+n}))),
   nonac: Array.from({length:9},(_,r)=>["A","B","C","D","E","F","G","H","I"][r]).flatMap((row,r)=>[1,2,3,4].map(n=>({seat_number:row+n,row_label:row,seat_position:n,seat_order:r*4+n}))),
-  r1: [{seat_number:"R-1",row_label:"A",seat_position:3,seat_order:1},...Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((seatRow,r)=>[1,2,3,4].map(n=>({seat_number:seatRow+"-"+n,row_label:"BCDEFGHIJKL"[r],seat_position:n,seat_order:2+r*4+n}))),...[1,2,3,4,5].map(n=>({seat_number:"K-"+n,row_label:"L",seat_position:n,seat_order:42+n}))],
+  r1: [{seat_number:"R-1",row_label:"@",seat_position:1,seat_order:1},...Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((seatRow,r)=>[1,2,3,4].map(n=>({seat_number:seatRow+"-"+n,row_label:"BCDEFGHIJKL"[r],seat_position:n,seat_order:2+r*4+n}))),...[1,2,3,4,5].map(n=>({seat_number:"K-"+n,row_label:"L",seat_position:n,seat_order:42+n}))],
   standard45: Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((seatRow,r)=>[1,2,3,4].map(n=>({seat_number:seatRow+"-"+n,row_label:"BCDEFGHIJKL"[r],seat_position:n,seat_order:1+r*4+n}))).concat([1,2,3,4,5].map(n=>({seat_number:"K-"+n,row_label:"L",seat_position:n,seat_order:41+n}))),
   coach52: (() => {
     const rows = [];
@@ -2499,13 +2499,28 @@ $("tripSaveButton").addEventListener("click",async() => {
     }
 
     // Coach-এর আসন তালিকা Trip তৈরি/পরিবর্তনের আগেই যাচাই করুন।
-    const {data:coachLayout,error:coachLayoutError} = await supabase
+    let {data:coachLayout,error:coachLayoutError} = await supabase
       .from("bus_seat_layouts")
       .select("seat_number,row_label,seat_position,seat_order")
       .eq("bus_id",busId)
       .order("seat_order",{ascending:true});
     if (coachLayoutError) throw new Error("Coach Seat Layout পড়া যায়নি: "+coachLayoutError.message);
     if (!coachLayout?.length) throw new Error("এই Coach-এর Seat Layout নেই। আগে Coach-এর সব Seat Number সংরক্ষণ করুন।");
+
+    // R-1 নির্বাচন করা হলে Coach Layout-এও প্রথম সারিতে এটি যোগ করুন।
+    // আগে থেকে থাকা Seat বা তাদের বিক্রির/হোল্ডের অবস্থা পরিবর্তন করা হয় না।
+    const tripHasR1 = customLayout.some(seat=>String(seat.seat_number)==="R-1");
+    if (tripHasR1 && !coachLayout.some(seat=>String(seat.seat_number)==="R-1")) {
+      const {error:r1InsertError} = await supabase.from("bus_seat_layouts").insert({
+        bus_id:busId,seat_number:"R-1",row_label:"@",seat_position:1,seat_order:1
+      });
+      if (r1InsertError) throw new Error("Coach Layout-এ R-1 যোগ করা যায়নি: "+r1InsertError.message);
+      const refreshedCoach = await supabase.from("bus_seat_layouts")
+        .select("seat_number,row_label,seat_position,seat_order")
+        .eq("bus_id",busId).order("seat_order",{ascending:true});
+      if (refreshedCoach.error) throw new Error("R-1 যোগের পর Coach Layout যাচাই করা যায়নি: "+refreshedCoach.error.message);
+      coachLayout = refreshedCoach.data || [];
+    }
 
     const coachNumbers = coachLayout.map(seat=>String(seat.seat_number));
     if (new Set(coachNumbers).size !== coachNumbers.length) {
@@ -4118,7 +4133,10 @@ async function loadSeatInventory(tripId) {
           ? "এই Trip-এর জন্য Seat Status পাওয়া যায়নি"
           : "Seat Status: " + state;
       }
-      div.style.gridRow = "ABCDEFGHIJKLMN".indexOf(seat.row_label) + 1;
+      const hasFrontR1 = layout.some(item => String(item.seat_number)==="R-1");
+      div.style.gridRow = String(seat.seat_number)==="R-1"
+        ? 1
+        : "ABCDEFGHIJKLMN".indexOf(seat.row_label) + (hasFrontR1 ? 2 : 1);
       // Four-seat rows leave the middle column empty for the aisle.
       // A five-seat end row (K on a 45-seat bus or J on a 41-seat bus)
       // fills all five columns: 1, 2, 5, 3, 4 in visual seat-number order.
