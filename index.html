@@ -1544,6 +1544,8 @@ let companies = [];
 let buses = [];
 let editingTripId = null;
 let tripListView = "upcoming";
+// Available before any Dashboard/Booking callback can run.
+let bookingDateLoadRequest = 0;
 
 function showMessage(message,type) {
   $("loginMessage").textContent = message;
@@ -4208,8 +4210,11 @@ $("revokePermission").addEventListener("click",async() => {
   } finally { button.disabled=false; }
 });
 $("billingRefresh").addEventListener("click",loadBillingPage);
-$("billingMonth").value=new Date().toISOString().slice(0,7);
-$("billingMonth").addEventListener("change",loadBillingPage);
+const billingMonthInput = $("billingMonth");
+if (billingMonthInput) {
+  billingMonthInput.value = new Date().toISOString().slice(0,7);
+  billingMonthInput.addEventListener("change",loadBillingPage);
+}
 
 async function loadTripSheetTrips() {
   const select = $("tripSheetTrip");
@@ -6236,8 +6241,6 @@ $("journeyDate").value = /^\d{4}-\d{2}-\d{2}$/.test(savedBookingDate) ? savedBoo
 $("tripDate").value = new Date().toLocaleDateString("en-CA");
 $("fromStop").disabled = true;
 $("toStop").disabled = true;
-
-let bookingDateLoadRequest = 0;
 
 async function loadBookingStopsForSelectedDate() {
   const date = $("journeyDate").value;
