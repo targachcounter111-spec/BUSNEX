@@ -3691,6 +3691,7 @@ async function loadCounterDirectory() {
       operatorCounterSelect.appendChild(option);
     });
     $("operatorCreatePanel").classList.toggle("hidden", !isAdmin());
+    if (isAdmin()) await loadOperatorDefaultBoardingPoints();
     $("operatorDirectoryPanel").classList.toggle("hidden", !isAdmin());
     await loadOperatorDirectory(counters);
     const counterSelect = $("permissionCounter");
