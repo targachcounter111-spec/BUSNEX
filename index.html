@@ -4318,7 +4318,130 @@ async function loadTripSheet(tripId) {
     $("tripSheetMessage").textContent="Trip Sheet প্রস্তুত | Sold Ticket: "+tickets.length+"টি | মোট ভাড়া: ৳"+total.toFixed(2)+(warnings.length?" | কিছু ঐচ্ছিক তথ্য পাওয়া যায়নি: "+warnings.join(" / "):"");
     $("tripSheetMessage").className="message section "+(warnings.length?"error":"ok");
     $("tripSheetPrint").disabled=false;
-    $("tripSheetPrint").dataset.printHtml='<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#183b38;margin:0;font-size:10px}.head{background:#123b3a;color:#fff;padding:18px 20px;border-bottom:4px solid #c18a55}.brand{font-size:23px;font-weight:900;letter-spacing:3px}.sub{color:#e2c49e;font-size:10px;letter-spacing:2px;margin-top:4px}.title{display:flex;justify-content:space-between;align-items:end;margin:18px 0 12px}.title h1{font-size:19px;margin:0}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}.fact{border:1px solid #d8e1dc;background:#f6f8f5;padding:9px}.fact span{display:block;color:#687a73;font-size:8px;margin-bottom:4px}.fact b{font-size:11px}.section-title{font-size:12px;margin:17px 0 7px;padding-bottom:5px;border-bottom:2px solid #c18a55}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #cbd5d0;padding:6px;text-align:left}th{background:#e8efea;color:#183b38}.summary{display:flex;justify-content:space-between;margin-top:12px;padding:12px;background:#f5f1e9;border:1px solid #d8e1dc;font-weight:bold}.foot{margin-top:24px;padding-top:9px;border-top:1px solid #cbd5d0;color:#718078;font-size:8px;display:flex;justify-content:space-between}tr{break-inside:avoid}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="brand">BUSNEX</div><div class="sub">BUS OPERATIONS · OFFICIAL TRIP DOCUMENT</div></header><div class="title"><h1>TRIP SHEET / যাত্রার তালিকা</h1><b>'+esc((trip.status||"—").toUpperCase())+'</b></div><div class="facts"><div class="fact"><span>Route / রুট</span><b>'+esc(route.starting_point)+' → '+esc(route.ending_point)+'</b></div><div class="fact"><span>Bus / বাস</span><b>'+esc(bus.bus_name)+'</b></div><div class="fact"><span>Coach No.</span><b>'+esc(trip.coach_number)+'</b></div><div class="fact"><span>Departure / যাত্রা</span><b>'+esc(journey)+'</b></div><div class="fact"><span>Ticket Fare / ভাড়া</span><b>৳'+esc(trip.ticket_price)+'</b></div><div class="fact"><span>Sold Seats / বিক্রিত সিট</span><b>'+tickets.length+'</b></div><div class="fact"><span>Company / কোম্পানি</span><b>'+esc(companyName)+'</b></div><div class="fact"><span>Supervisor / সুপারভাইজার</span><b>'+esc(supervisorName)+'</b></div></div><div class="section-title">BOARDING SCHEDULE / ওঠার সময়সূচি</div><table><thead><tr><th>#</th><th>Boarding Point</th><th>Time</th></tr></thead><tbody>'+(pointRows||'<tr><td colspan="3">কোনো Boarding Schedule পাওয়া যায়নি</td></tr>')+'</tbody></table><div class="section-title">PASSENGER MANIFEST / যাত্রী তালিকা</div><table><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table><div class="summary"><span>Total Passengers: '+tickets.length+'</span><span>Total Collected Fare: ৳'+total.toFixed(2)+'</span></div><footer class="foot"><span>BUSNEX · Official Counter Trip Sheet</span><span>Printed: '+esc(formatDhakaDateTime(new Date()))+'</span></footer></body></html>';
+    $("tripSheetPrint").dataset.printHtml='<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#183b38;margin:0;font-size:10px}.head{background:#123b3a;color:#fff;padding:18px 20px;border-bottom:4px solid #c18a55}.brand{font-size:23px;font-weight:900;letter-spacing:3px}.sub{color:#e2c49e;font-size:10px;letter-spacing:2px;margin-top:4px}.title{display:flex;justify-content:space-between;align-items:end;margin:18px 0 12px}.title h1{font-size:19px;margin:0}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}.fact{border:1px solid #d8e1dc;background:#f6f8f5;padding:9px}.fact span{display:block;color:#687a73;font-size:8px;margin-bottom:4px}.fact b{font-size:11px}.section-title{font-size:12px;margin:17px 0 7px;padding-bottom:5px;border-bottom:2px solid #c18a55}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #cbd5d0;padding:6px;text-align:left}th{background:#e8efea;color:#183b38}.summary{display:flex;justify-content:space-between;margin-top:12px;padding:12px;background:#f5f1e9;border:1px solid #d8e1dc;font-weight:bold}.foot{margin-top:24px;padding-top:9px;border-top:1px solid #cbd5d0;color:#718078;font-size:8px;display:flex;justify-content:space-between}tr{break-inside:avoid}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="brand">BUSNEX</div><div class="sub">BUS OPERATIONS · OFFICIAL TRIP DOCUMENT</div></header><div class="title"><h1>TRIP SHEET / যাত্রার তালিকা</h1><b>'+esc((trip.status||"—").toUpperCase())+'</b></div><div class="facts"><div class="fact"><span>Route / রুট</span><b>'+esc(route.starting_point)+' → '+esc(route.ending_point)+'</b></div><div class="fact"><span>Bus / বাস</span><b>'+esc(bus.bus_name)+'</b></div><div class="fact"><span>Coach No.</span><b>'+esc(trip.coach_number)+'</b></div><div class="fact"><span>Departure / যাত্রা</span><b>'+esc(journey)+'</b></div><div class="fact"><span>Ticket Fare / ভাড়া</span><b>৳'+esc(trip.ticket_price)+'</b></div><div class="fact"><span>Sold Seats / বিক্রিত সিট</span><b>'+tickets.length+'</b></div><div class="fact"><span>Company / কোম্পানি</span><b>'+esc(companyName)+'</b></div><div class="fact"><span>Supervisor / সুপারভাইজার</span><b>'+esc(supervisorName)+'</b></div></div><div class="section-title">BOARDING SCHEDULE / ওঠার সময়সূচি</div><table><thead><tr><th>#</th><th>Boarding Point</th><th>Time</th></tr></thead><tbody>'+(pointRows||'<tr><td colspan="3">কোনো Boarding Schedule পাওয়া যায়নি</td></tr>')+'</tbody></table><div class="section-title">PASSENGER MANIFEST / যাত্রী তালিকা</div><table><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table><div class="summary"><span>Total Passengers: '+tickets.length+'</span><span>Total Collected Fare: ৳'+total.toFixed(2)+'</span></div><footer class="foot"><span>BUSNEX · Official Counter Trip Sheet</span><span>Printed: '+esc(formatDhakaDateTime(new Date()))+'</span></footer>
+<!-- BUSNEX Full Green White System -->
+<style id="busnex-full-green-white-system">
+:root{
+  color-scheme:light;
+  --busnex-green-950:#123b2a;
+  --busnex-green-900:#14532d;
+  --busnex-green-800:#166534;
+  --busnex-green-700:#15803d;
+  --busnex-green-600:#16a34a;
+  --busnex-green-500:#22c55e;
+  --busnex-green-100:#dcfce7;
+  --busnex-green-50:#f0fdf4;
+  --busnex-white:#fff;
+  --busnex-page:#f5faf6;
+  --busnex-ink:#172b1d;
+  --busnex-muted:#647568;
+  --busnex-border:#dce9df;
+  --navy:var(--busnex-green-900)!important;
+  --blue:var(--busnex-green-700)!important;
+  --cyan:var(--busnex-green-500)!important;
+  --bg:var(--busnex-page)!important;
+  --card:var(--busnex-white)!important;
+  --text:var(--busnex-ink)!important;
+  --muted:var(--busnex-muted)!important;
+  --line:var(--busnex-border)!important;
+  --green:var(--busnex-green-700)!important;
+  --teal:var(--busnex-green-900)!important;
+  --ivory:var(--busnex-white)!important;
+  --copper:var(--busnex-green-600)!important;
+  --purple-950:var(--busnex-green-950)!important;
+  --purple-900:var(--busnex-green-900)!important;
+  --purple-800:var(--busnex-green-800)!important;
+  --purple-700:var(--busnex-green-700)!important;
+  --purple-600:var(--busnex-green-600)!important;
+  --purple-500:var(--busnex-green-500)!important;
+  --purple-100:var(--busnex-green-100)!important;
+  --purple-50:var(--busnex-green-50)!important;
+}
+html{background:var(--busnex-page)!important;scroll-behavior:smooth}
+body{background:var(--busnex-page)!important;color:var(--busnex-ink)!important;font-family:Inter,"Noto Sans Bengali",system-ui,Arial,sans-serif!important}
+#loginScreen,#appScreen,.app,.main,.page,.company-hub,.busnex-counter-page{color:var(--busnex-ink)}
+#loginScreen{background:linear-gradient(145deg,#eaf8ee 0%,#f8fcf9 48%,#fff 100%)!important}
+.login-wrap{background:transparent!important}
+.login-card,.company-add-panel,.company-hub-section,.card,.section,.trip-builder-card,.counter-search-panel,.counter-empty-state,.trip-card,.modal-content,.modal-card,.account-modal,.reservation-modal{
+  background:#fff!important;border:1px solid var(--busnex-border)!important;border-radius:16px!important;
+  box-shadow:0 8px 28px rgba(20,83,45,.07)!important;color:var(--busnex-ink)!important
+}
+.login-logo,.brand span,.profile-avatar,.company-logo-mark,.trip-builder-mark{background:var(--busnex-green-700)!important;color:#fff!important}
+.login-card h1,.page-head h1,.section h2,.company-hub-head h2,.trip-builder-card h2,.counter-reference-heading,.section-title{color:var(--busnex-green-950)!important}
+#appScreen,.app{background:var(--busnex-page)!important}
+.topbar{background:#fff!important;color:var(--busnex-ink)!important;border-bottom:1px solid var(--busnex-border)!important;box-shadow:0 2px 12px rgba(20,83,45,.05)!important}
+.topbar-company,.topbar-company strong,.topbar-company span,.topbar-profile,.user-chip,.user-chip *{color:var(--busnex-ink)!important}
+.user-chip,.topbar-search{background:#f0fdf4!important;border:1px solid var(--busnex-border)!important}
+.sidebar{background:linear-gradient(180deg,#14532d 0%,#166534 100%)!important;color:#fff!important;border-right:0!important}
+.sidebar *{color:inherit}
+.nav-btn{background:transparent!important;color:#e8f7ec!important;border:1px solid transparent!important;border-radius:10px!important}
+.nav-btn:hover,.nav-btn.active{background:#fff!important;color:#14532d!important;border-color:#dcfce7!important;box-shadow:0 4px 12px rgba(0,0,0,.08)!important}
+.menu-toggle{background:#f0fdf4!important;color:#14532d!important;border:1px solid var(--busnex-border)!important}
+.main{background:var(--busnex-page)!important}
+.page-head,.company-hub-head,.company-hub-section,.trip-builder-hero,.trip-builder-section,.trip-builder-kicker{color:var(--busnex-ink)}
+.stat-label,.muted,.small,.field label,.notice,.trip-info,.fact,.sub,.footer{color:var(--busnex-muted)!important}
+.stat-value{color:var(--busnex-green-800)!important}
+.company-brand-strip,.trip-builder-hero,.editing-banner,.notice,.company-hub-head{background:#effaf2!important;border-color:#ccebd4!important;color:var(--busnex-green-950)!important}
+button,.primary,.secondary,.danger,.success,.warning,.counter-search-button,.counter-open-button,.counter-challan-button,.reservation-confirm,.reservation-cancel,.billing-payment{
+  border-radius:9px!important;font-weight:700!important;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease
+}
+button.primary,.primary,.counter-search-button,.reservation-confirm,.counter-open-button,.create-counter-button{
+  background:var(--busnex-green-700)!important;background-image:none!important;color:#fff!important;border:1px solid var(--busnex-green-700)!important;box-shadow:0 3px 10px rgba(21,128,61,.16)!important
+}
+button.primary:hover,.primary:hover,.counter-search-button:hover,.reservation-confirm:hover,.counter-open-button:hover{background:var(--busnex-green-800)!important;transform:translateY(-1px)}
+button.secondary,.secondary{background:#fff!important;color:var(--busnex-green-800)!important;border:1px solid #b9dec4!important}
+button.secondary:hover,.secondary:hover{background:var(--busnex-green-50)!important}
+button.danger,.danger,.reservation-cancel{background:#fff1f2!important;color:#b91c1c!important;border:1px solid #fecdd3!important}
+button.success,.success{background:#dcfce7!important;color:#166534!important;border:1px solid #bbf7d0!important}
+button.warning,.warning{background:#fffbeb!important;color:#92400e!important;border:1px solid #fde68a!important}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(34,197,94,.25)!important;outline-offset:2px}
+input,select,textarea,.field input,.field select,.field textarea{
+  background:#fff!important;color:var(--busnex-ink)!important;border:1px solid #cbded0!important;border-radius:9px!important
+}
+input::placeholder,textarea::placeholder{color:#91a197!important}
+input:focus,select:focus,textarea:focus,.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--busnex-green-600)!important;box-shadow:0 0 0 3px rgba(34,197,94,.12)!important
+}
+.form-row,.field{color:var(--busnex-ink)}
+.table-wrap,.tripSheetTableWrap{background:#fff!important;border:1px solid var(--busnex-border)!important;border-radius:12px!important;overflow:auto}
+table{background:#fff!important;color:var(--busnex-ink)!important;border-color:var(--busnex-border)!important}
+th{background:#eaf7ee!important;color:#14532d!important;border-color:var(--busnex-border)!important}
+td{background:#fff!important;color:var(--busnex-ink)!important;border-color:#e7efe9!important}
+tr:nth-child(even) td{background:#f8fcf9!important}
+tr:hover td{background:#effaf2!important}
+.status,.status-badge{border-radius:999px!important;font-weight:700!important}
+.status.scheduled,.status.available,.available{background:#dcfce7!important;color:#166534!important;border-color:#bbf7d0!important}
+.status.cancelled,.status.departed{background:#f1f5f9!important;color:#475569!important}
+.seat{border-radius:7px!important}
+.seat.available{background:#dcfce7!important;color:#166534!important;border:1px solid #86d6a0!important}
+.seat.available:hover,.seat.selected{background:#15803d!important;color:#fff!important;border-color:#166534!important}
+.seat.sold,.seat.sold-male,.seat.sold-female{background:#fee2e2!important;color:#991b1b!important;border-color:#fecaca!important}
+.seat.reserved,.seat.held{background:#fef3c7!important;color:#92400e!important;border-color:#fde68a!important}
+.seat.blocked{background:#e2e8f0!important;color:#475569!important;border-color:#cbd5e1!important}
+.legend,.legend span{color:var(--busnex-muted)!important}
+.message.ok{background:#effaf2!important;color:#166534!important;border-color:#bbf7d0!important}
+.message.error{background:#fff1f2!important;color:#b91c1c!important;border-color:#fecdd3!important}
+.message.warning{background:#fffbeb!important;color:#92400e!important;border-color:#fde68a!important}
+.notice{background:#f0fdf4!important;border:1px solid #ccebd4!important;border-radius:10px!important}
+hr{border-color:var(--busnex-border)!important}
+a{color:var(--busnex-green-700)}
+a:hover{color:var(--busnex-green-900)}
+#accountModal,.overlay,.modal-overlay,.counterChallanOverlay{background:rgba(13,38,23,.58)!important}
+#accountModal .modal-content,#accountModal .modal-card{background:#fff!important}
+@media(max-width:800px){
+  .topbar{background:#fff!important}
+  .sidebar{box-shadow:8px 0 24px rgba(10,45,23,.18)!important}
+  .main{background:var(--busnex-page)!important}
+  .page-head{gap:10px}
+  .card,.section,.trip-builder-card,.login-card{border-radius:13px!important}
+  .table-wrap{max-width:100%;overflow-x:auto}
+}
+@media print{
+  body{background:#fff!important;color:#111!important}
+}
+</style>
+
+</body></html>';
   } catch(error) {
     console.error("TRIP SHEET LOAD ERROR:",error);
     $("tripSheetCount").textContent="—";
