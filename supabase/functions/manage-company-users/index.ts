@@ -262,15 +262,18 @@ Deno.serve(async (req: Request) => {
       return json(400, { success: false, message: "Default Boarding Point নির্বাচন করুন।" }, origin);
     }
 
-    let boardingQuery = admin.from("route_stops")
-      .select("stop_name,routes!inner(company_id,region)")
-      .eq("routes.company_id", companyId)
-      .eq("can_board", true)
-      .eq("stop_name", defaultBoardingPoint);
-    if (region !== "ALL") boardingQuery = boardingQuery.eq("routes.region", region);
-    const { data: boardingRows, error: boardingError } = await boardingQuery.limit(1);
-    if (boardingError || !boardingRows?.length) {
-      return json(400, { success: false, message: "নির্বাচিত Boarding Point এই Company ও Region-এর বৈধ Boarding Stop নয়।" }, origin);
+    const isCustomBoardingPoint = body.default_boarding_point_custom === true;
+    if (!isCustomBoardingPoint) {
+      let boardingQuery = admin.from("route_stops")
+        .select("stop_name,routes!inner(company_id,region)")
+        .eq("routes.company_id", companyId)
+        .eq("can_board", true)
+        .eq("stop_name", defaultBoardingPoint);
+      if (region !== "ALL") boardingQuery = boardingQuery.eq("routes.region", region);
+      const { data: boardingRows, error: boardingError } = await boardingQuery.limit(1);
+      if (boardingError || !boardingRows?.length) {
+        return json(400, { success: false, message: "নির্বাচিত Boarding Point এই Company ও Region-এর বৈধ Boarding Stop নয়।" }, origin);
+      }
     }
 
 
