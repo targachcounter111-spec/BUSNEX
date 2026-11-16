@@ -652,6 +652,7 @@ body{font-family:Inter,"Noto Sans Bengali",Arial,sans-serif!important}
  #appScreen .booking-seat-panel .seat{min-height:35px!important;font-size:11px!important}
 }
 
+</style>
 <style id="busnex-premium-purple-complete">
 /* Consistent premium visual layer across every existing BUSNEX role and page.
    Presentation only: keep all existing IDs, controls, workflows and data logic. */
@@ -982,7 +983,30 @@ tbody tr:hover{background:#f7fcf8!important}
 }
 
 
-</style>
+
+
+
+/* Green & White: final high-specificity overrides */
+html,body{background:#f5faf6!important;color:#172b1d!important}
+#appScreen,#appScreen .layout,#appScreen .main{background:#f5faf6!important;color:#172b1d!important}
+#appScreen .topbar,#appScreen header.topbar{background:#fff!important;color:#14532d!important;border-color:#e1ebe3!important;box-shadow:0 3px 16px rgba(20,83,45,.06)!important}
+#appScreen .topbar .brand,#appScreen .topbar .brand span{color:#15803d!important}
+#appScreen .sidebar{background:#fff!important;border-color:#e1ebe3!important}
+#appScreen .nav-btn{color:#52665a!important;background:transparent!important}
+#appScreen .nav-btn.active,#appScreen .nav-btn:hover{background:#eaf7ed!important;color:#166534!important}
+#appScreen .card,#appScreen .trip-card,#appScreen .table-wrap,#appScreen .booking-seat-panel,#appScreen .booking-passenger-panel{background:#fff!important;color:#172b1d!important;border-color:#e1ebe3!important;box-shadow:0 5px 18px rgba(20,83,45,.045)!important}
+#appScreen .page-head h1,#appScreen .section h2,#appScreen .card h2,#appScreen .card h3{color:#14532d!important}
+#appScreen button.primary,#appScreen .primary,#appScreen button[type="submit"]{background:#15803d!important;color:#fff!important;border-color:#15803d!important}
+#appScreen button.secondary,#appScreen .secondary{background:#f0fdf4!important;color:#166534!important;border-color:#d4ead9!important}
+#appScreen input,#appScreen select,#appScreen textarea{background:#fff!important;color:#1d3323!important;border-color:#d8e5da!important}
+#appScreen th{background:#f1f8f2!important;color:#47634d!important}
+#appScreen .trip-builder-hero{background:linear-gradient(115deg,#14532d,#15803d 72%,#22a447)!important}
+#loginScreen{background:linear-gradient(135deg,#14532d,#166534 54%,#15803d)!important}
+#loginScreen .login-card{background:#fff!important;color:#172b1d!important;border-color:#e1ebe3!important}
+#loginScreen .login-logo{background:linear-gradient(135deg,#14532d,#15803d)!important}
+#loginScreen h1,#loginScreen label{color:#14532d!important}
+@media(max-width:650px){#appScreen .topbar,#appScreen header.topbar{background:#fff!important}#appScreen .sidebar{background:#fff!important}}
+
 </style>
 </head>
 
