@@ -171,6 +171,7 @@ BEGIN
        OR btrim(v_res_seat.passenger_name) = ''
        OR v_res_seat.passenger_phone IS NULL
        OR btrim(v_res_seat.passenger_phone) = ''
+       OR v_res_seat.passenger_gender IS NULL
        OR v_res_seat.passenger_gender NOT IN ('Male', 'Female') THEN
       RAISE EXCEPTION 'Seat %-এর Passenger তথ্য অসম্পূর্ণ', v_res_seat.seat_number;
     END IF;
