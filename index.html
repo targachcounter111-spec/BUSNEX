@@ -4033,6 +4033,7 @@ async function loadCounterDirectory() {
   $("counterDirectoryMessage").textContent = "Counter লোড হচ্ছে...";
   $("permissionMessage").textContent = "Permission লোড হচ্ছে...";
   $("counterCreatePanel").classList.toggle("hidden", !isAdmin());
+  $("subManagerCreatePanel").classList.toggle("hidden", !isAdmin() || !["super_admin","company_manager"].includes(currentProfile?.role));
   try {
     let query=supabase.from("counters").select("id,company_id,name,address,created_at,is_active").order("name");
     if(currentProfile.role!=="super_admin") query=query.eq("company_id",currentProfile.company_id);
