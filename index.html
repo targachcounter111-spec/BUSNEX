@@ -4493,8 +4493,13 @@ async function loadSeatInventory(tripId) {
         item.row_label === seat.row_label &&
         item.seat_number === String(seat.row_label) + "-5"
       );
+      // Five-seat end rows use the visual order 1, 2, 5, 3, 4.
+      // Keep seat 5 in the center aisle-side column even if an older trip
+      // snapshot contains a stale seat_position value.
+      const seatNumberSuffix = String(seat.seat_number).split("-").pop();
+      const fiveSeatVisualColumns = {"1":1,"2":2,"5":3,"3":4,"4":5};
       div.style.gridColumn = rowHasFifthSeat
-        ? seat.seat_position
+        ? (fiveSeatVisualColumns[seatNumberSuffix] || seat.seat_position)
         : seat.seat_position <= 2
           ? seat.seat_position
           : seat.seat_position + 1;
@@ -5948,8 +5953,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         item.row_label === seat.row_label &&
         item.seat_number === String(seat.row_label) + "-5"
       );
+      // Five-seat end rows use the visual order 1, 2, 5, 3, 4.
+      // Keep seat 5 in the center aisle-side column even if an older trip
+      // snapshot contains a stale seat_position value.
+      const seatNumberSuffix = String(seat.seat_number).split("-").pop();
+      const fiveSeatVisualColumns = {"1":1,"2":2,"5":3,"3":4,"4":5};
       div.style.gridColumn = rowHasFifthSeat
-        ? seat.seat_position
+        ? (fiveSeatVisualColumns[seatNumberSuffix] || seat.seat_position)
         : seat.seat_position <= 2
           ? seat.seat_position
           : seat.seat_position + 1;
