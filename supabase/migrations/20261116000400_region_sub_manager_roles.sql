@@ -173,6 +173,63 @@ USING (
   )
 );
 
+-- Restore existing Company Manager/Super Admin read access on child tables.
+CREATE POLICY route_stops_manager_admin_select ON public.route_stops
+FOR SELECT TO authenticated
+USING (
+  public.busnex_user_role() = 'super_admin'
+  OR (
+    public.busnex_user_role() = 'company_manager'
+    AND EXISTS (
+      SELECT 1 FROM public.routes r
+      WHERE r.id = route_stops.route_id
+        AND r.company_id = public.busnex_company_id()
+    )
+  )
+);
+
+CREATE POLICY trip_stops_manager_admin_select ON public.trip_stops
+FOR SELECT TO authenticated
+USING (
+  public.busnex_user_role() = 'super_admin'
+  OR (
+    public.busnex_user_role() = 'company_manager'
+    AND EXISTS (
+      SELECT 1 FROM public.trips t
+      WHERE t.id = trip_stops.trip_id
+        AND t.company_id = public.busnex_company_id()
+    )
+  )
+);
+
+CREATE POLICY trip_boarding_manager_admin_select ON public.trip_boarding_points
+FOR SELECT TO authenticated
+USING (
+  public.busnex_user_role() = 'super_admin'
+  OR (
+    public.busnex_user_role() = 'company_manager'
+    AND EXISTS (
+      SELECT 1 FROM public.trips t
+      WHERE t.id = trip_boarding_points.trip_id
+        AND t.company_id = public.busnex_company_id()
+    )
+  )
+);
+
+CREATE POLICY trip_seats_manager_admin_select ON public.trip_seats
+FOR SELECT TO authenticated
+USING (
+  public.busnex_user_role() = 'super_admin'
+  OR (
+    public.busnex_user_role() = 'company_manager'
+    AND EXISTS (
+      SELECT 1 FROM public.trips t
+      WHERE t.id = trip_seats.trip_id
+        AND t.company_id = public.busnex_company_id()
+    )
+  )
+);
+
 -- Route stops inherit the region from their route.
 CREATE POLICY route_stops_sub_manager_select ON public.route_stops
 FOR SELECT TO authenticated
