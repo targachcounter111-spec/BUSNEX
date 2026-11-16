@@ -3061,14 +3061,15 @@ async function loadTrips(view) {
   $("tripHistoryButton").className = tripListView === "history" ? "primary" : "secondary";
   $("tripList").innerHTML = "Trip লোড হচ্ছে...";
 
+  // Keep the main Trip query independent from optional Boarding Point relations.
+  // A missing/uncached PostgREST relationship must not block the entire Trip list.
   let query = supabase
     .from("trips")
     .select(`
       id,company_id,bus_id,route_id,departure_time,arrival_time,
       ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,schedule_group_id,
       buses(bus_name),
-      routes(starting_point,ending_point),
-      trip_boarding_points(point_name,boarding_time,point_order)
+      routes(starting_point,ending_point)
     `)
     .order("departure_time",{ascending:true})
     .limit(1000);
@@ -3088,8 +3089,32 @@ async function loadTrips(view) {
     return;
   }
 
+  const trips = data || [];
+  const tripIds = trips.map(trip => trip.id).filter(Boolean);
+  const boardingPointsByTrip = new Map();
+  if (tripIds.length) {
+    try {
+      const {data:boardingRows,error:boardingError} = await supabase
+        .from("trip_boarding_points")
+        .select("trip_id,point_name,boarding_time,point_order")
+        .in("trip_id",tripIds)
+        .order("point_order",{ascending:true});
+      if (boardingError) throw boardingError;
+      (boardingRows || []).forEach(point => {
+        if (!boardingPointsByTrip.has(point.trip_id)) boardingPointsByTrip.set(point.trip_id,[]);
+        boardingPointsByTrip.get(point.trip_id).push(point);
+      });
+    } catch(boardingError) {
+      console.warn("TRIP BOARDING POINTS LOAD WARNING:",boardingError.message);
+      // Trip cards still render; only the optional boarding-point labels are omitted.
+    }
+  }
+  trips.forEach(trip => {
+    trip.trip_boarding_points = boardingPointsByTrip.get(trip.id) || [];
+  });
+
   const now = Date.now();
-  const visibleTrips = (data || []).filter(trip => {
+  const visibleTrips = trips.filter(trip => {
     const departureMs = new Date(trip.departure_time).getTime();
     return tripListView === "history" ? departureMs < now : departureMs >= now;
   });
