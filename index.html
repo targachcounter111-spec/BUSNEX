@@ -4684,7 +4684,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         if(row.status==="active"&&!row.confirmed_at){
           makeButton("✓ Confirm Reservation",async event=>{
             const b=event.currentTarget;b.disabled=true;
-            try{const {error}=await supabase.rpc("busnex_confirm_reservation",{p_reservation_id:row.id});if(error)throw error;overlay.remove();alert("Reservation Confirm হয়েছে।");card.innerHTML="";await appendBookingSeatPicker(trip,card,confirmPastDate);}
+            try{const {data,error}=await supabase.rpc("busnex_confirm_reservation",{p_reservation_id:row.id,p_confirm_past_date:!!confirmPastDate});if(error)throw error;if(data===false){overlay.remove();alert("Reservation-এর Valid Till শেষ হয়েছে। Seat মুক্ত করা হয়েছে; Ticket তৈরি হয়নি।");card.innerHTML="";await appendBookingSeatPicker(trip,card,confirmPastDate);return;}overlay.remove();alert("Reservation Confirm হয়েছে এবং Ticket তৈরি হয়েছে। Seat এখন SOLD।");card.innerHTML="";await appendBookingSeatPicker(trip,card,confirmPastDate);}
             catch(err){alert("Confirm করা যায়নি: "+err.message);b.disabled=false;}
           });
           makeButton("✕ Cancel Reservation",async event=>{
