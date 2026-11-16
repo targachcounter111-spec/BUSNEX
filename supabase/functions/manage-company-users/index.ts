@@ -232,6 +232,7 @@ Deno.serve(async (req: Request) => {
   let counterId: string | null = null;
   let region: string | null = null;
   let idType: string | null = null;
+  let defaultBoardingPoint: string | null = null;
 
   if (action === "create_manager") {
     if (caller.role !== "super_admin") {
@@ -243,6 +244,25 @@ Deno.serve(async (req: Request) => {
     counterId = typeof body.counter_id === "string" ? body.counter_id : null;
     region = typeof body.region === "string" ? body.region.toUpperCase() : "ALL";
     idType = typeof body.id_type === "string" ? body.id_type.toUpperCase() : "OPERATOR";
+    defaultBoardingPoint = typeof body.default_boarding_point === "string"
+      ? body.default_boarding_point.trim()
+      : "";
+
+    if (!defaultBoardingPoint || defaultBoardingPoint.length > 160) {
+      return json(400, { success: false, message: "Default Boarding Point নির্বাচন করুন।" }, origin);
+    }
+
+    let boardingQuery = admin.from("route_stops")
+      .select("stop_name,routes!inner(company_id,region)")
+      .eq("routes.company_id", companyId)
+      .eq("can_board", true)
+      .eq("stop_name", defaultBoardingPoint);
+    if (region !== "ALL") boardingQuery = boardingQuery.eq("routes.region", region);
+    const { data: boardingRows, error: boardingError } = await boardingQuery.limit(1);
+    if (boardingError || !boardingRows?.length) {
+      return json(400, { success: false, message: "নির্বাচিত Boarding Point এই Company ও Region-এর বৈধ Boarding Stop নয়।" }, origin);
+    }
+
 
     if (!counterId) return json(400, { success: false, message: "Counter নির্বাচন করুন।" }, origin);
     if (!["NB", "SB", "DHAKA", "ALL"].includes(region)) return json(400, { success: false, message: "Region সঠিক নয়।" }, origin);
@@ -280,6 +300,7 @@ Deno.serve(async (req: Request) => {
     login_id: loginId,
     region,
     id_type: idType,
+    default_boarding_point: defaultBoardingPoint,
     is_active: true,
   };
 
@@ -306,6 +327,7 @@ Deno.serve(async (req: Request) => {
       counter_id: counterId,
       region,
       id_type: idType,
+      default_boarding_point: defaultBoardingPoint,
       is_active: true,
     },
   }, origin);
