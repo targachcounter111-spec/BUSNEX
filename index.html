@@ -1875,7 +1875,7 @@ $("loginForm").addEventListener("submit",async event => {
       if (userData?.user) {
         const {data:profileData,error:profileError} = await supabase
           .from("profiles")
-          .select("id,login_id,full_name,role,company_id,counter_id")
+          .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point")
           .eq("id",userData.user.id)
           .maybeSingle();
 
@@ -5447,6 +5447,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           select.appendChild(option);
         });
 
+        if (field === "boarding" && !groupPassenger.boarding && currentProfile?.default_boarding_point) {
+          const preferredName = String(currentProfile.default_boarding_point).trim().toLocaleLowerCase();
+          const preferredOption = [...select.options].find(option =>
+            option.value && option.textContent.trim().toLocaleLowerCase() === preferredName
+          );
+          if (preferredOption) groupPassenger.boarding = preferredOption.value;
+        }
         select.value = groupPassenger[field] || "";
         select.addEventListener("change",() => {
           groupPassenger[field] = select.value;
@@ -6161,7 +6168,7 @@ if (!isPasswordSetupLink) {
         if (userData?.user) {
           const {data:profile,error} = await supabase
             .from("profiles")
-            .select("id,login_id,full_name,role,company_id,counter_id")
+            .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point")
             .eq("id",userData.user.id)
             .maybeSingle();
 
