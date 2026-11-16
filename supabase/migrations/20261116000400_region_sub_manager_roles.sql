@@ -39,12 +39,12 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $region$
   SELECT p.region
   FROM public.profiles p
   WHERE p.id = auth.uid()
   LIMIT 1
-$;
+$region$;
 
 REVOKE ALL ON FUNCTION public.busnex_user_region() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.busnex_user_region() TO authenticated;
