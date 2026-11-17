@@ -3133,19 +3133,64 @@ $("tripSaveButton").addEventListener("click",async() => {
         const {error:boardingError} = await supabase.from("trip_boarding_points").insert(rows);
         if (boardingError) { boardingWarning = "Boarding Points সংরক্ষণ হয়নি: "+boardingError.message; break; }
       }
-      if (isEditing) {
-        const {error:deleteStopsError}=await supabase.from("trip_stops").delete().eq("trip_id",targetTripId);
-        if (deleteStopsError) { boardingWarning="পুরোনো Trip Stops আপডেট করা যায়নি: "+deleteStopsError.message; break; }
+      // পুরোনো Stop ID সংরক্ষণ করুন, কারণ Tickets ও Reservations এগুলো ব্যবহার করে।
+      const {data:existingStops,error:existingStopsError} = await supabase
+        .from("trip_stops")
+        .select("id,stop_order")
+        .eq("trip_id",targetTripId);
+
+      if (existingStopsError) {
+        boardingWarning = "আগের Trip Stops যাচাই করা যায়নি: "+existingStopsError.message;
+        break;
       }
+
+      const existingStopIds = (existingStops || []).map(stop=>stop.id);
+      const maxExistingStopOrder = (existingStops || []).reduce(
+        (max,stop)=>Math.max(max,Number(stop.stop_order)||0),0
+      );
+
       const stopRows = [
-        ...boardingPoints.map((point,index)=>({trip_id:targetTripId,stop_name:point.point_name,
-          stop_type:"boarding",stop_order:index+1,scheduled_time:point.boarding_time,is_active:true})),
-        ...droppingPoints.map((point,index)=>({trip_id:targetTripId,stop_name:point.name,
-          stop_type:"dropping",stop_order:boardingPoints.length+index+1,scheduled_time:point.time,is_active:true}))
+        ...boardingPoints.map((point,index)=>({
+          trip_id:targetTripId,
+          stop_name:point.point_name,
+          stop_type:"boarding",
+          stop_order:maxExistingStopOrder+index+1,
+          scheduled_time:point.boarding_time,
+          is_active:true
+        })),
+        ...droppingPoints.map((point,index)=>({
+          trip_id:targetTripId,
+          stop_name:point.name,
+          stop_type:"dropping",
+          stop_order:maxExistingStopOrder+boardingPoints.length+index+1,
+          scheduled_time:point.time,
+          is_active:true
+        }))
       ];
+
+      // আগে নতুন Stop তৈরি করুন; ব্যর্থ হলে পুরোনো Active Stop অক্ষত থাকবে।
       if (stopRows.length) {
-        const {error:stopInsertError}=await supabase.from("trip_stops").insert(stopRows);
-        if (stopInsertError) { boardingWarning="Boarding/Dropping Point সংরক্ষণ হয়নি: "+stopInsertError.message; break; }
+        const {error:stopInsertError} = await supabase
+          .from("trip_stops")
+          .insert(stopRows);
+        if (stopInsertError) {
+          boardingWarning = "নতুন Boarding/Dropping Point সংরক্ষণ হয়নি: "+stopInsertError.message;
+          break;
+        }
+      }
+
+      // নতুন Stop সফলভাবে তৈরি হওয়ার পর পুরোনো Stop নিষ্ক্রিয় করুন।
+      // Delete করা হচ্ছে না, তাই Ticket/Reservation-এর Foreign Key অক্ষত থাকবে।
+      if (existingStopIds.length) {
+        const {error:archiveStopsError} = await supabase
+          .from("trip_stops")
+          .update({is_active:false})
+          .in("id",existingStopIds);
+
+        if (archiveStopsError) {
+          boardingWarning = "নতুন Stop তৈরি হয়েছে, কিন্তু পুরোনো Stop নিষ্ক্রিয় করা যায়নি: "+archiveStopsError.message;
+          break;
+        }
       }
       const {data:inventory,error:inventoryError} = await supabase.from("trip_seats")
         .select("seat_number").eq("trip_id",targetTripId);
