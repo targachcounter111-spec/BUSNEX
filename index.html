@@ -1314,7 +1314,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
               <div class="field"><label>Registration Number</label><input id="newBusRegistration" placeholder="যেমন: ঢাকা মেট্রো-ব ১২-৩৪৫৬"></div>
               <div class="field"><label>Bus Type *</label><select id="newBusType"><option value="AC">AC</option><option value="Non AC">Non AC</option><option value="Sleeper">Sleeper</option><option value="Business">Business Class</option><option value="VIP">VIP</option><option value="Other">Other</option></select></div>
             </div>
-            <div class="field"><label>নিজের Bus-এর Seat Layout *</label><textarea id="newBusSeatLayout" class="trip-layout-input" placeholder="R-1|@|1|1&#10;A-1|A|1|2&#10;A-2|A|2|3&#10;A-3|A|3|4&#10;A-4|A|4|5"></textarea><div class="small muted">প্রতি লাইন: Seat Number|Row|Position|Order। যতগুলো লাইন দেবেন, Bus-এর Seat সংখ্যা তত হবে।</div></div>
+            <div class="field"><label>নিজের Bus-এর Seat Layout (ঐচ্ছিক)</label><textarea id="newBusSeatLayout" class="trip-layout-input" placeholder="খালি রাখলে উপরের Seat Layout Type থেকে স্বয়ংক্রিয়ভাবে নেওয়া হবে।"></textarea><div class="small muted">এখানে Layout লিখলে সেটি ব্যবহার হবে। খালি রাখলে Trip-এর Seat Layout Type থেকে Layout নেওয়া হবে।</div></div>
             <div class="actions"><button id="createCustomBusButton" class="primary" type="button">Bus ও Seat Layout সংরক্ষণ</button><button id="cancelCustomBusButton" class="secondary" type="button">বাতিল</button></div>
             <p id="newBusMessage" class="small muted"></p>
           </div>
@@ -2659,10 +2659,11 @@ $("createCustomBusButton").addEventListener("click",async() => {
   const busName=$("newBusName").value.trim();
   const registration=$("newBusRegistration").value.trim();
   const busType=$("newBusType").value;
-  const raw=$("newBusSeatLayout").value.trim();
+  const customLayout=$("newBusSeatLayout").value.trim();
+  const raw=customLayout || $("tripSeatLayoutInput").value.trim();
   if (!companyId) { message.textContent="আগে Company নির্বাচন করুন।"; return; }
   if (!busName) { message.textContent="Bus / Coach Name লিখুন।"; return; }
-  if (!raw) { message.textContent="Seat Layout লিখুন।"; return; }
+  if (!raw) { message.textContent="Seat Layout Type নির্বাচন করুন অথবা নিজের Seat Layout লিখুন।"; return; }
   let layout;
   try {
     layout=raw.split(/\r?\n/).filter(line=>line.trim()).map(line=>{
