@@ -1757,6 +1757,12 @@ function isAdmin() {
     ["super_admin","company_manager"].includes(currentProfile.role);
 }
 
+// Bus creation is allowed for company admins and region Sub Managers.
+function canCreateBus() {
+  return currentProfile &&
+    ["super_admin","company_manager","nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role);
+}
+
 // Sub Managers can manage Trips only; they do not inherit general admin access.
 function isTripManager() {
   return currentProfile &&
@@ -2375,7 +2381,7 @@ async function loadBuses() {
       '<option value="">এই Company-তে Bus পাওয়া যায়নি</option>';
   }
 
-  if (isAdmin()) {
+  if (canCreateBus()) {
     const createOption = document.createElement("option");
     createOption.value = "__create_bus__";
     createOption.textContent = "＋ নতুন Custom Bus তৈরি করুন";
@@ -2630,7 +2636,7 @@ function closeCustomBusPanel() {
 $("tripBus").addEventListener("change",() => {
   const panel = $("newBusPanel");
   if ($("tripBus").value === "__create_bus__") {
-    if (!isAdmin() || editingTripId) {
+    if (!canCreateBus() || editingTripId) {
       tripMessage("নতুন Bus তৈরি করতে নতুন Trip ফর্ম ব্যবহার করুন।","error");
       $("tripBus").value = "";
       return;
@@ -2648,7 +2654,7 @@ $("cancelCustomBusButton").addEventListener("click",closeCustomBusPanel);
 $("createCustomBusButton").addEventListener("click",async() => {
   const button=$("createCustomBusButton");
   const message=$("newBusMessage");
-  if (!isAdmin()) { message.textContent="আপনার Bus তৈরি করার অনুমতি নেই।"; return; }
+  if (!canCreateBus()) { message.textContent="আপনার Bus তৈরি করার অনুমতি নেই।"; return; }
   const companyId=selectedCompanyId();
   const busName=$("newBusName").value.trim();
   const registration=$("newBusRegistration").value.trim();
