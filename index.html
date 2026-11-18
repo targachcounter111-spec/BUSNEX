@@ -1217,7 +1217,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
       <button class="nav-btn" data-page="seats">▤ Seat Layout</button>
       <button class="nav-btn" data-page="sheet">☷ Trip Sheet</button>
       <button class="nav-btn" data-page="reservations">▣ Reservations</button>
-      <button class="nav-btn admin-only manager-only" data-page="counters">♙ Counters & Access</button>
+      <button class="nav-btn manager-only nb-counter-manager-only" data-page="counters">♙ Counters & Access</button>
       <button class="nav-btn admin-only" data-page="billing">৳ Billing</button>
     </aside>
 
@@ -1764,6 +1764,10 @@ function canCreateBus() {
 }
 
 // Sub Managers can manage Trips only; they do not inherit general admin access.
+function canCreateCounter() {
+  return currentProfile && ["super_admin","company_manager","nb_sub_manager"].includes(currentProfile.role);
+}
+
 function isTripManager() {
   return currentProfile &&
     ["super_admin","company_manager","nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role);
@@ -1887,6 +1891,7 @@ function showDashboard(profile) {
   $("counterRoleTag").textContent = roleText(currentProfile.role);
   document.querySelectorAll(".admin-only").forEach(button => button.classList.toggle("hidden",!isAdmin()));
   document.querySelectorAll(".trip-manager-only").forEach(button => button.classList.toggle("hidden",!isTripManager()));
+  document.querySelectorAll(".nb-counter-manager-only").forEach(button => button.classList.toggle("hidden",currentProfile.role!=="nb_sub_manager" && !isAdmin()));
 
   if (currentProfile.role === "super_admin") {
     $("globalCompanyHub").classList.remove("hidden");
@@ -3889,7 +3894,7 @@ async function loadReservationsPage() {
           const expiryMs=row.expires_at?Date.parse(row.expires_at):0;
           const remainingText=row.status==="active"&&expiryMs?'<br><small class="reservation-list-countdown" data-expires="'+escapeHtml(row.expires_at)+'"></small>':"";
           const reservationStatus=row.status==="active"&&row.confirmed_at?"confirmed":row.status;
-          const canConfirm=row.status==="active"&&!row.confirmed_at;
+          const canConfirm=row.status==="active"&&!row.confirmed_at&&currentProfile?.role!=="nb_sub_manager";
           const canCancel=["active","confirmed"].includes(reservationStatus);
           return '<tr><td>'+escapeHtml(row.trips?.routes?.starting_point||"—")+' → '+escapeHtml(row.trips?.routes?.ending_point||"—")+'<br><small>'+escapeHtml(row.counters?.name||"—")+'</small></td><td>'+seats+'</td><td>'+escapeHtml(row.reservation_type)+'</td><td>'+escapeHtml(reservationStatus)+'</td><td>'+escapeHtml(expiry)+remainingText+'</td><td>'+(canConfirm?'<button type="button" class="secondary reservation-confirm" data-id="'+escapeHtml(row.id)+'">Confirm</button> ':'')+(canCancel?'<button type="button" class="danger reservation-cancel" data-id="'+escapeHtml(row.id)+'">Cancel</button>':'—')+'</td></tr>';
         }).join("")+'</tbody></table>';
@@ -3905,7 +3910,7 @@ async function loadReservationsPage() {
       if(window.busnexReservationCountdownTimer) clearInterval(window.busnexReservationCountdownTimer);
       window.busnexReservationCountdownTimer=setInterval(updateReservationCountdowns,1000);
       $("reservationList").querySelectorAll(".reservation-confirm").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_confirm_reservation","Reservation Confirm হয়েছে?")));
-      $("reservationList").querySelectorAll(".reservation-cancel").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,"busnex_cancel_reservation","Reservation Cancel হয়েছে?")));
+      $("reservationList").querySelectorAll(".reservation-cancel").forEach(button=>button.addEventListener("click",()=>runReservationRpc(button,currentProfile?.role==="nb_sub_manager"?"busnex_nb_cancel_reservation":"busnex_cancel_reservation","Reservation Cancel হয়েছে?")));
 
     }
     $("reservationMessage").textContent=rows.length+"টি Reservation পাওয়া গেছে।";
@@ -3979,7 +3984,7 @@ async function toggleCounterActive(counterId,wasActive,button) {
 }
 
 async function createCounter() {
-  if (!isAdmin()) return;
+  if (!canCreateCounter()) return;
   const name = $("newCounterName").value.trim();
   const address = $("newCounterAddress").value.trim();
   const companyId = currentProfile.role === "super_admin" ? activeCompanyId : currentProfile.company_id;
@@ -4001,7 +4006,7 @@ async function createCounter() {
   message.className = "message";
   try {
     const {data,error} = await supabase.from("counters")
-      .insert({company_id:companyId,name,address:address || null})
+      .insert({company_id:companyId,name,address:address || null,...(currentProfile.role==="nb_sub_manager"?{region:"NB"}:{})})
       .select("id,name")
       .single();
     if (error) throw error;
@@ -4084,12 +4089,13 @@ async function loadOperatorDirectory(counterRows = null) {
 async function loadCounterDirectory() {
   $("counterDirectoryMessage").textContent = "Counter লোড হচ্ছে...";
   $("permissionMessage").textContent = "Permission লোড হচ্ছে...";
-  $("counterCreatePanel").classList.toggle("hidden", !isAdmin());
+  $("counterCreatePanel").classList.toggle("hidden", !canCreateCounter());
   $("subManagerCreatePanel").classList.toggle("hidden", !isAdmin() || !["super_admin","company_manager"].includes(currentProfile?.role));
   try {
-    let query=supabase.from("counters").select("id,company_id,name,address,created_at,is_active").order("name");
+    let query=supabase.from("counters").select("id,company_id,name,address,region,created_at,is_active").order("name");
     if(currentProfile.role!=="super_admin") query=query.eq("company_id",currentProfile.company_id);
     else if(activeCompanyId) query=query.eq("company_id",activeCompanyId);
+    if(currentProfile.role==="nb_sub_manager") query=query.eq("region","NB");
     else throw new Error("Super Admin-এর আগে Company Workspace নির্বাচন করতে হবে।");
     const {data,error}=await query;
     if(error) throw error;
@@ -4754,6 +4760,19 @@ async function loadSeatInventory(tripId) {
       const div = document.createElement("div");
       div.className = "seat " + state;
       div.textContent = seat.seat_number;
+      if(currentProfile?.role==="nb_sub_manager" && ["available","blocked"].includes(state)){
+        div.style.cursor="pointer";
+        div.title=state==="available"?"ক্লিক করলে Seat Block হবে":"ক্লিক করলে Seat খুলে যাবে";
+        div.addEventListener("click",async()=>{
+          if(!confirm("Seat "+seat.seat_number+(state==="available"?" Block":" Unblock")+" করবেন?"))return;
+          div.style.pointerEvents="none";
+          try{
+            const {error}=await supabase.rpc("busnex_nb_set_trip_seat_block",{p_trip_id:tripId,p_seat_number:seat.seat_number,p_blocked:state==="available"});
+            if(error)throw error;
+            await loadSeatInventory(tripId);
+          }catch(error){seatMessage("Seat Block/Unblock হয়নি: "+error.message,"error");div.style.pointerEvents="auto";}
+        });
+      }
       if (state === "held") {
         const expiry = record?.hold_until
           ? formatDhakaTime(record.hold_until,{second:"2-digit"})
