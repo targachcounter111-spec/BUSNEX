@@ -3478,7 +3478,7 @@ async function loadManagedAccounts() {
   $("managedAccountsMessage").textContent = "Account তালিকা লোড হচ্ছে...";
   try {
     let query = supabase.from("profiles")
-      .select("id,login_id,full_name,role,id_type,company_id")
+      .select("id,login_id,full_name,role,id_type,region,schedule_regions,company_id")
       .neq("id", currentProfile.id)
       .order("full_name");
     if (currentProfile.role === "company_manager") {
@@ -3488,7 +3488,7 @@ async function loadManagedAccounts() {
     if (error) throw error;
     const rows = data || [];
     $("managedAccountsList").innerHTML = rows.length ? '<table><thead><tr><th>নাম</th><th>Login ID</th><th>Role</th><th>নতুন নাম</th><th>নতুন Password</th><th>Action</th></tr></thead><tbody>' +
-      rows.map(user => '<tr><td>' + escapeHtml(user.full_name || "—") + '</td><td><strong>' + escapeHtml(user.login_id || "—") + '</strong></td><td>' + escapeHtml(user.role === "company_manager" ? "Manager" : (user.id_type === "AGENT" ? "Agent" : user.role === "counter_operator" ? "Operator" : user.role)) + '</td><td><input class="managed-new-name" data-id="' + escapeHtml(user.id) + '" maxlength="120" placeholder="নাম পরিবর্তন (ঐচ্ছিক)"></td><td><input class="managed-new-password" data-id="' + escapeHtml(user.id) + '" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></td><td><button class="primary save-managed-account" data-id="' + escapeHtml(user.id) + '" type="button">Save</button></td></tr>').join("") +
+      rows.map(user => '<tr><td>' + escapeHtml(user.full_name || "—") + '</td><td><strong>' + escapeHtml(user.login_id || "—") + '</strong>' + (user.role === "counter_operator" ? '<br><small class="status-badge">' + escapeHtml(((user.schedule_regions || (user.region ? [user.region] : [])).join(" + ") || "REGION NOT SET") + " " + String(user.id_type || "OPERATOR").toUpperCase()) + '</small>' : '') + '</td><td>' + escapeHtml(user.role === "company_manager" ? "Manager" : (user.id_type === "AGENT" ? "Agent" : user.role === "counter_operator" ? "Operator" : user.role)) + '</td><td><input class="managed-new-name" data-id="' + escapeHtml(user.id) + '" maxlength="120" placeholder="নাম পরিবর্তন (ঐচ্ছিক)"></td><td><input class="managed-new-password" data-id="' + escapeHtml(user.id) + '" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></td><td><button class="primary save-managed-account" data-id="' + escapeHtml(user.id) + '" type="button">Save</button></td></tr>').join("") +
       '</tbody></table>' : '<div class="empty">পরিচালনার জন্য কোনো Account পাওয়া যায়নি।</div>';
     $("managedAccountsMessage").textContent = rows.length + "টি Account পাওয়া গেছে।";
     $("managedAccountsMessage").className = "message ok";
@@ -4057,7 +4057,7 @@ async function loadOperatorDirectory(counterRows = null) {
       wrap.innerHTML = '<div class="empty">এই Company-তে এখনো কোনো Counter Operator Login তৈরি হয়নি।</div>';
     } else {
       wrap.innerHTML = '<table><thead><tr><th>নাম</th><th>Login ID</th><th>ধরন</th><th>Schedule Region</th><th>Counter</th><th>Status</th><th>Action</th></tr></thead><tbody>' +
-        operators.map(operator => '<tr><td>' + escapeHtml(operator.full_name || "—") + '</td><td><strong>' + escapeHtml(operator.login_id || "—") + '</strong></td><td>' + escapeHtml(String(operator.id_type || "OPERATOR").toUpperCase()) + '</td><td>' + escapeHtml((operator.schedule_regions || []).join(", ") || operator.region || "—") + '</td><td>' + escapeHtml(counterNames.get(operator.counter_id) || "Counter unavailable") + '</td><td>' + (operator.is_active ? '<span class="status-badge">Active</span>' : '<span class="status-badge">Inactive</span>') + '</td><td><button type="button" class="' + (operator.is_active ? 'danger' : 'secondary') + ' toggle-operator-active" data-id="' + escapeHtml(operator.id) + '" data-active="' + (operator.is_active ? 'true' : 'false') + '">' + (operator.is_active ? 'Deactivate' : 'Activate') + '</button></td></tr>').join('') +
+        operators.map(operator => { const regions = operator.schedule_regions?.length ? operator.schedule_regions : (operator.region ? [operator.region] : []); const regionLabel = (regions.join(" + ") || "REGION NOT SET") + " " + String(operator.id_type || "OPERATOR").toUpperCase(); return '<tr><td>' + escapeHtml(operator.full_name || "—") + '</td><td><strong>' + escapeHtml(operator.login_id || "—") + '</strong><br><small class="status-badge">' + escapeHtml(regionLabel) + '</small></td><td>' + escapeHtml(String(operator.id_type || "OPERATOR").toUpperCase()) + '</td><td>' + escapeHtml(regions.join(", ") || "—") + '</td><td>' + escapeHtml(counterNames.get(operator.counter_id) || "Counter unavailable") + '</td><td>' + (operator.is_active ? '<span class="status-badge">Active</span>' : '<span class="status-badge">Inactive</span>') + '</td><td><button type="button" class="' + (operator.is_active ? 'danger' : 'secondary') + ' toggle-operator-active" data-id="' + escapeHtml(operator.id) + '" data-active="' + (operator.is_active ? 'true' : 'false') + '">' + (operator.is_active ? 'Deactivate' : 'Activate') + '</button></td></tr>'; }).join('') +
         '</tbody></table>';
       wrap.querySelectorAll(".toggle-operator-active").forEach(button => {
         button.addEventListener("click", async () => {
