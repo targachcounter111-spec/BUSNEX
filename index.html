@@ -1319,7 +1319,17 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
             <p id="newBusMessage" class="small muted"></p>
           </div>
 
-          <div class="trip-builder-section"><h3>✦ Saved Route Library</h3><p>আগের সংরক্ষিত Route ব্যবহার করুন অথবা নতুন Route তৈরি করুন। Route একবার তৈরি হলে কোম্পানির Library-তে থাকবে।</p></div>
+          <div class="field" id="tripScheduleRegionField">
+            <label>Schedule Region নির্বাচন করুন *</label>
+            <select id="tripRouteRegion">
+              <option value="NB">NB — উত্তরবঙ্গ</option>
+              <option value="DHAKA">DHAKA</option>
+              <option value="SB">SB — দক্ষিণবঙ্গ</option>
+            </select>
+            <div class="small muted">এই Region-এর Schedule শুধু এই Region-এ অনুমতিপ্রাপ্ত Counter ID দেখতে পারবে।</div>
+          </div>
+
+                    <div class="trip-builder-section"><h3>✦ Saved Route Library</h3><p>আগের সংরক্ষিত Route ব্যবহার করুন অথবা নতুন Route তৈরি করুন। Route একবার তৈরি হলে কোম্পানির Library-তে থাকবে।</p></div>
           <div class="field">
             <label>Route নির্বাচন</label>
             <select id="tripRouteSelect">
@@ -1331,14 +1341,6 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
               <div class="field">
                 <label>Route Name</label>
                 <input id="tripRouteName" placeholder="যেমন: Dhaka–Bogura Express">
-              </div>
-              <div class="field">
-                <label>Region</label>
-                <select id="tripRouteRegion">
-                  <option value="NB">NB — উত্তরবঙ্গ</option>
-                  <option value="SB">SB — দক্ষিণবঙ্গ</option>
-                  <option value="DHAKA">Dhaka</option>
-                </select>
               </div>
               <div class="field">
                 <label>Direction</label>
@@ -2771,11 +2773,48 @@ function parseRouteStopsInput() {
   });
 }
 
+function allowedTripRegions() {
+  if (currentProfile?.role === "nb_sub_manager") return ["NB"];
+  if (currentProfile?.role === "dhaka_sub_manager") return ["DHAKA"];
+  return ["NB","DHAKA","SB"];
+}
+
+function renderSavedRouteOptions(preferredRouteId="__new__") {
+  const select = $("tripRouteSelect");
+  const region = $("tripRouteRegion").value;
+  const allowed = allowedTripRegions();
+  select.innerHTML = '<option value="__new__">＋ নতুন Route তৈরি করুন</option>';
+  savedRouteCache
+    .filter(route => allowed.includes(route.region) && route.region === region)
+    .forEach(route => {
+      const option = document.createElement("option");
+      option.value = route.id;
+      const label = route.route_name || (route.starting_point + " → " + route.ending_point);
+      option.textContent = label + " • " + route.region;
+      select.appendChild(option);
+    });
+  select.value = Array.from(select.options).some(option=>option.value===preferredRouteId)
+    ? preferredRouteId : "__new__";
+}
+
+function applyTripRegionPermissions() {
+  const select = $("tripRouteRegion");
+  const allowed = allowedTripRegions();
+  Array.from(select.options).forEach(option => {
+    option.disabled = !allowed.includes(option.value);
+    option.hidden = !allowed.includes(option.value);
+  });
+  if (!allowed.includes(select.value)) select.value = allowed[0];
+  select.disabled = Boolean(editingTripId);
+  renderSavedRouteOptions();
+}
+
 async function loadSavedRoutes() {
   const companyId = selectedCompanyId();
   const select = $("tripRouteSelect");
   select.innerHTML = '<option value="__new__">＋ নতুন Route তৈরি করুন</option>';
   savedRouteCache = [];
+  applyTripRegionPermissions();
   if (!companyId) return;
 
   const {data,error} = await supabase
@@ -2785,19 +2824,27 @@ async function loadSavedRoutes() {
     .order("created_at",{ascending:false});
   if (error) throw error;
   savedRouteCache = data || [];
-
-  savedRouteCache.forEach(route => {
-    const option = document.createElement("option");
-    option.value = route.id;
-    const label = route.route_name || (route.starting_point + " → " + route.ending_point);
-    option.textContent = label + " • " + (route.region || "Region নেই");
-    select.appendChild(option);
-  });
-  select.value = "__new__";
+  renderSavedRouteOptions();
   $("newRouteFields").classList.remove("hidden");
+  $("savedRouteEditor").classList.add("hidden");
   $("tripFrom").readOnly = false;
   $("tripTo").readOnly = false;
 }
+
+$("tripRouteRegion").addEventListener("change",() => {
+  const selectedRouteId = $("tripRouteSelect").value;
+  const selectedRoute = savedRouteCache.find(route=>route.id===selectedRouteId);
+  if (selectedRoute && selectedRoute.region !== $("tripRouteRegion").value) {
+    $("tripRouteSelect").value = "__new__";
+    $("savedRouteEditor").classList.add("hidden");
+    $("newRouteFields").classList.remove("hidden");
+    $("tripFrom").readOnly = false;
+    $("tripTo").readOnly = false;
+    $("tripFrom").value = "";
+    $("tripTo").value = "";
+  }
+  renderSavedRouteOptions();
+});
 
 async function chooseSavedRoute(routeId) {
   const route = savedRouteCache.find(item => item.id === routeId);
@@ -2812,6 +2859,13 @@ async function chooseSavedRoute(routeId) {
     $("routeStopsInput").value = "";
     return;
   }
+  if (!allowedTripRegions().includes(route.region)) {
+    $("tripRouteSelect").value = "__new__";
+    throw new Error("এই Saved Route আপনার অনুমোদিত Region-এর নয়।");
+  }
+  $("tripRouteRegion").value = route.region;
+  $("tripRouteRegion").disabled = false;
+  renderSavedRouteOptions(route.id);
   $("newRouteFields").classList.add("hidden");
   $("savedRouteEditor").classList.remove("hidden");
   $("tripFrom").readOnly = true;
@@ -2840,6 +2894,7 @@ async function chooseSavedRoute(routeId) {
 async function createSavedRoute(companyId,from,to) {
   const routeName = $("tripRouteName").value.trim();
   const region = $("tripRouteRegion").value;
+  if (!allowedTripRegions().includes(region)) throw new Error("আপনার নির্বাচিত Region-এ Schedule তৈরির অনুমতি নেই।");
   const direction = $("tripRouteDirection").value;
   if (!routeName) throw new Error("নতুন Route-এর একটি নাম দিন।");
   if (!["NB","SB","DHAKA"].includes(region)) throw new Error("Route-এর Region নির্বাচন করুন।");
@@ -2911,6 +2966,8 @@ function localDateValue(dateValue) {
 }
 
 function clearTripFormFields() {
+  $("tripRouteRegion").disabled = false;
+  applyTripRegionPermissions();
   $("tripRouteSelect").value = "__new__";
   $("newRouteFields").classList.remove("hidden");
   $("savedRouteEditor").classList.add("hidden");
@@ -3056,6 +3113,10 @@ $("tripSaveButton").addEventListener("click",async() => {
       const selectedRoute = savedRouteCache.find(route => route.id === selectedRouteId);
       if (!selectedRoute || selectedRoute.starting_point !== from || selectedRoute.ending_point !== to) {
         throw new Error("নির্বাচিত Route-এর Starting ও Ending Point মিলছে না।");
+      }
+      if (selectedRoute.region !== $("tripRouteRegion").value ||
+          !allowedTripRegions().includes(selectedRoute.region)) {
+        throw new Error("নির্বাচিত Schedule Region-এর সঙ্গে Saved Route-এর Region মিলছে না।");
       }
       routeId = selectedRouteId;
     } else {
@@ -3582,7 +3643,7 @@ async function editTrip(id) {
       .select(`
         id,company_id,bus_id,route_id,departure_time,arrival_time,
         ticket_price,status,supervisor,supervisor_name,supervisor_phone,coach_number,
-        routes(starting_point,ending_point),
+        routes(starting_point,ending_point,region),
         trip_boarding_points(point_name,boarding_time,point_order),
         trip_stops(id,stop_name,stop_type,stop_order,scheduled_time,is_active)
       `)
@@ -3600,6 +3661,9 @@ async function editTrip(id) {
     await loadSavedRoutes();
     $("tripRouteSelect").value = "__new__";
     $("newRouteFields").classList.remove("hidden");
+    $("savedRouteEditor").classList.add("hidden");
+    $("tripRouteRegion").value = trip.routes?.region || allowedTripRegions()[0];
+    $("tripRouteRegion").disabled = true;
     $("tripFrom").readOnly = false;
     $("tripTo").readOnly = false;
     $("tripFrom").value = trip.routes?.starting_point || "";
