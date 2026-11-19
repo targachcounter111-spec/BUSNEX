@@ -1551,7 +1551,12 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
             <div class="field"><label for="newOperatorName">Operator-এর নাম *</label><input id="newOperatorName" maxlength="120" required placeholder="পূর্ণ নাম"></div>
             <div class="field"><label for="newOperatorLogin">Operator Login ID *</label><input id="newOperatorLogin" maxlength="40" required autocomplete="off" placeholder="যেমন: BNGAZIPURA28"></div>
             <div class="field"><label for="newOperatorPassword">Password * (কমপক্ষে ৮ অক্ষর)</label><input id="newOperatorPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></div>
-            <div class="field"><label for="operatorRegion">Region *</label><select id="operatorRegion" required><option value="ALL">All</option><option value="NB">North Bengal (NB)</option><option value="SB">South Bengal (SB)</option><option value="DHAKA">Dhaka</option></select></div>
+            <div class="field"><label for="operatorRegion">Counter / Boarding Region *</label><select id="operatorRegion" required><option value="ALL">All</option><option value="NB">North Bengal (NB)</option><option value="SB">South Bengal (SB)</option><option value="DHAKA">Dhaka</option></select></div>
+            <div class="field"><label>Schedule দেখার Region * (এক বা একাধিক নির্বাচন করুন)</label><div class="actions" id="operatorScheduleRegions">
+              <label><input type="checkbox" name="operatorScheduleRegion" value="NB"> NB</label>
+              <label><input type="checkbox" name="operatorScheduleRegion" value="DHAKA"> DHAKA</label>
+              <label><input type="checkbox" name="operatorScheduleRegion" value="SB"> SB</label>
+            </div></div>
             <div class="field"><label for="operatorDefaultBoardingPoint">Default Boarding Point / নির্ধারিত ওঠার স্থান *</label><select id="operatorDefaultBoardingPoint" required><option value="">আগে Region নির্বাচন করুন</option></select></div>
             <div class="field hidden" id="customBoardingPointField"><label for="customBoardingPointInput">Custom Boarding Point-এর নাম *</label><input id="customBoardingPointInput" maxlength="160" placeholder="নিজের মতো Boarding Point লিখুন"></div>
             <div class="field"><label for="operatorIdType">ID Type *</label><select id="operatorIdType" required><option value="OPERATOR">Operator</option><option value="AGENT">Agent</option></select></div>
@@ -1561,7 +1566,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
         </div>
         <div class="card section" id="operatorDirectoryPanel">
           <h2>Counter Operator ID পরিচালনা</h2>
-          <div class="notice">এখান থেকে নিজের Company-র Operator Login ID Active বা Deactivate করতে পারবেন। Deactivated ID দিয়ে Login করা যাবে না।</div>
+          <div class="notice">এখান থেকে নিজের Company-র Operator/Agent Login ID-এর ধরন, Schedule Region এবং Active Status দেখা ও পরিচালনা করতে পারবেন। Deactivated ID দিয়ে Login করা যাবে না।</div>
           <div id="operatorDirectoryMessage" class="message">Operator তালিকা লোড হয়নি।</div>
           <div id="operatorDirectory" class="table-wrap"><div class="empty">তথ্য লোড হয়নি।</div></div>
         </div>
@@ -4040,7 +4045,7 @@ async function loadOperatorDirectory(counterRows = null) {
   message.textContent = "Operator Login তালিকা লোড হচ্ছে...";
   try {
     const {data,error} = await supabase.from("profiles")
-      .select("id,login_id,full_name,counter_id,is_active")
+      .select("id,login_id,full_name,counter_id,is_active,id_type,region,schedule_regions")
       .eq("company_id",companyId)
       .eq("role","counter_operator")
       .order("full_name");
@@ -4051,8 +4056,8 @@ async function loadOperatorDirectory(counterRows = null) {
     if (!operators.length) {
       wrap.innerHTML = '<div class="empty">এই Company-তে এখনো কোনো Counter Operator Login তৈরি হয়নি।</div>';
     } else {
-      wrap.innerHTML = '<table><thead><tr><th>Operator</th><th>Login ID</th><th>Counter</th><th>Status</th><th>Action</th></tr></thead><tbody>' +
-        operators.map(operator => '<tr><td>' + escapeHtml(operator.full_name || "—") + '</td><td><strong>' + escapeHtml(operator.login_id || "—") + '</strong></td><td>' + escapeHtml(counterNames.get(operator.counter_id) || "Counter unavailable") + '</td><td>' + (operator.is_active ? '<span class="status-badge">Active</span>' : '<span class="status-badge">Inactive</span>') + '</td><td><button type="button" class="' + (operator.is_active ? 'danger' : 'secondary') + ' toggle-operator-active" data-id="' + escapeHtml(operator.id) + '" data-active="' + (operator.is_active ? 'true' : 'false') + '">' + (operator.is_active ? 'Deactivate' : 'Activate') + '</button></td></tr>').join('') +
+      wrap.innerHTML = '<table><thead><tr><th>নাম</th><th>Login ID</th><th>ধরন</th><th>Schedule Region</th><th>Counter</th><th>Status</th><th>Action</th></tr></thead><tbody>' +
+        operators.map(operator => '<tr><td>' + escapeHtml(operator.full_name || "—") + '</td><td><strong>' + escapeHtml(operator.login_id || "—") + '</strong></td><td>' + escapeHtml(String(operator.id_type || "OPERATOR").toUpperCase()) + '</td><td>' + escapeHtml((operator.schedule_regions || []).join(", ") || operator.region || "—") + '</td><td>' + escapeHtml(counterNames.get(operator.counter_id) || "Counter unavailable") + '</td><td>' + (operator.is_active ? '<span class="status-badge">Active</span>' : '<span class="status-badge">Inactive</span>') + '</td><td><button type="button" class="' + (operator.is_active ? 'danger' : 'secondary') + ' toggle-operator-active" data-id="' + escapeHtml(operator.id) + '" data-active="' + (operator.is_active ? 'true' : 'false') + '">' + (operator.is_active ? 'Deactivate' : 'Activate') + '</button></td></tr>').join('') +
         '</tbody></table>';
       wrap.querySelectorAll(".toggle-operator-active").forEach(button => {
         button.addEventListener("click", async () => {
@@ -4416,23 +4421,24 @@ $("createOperatorForm").addEventListener("submit", async event => {
   const password = $("newOperatorPassword").value;
   const region = $("operatorRegion").value;
   const id_type = $("operatorIdType").value;
+  const schedule_regions = [...document.querySelectorAll('input[name="operatorScheduleRegion"]:checked')].map(input => input.value);
   const customBoardingPoint = $("operatorDefaultBoardingPoint").value === "__CUSTOM_BOARDING_POINT__";
   const default_boarding_point = customBoardingPoint
     ? $("customBoardingPointInput").value.trim()
     : $("operatorDefaultBoardingPoint").value;
   const button = $("createOperatorButton");
   const message = $("operatorCreateMessage");
-  if (!company_id || !counter_id || !full_name || !login_id || !default_boarding_point || password.length < 8) {
-    message.textContent = "Company, Counter, নাম, Login ID, Default Boarding Point ও কমপক্ষে ৮ অক্ষরের Password দিন।";
+  if (!company_id || !counter_id || !full_name || !login_id || !default_boarding_point || !schedule_regions.length || password.length < 8) {
+    message.textContent = "Company, Counter, নাম, Login ID, Default Boarding Point, কমপক্ষে একটি Schedule Region এবং ৮ অক্ষরের Password দিন।";
     message.className = "message error";
     return;
   }
   button.disabled = true;
-  message.textContent = "Counter Operator Login তৈরি হচ্ছে...";
+  message.textContent = (id_type === "AGENT" ? "Agent" : "Operator") + " Login তৈরি হচ্ছে...";
   message.className = "message";
   try {
     const {data,error} = await supabase.functions.invoke("manage-company-users", {
-      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type,default_boarding_point,default_boarding_point_custom:customBoardingPoint}
+      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type,schedule_regions,default_boarding_point,default_boarding_point_custom:customBoardingPoint}
     });
     if (error) throw new Error(data?.message || error.message || "Backend request failed");
     if (!data?.success) throw new Error(data?.message || "Operator ID তৈরি হয়নি।");
@@ -4440,6 +4446,7 @@ $("createOperatorForm").addEventListener("submit", async event => {
     $("newOperatorLogin").value = "";
     $("newOperatorPassword").value = "";
     $("operatorDefaultBoardingPoint").value = "";
+    document.querySelectorAll('input[name="operatorScheduleRegion"]').forEach(input => { input.checked = false; });
     $("customBoardingPointInput").value = "";
     updateCustomBoardingPointField();
     message.textContent = data.message + " | Login ID: " + data.profile.login_id;
