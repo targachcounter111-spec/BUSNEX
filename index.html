@@ -1464,9 +1464,19 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
             <div class="actions">
               <button id="tripUpcomingButton" class="primary" type="button">চলতি Schedule</button>
               <button id="tripHistoryButton" class="secondary" type="button">History</button>
+              <button id="deletedCoachToggle" class="secondary" type="button">Delete Coach</button>
             </div>
           </div>
+          <div id="tripBulkActions" class="actions" style="margin:10px 0">
+            <label style="display:flex;align-items:center;gap:8px"><input id="tripSelectAll" type="checkbox"> সব Active Schedule নির্বাচন</label>
+            <button id="archiveSelectedTrips" class="danger" type="button" disabled>নির্বাচিত Schedule Archive করুন (0)</button>
+          </div>
           <div id="tripList" class="empty">Trip লোড করা হয়নি।</div>
+          <div id="deletedCoachPanel" class="card hidden" style="margin-top:16px">
+            <div class="page-head"><div><h2>Delete Coach / Archived Schedule</h2><p class="small muted">Archive করা Coach-এর Seat Inventory ও Ticket History এখানে থাকবে।</p></div><button id="refreshDeletedCoaches" class="secondary" type="button">Refresh</button></div>
+            <div id="deletedCoachList" class="empty">Archived Coach লোড করা হয়নি।</div>
+            <div id="deletedCoachDetails" class="section hidden"></div>
+          </div>
         </div>
       </section>
 
@@ -3375,7 +3385,8 @@ async function loadTrips(view) {
     // issue in buses/routes/boarding points must never block the main Trip list.
     let query = supabase
       .from("trips")
-      .select("id,company_id,bus_id,route_id,departure_time,arrival_time,ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,schedule_group_id")
+      .select("id,company_id,bus_id,route_id,departure_time,arrival_time,ticket_price,status,is_active,supervisor,supervisor_name,supervisor_phone,coach_number,schedule_group_id,archived_at")
+      .is("archived_at",null)
       .order("departure_time",{ascending:true})
       .limit(1000);
 
@@ -3454,6 +3465,7 @@ async function loadTrips(view) {
       const busIsOff = trip.is_active === false;
 
       card.innerHTML = `
+        ${tripListView === "upcoming" && canArchiveTrips() ? `<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input class="trip-archive-check" type="checkbox" value="${escapeHtml(trip.id)}"> এই Schedule Archive করার জন্য নির্বাচন</label>` : ""}
         <h3>${escapeHtml(route.starting_point || "—")} → ${escapeHtml(route.ending_point || "—")}</h3>
         <div class="trip-info">
           <span><b>Bus:</b> ${escapeHtml(bus.bus_name || "—")}</span>
@@ -3474,7 +3486,6 @@ async function loadTrips(view) {
           <button class="secondary edit-trip" data-id="${escapeHtml(trip.id)}">Edit Trip</button>
           ${status === "scheduled" ? `<button class="${busIsOff ? 'secondary' : 'danger'} toggle-bus-off" data-id="${escapeHtml(trip.id)}" data-active="${busIsOff ? 'false' : 'true'}">${busIsOff ? 'BUS ON — চালু করুন' : 'BUS OFF — Ticket বন্ধ করুন'}</button>` : ''}
           ${status !== "cancelled" ? `<button class="danger cancel-trip" data-id="${escapeHtml(trip.id)}">Trip বাতিল</button>` : ""}
-          ${isAdmin() ? `<button class="danger delete-trip" data-id="${escapeHtml(trip.id)}">Delete Trip</button>` : ""}
         </div>
       `;
       $("tripList").appendChild(card);
@@ -3483,7 +3494,8 @@ async function loadTrips(view) {
     document.querySelectorAll(".edit-trip").forEach(button => button.addEventListener("click",() => editTrip(button.dataset.id)));
     document.querySelectorAll(".cancel-trip").forEach(button => button.addEventListener("click",() => cancelTrip(button.dataset.id,button)));
     document.querySelectorAll(".toggle-bus-off").forEach(button => button.addEventListener("click",() => toggleBusOff(button.dataset.id,button)));
-    document.querySelectorAll(".delete-trip").forEach(button => button.addEventListener("click",() => deleteTrip(button.dataset.id,button)));
+    document.querySelectorAll(".trip-archive-check").forEach(input => input.addEventListener("change",updateTripArchiveSelection));
+    updateTripArchiveSelection();
   } catch(error) {
     console.error("TRIP LIST LOAD FAILED:",error);
     $("tripList").innerHTML = '<div class="empty">Trip লোড হয়নি: ' + escapeHtml(error?.message || String(error)) + '</div>';
@@ -3772,6 +3784,124 @@ async function cancelTrip(id,button) {
     button.disabled = false;
   }
 }
+
+function canArchiveTrips() {
+  return ["super_admin","company_manager","nb_sub_manager","dhaka_sub_manager"].includes(currentProfile?.role);
+}
+
+function updateTripArchiveSelection() {
+  const checks = [...document.querySelectorAll(".trip-archive-check")];
+  const selected = checks.filter(item=>item.checked);
+  const button = $("archiveSelectedTrips");
+  if (button) {
+    button.disabled = !canArchiveTrips() || selected.length===0;
+    button.textContent = "নির্বাচিত Schedule Archive করুন ("+selected.length+")";
+  }
+  const all = $("tripSelectAll");
+  if (all) {
+    all.checked = checks.length>0 && selected.length===checks.length;
+    all.indeterminate = selected.length>0 && selected.length<checks.length;
+  }
+}
+
+async function archiveSelectedTrips() {
+  if (!canArchiveTrips()) return;
+  const ids = [...document.querySelectorAll(".trip-archive-check:checked")].map(item=>item.value);
+  if (!ids.length) return;
+  if (!confirm(ids.length+"টি Active Schedule Archive করবেন? Ticket, Seat Inventory ও Billing History অক্ষত থাকবে; নতুন Sale/Reservation বন্ধ হবে।")) return;
+  const button=$("archiveSelectedTrips");
+  button.disabled=true;
+  try {
+    const {data,error}=await supabase.rpc("busnex_archive_trips",{p_trip_ids:ids});
+    if(error) throw error;
+    $("tripSelectAll").checked=false;
+    tripMessage((Number(data)||ids.length)+"টি Schedule Archive হয়েছে। পুরোনো Ticket ও Billing History সংরক্ষিত আছে.","ok");
+    await loadTrips("upcoming");
+    if(!$("deletedCoachPanel").classList.contains("hidden")) await loadDeletedCoaches();
+  } catch(error) {
+    tripMessage("Archive হয়নি: "+error.message,"error");
+    updateTripArchiveSelection();
+  }
+}
+
+async function loadDeletedCoaches() {
+  if (!canArchiveTrips()) return;
+  const list=$("deletedCoachList");
+  list.textContent="Archived Coach লোড হচ্ছে...";
+  $("deletedCoachDetails").classList.add("hidden");
+  try {
+    let query=supabase.from("trips")
+      .select("id,company_id,bus_id,route_id,departure_time,status,coach_number,ticket_price,archived_at")
+      .not("archived_at","is",null).order("archived_at",{ascending:false}).limit(500);
+    if(currentProfile.role==="company_manager") query=query.eq("company_id",currentProfile.company_id);
+    else if(currentProfile.role==="super_admin" && activeCompanyId) query=query.eq("company_id",activeCompanyId);
+    const {data,error}=await query;
+    if(error) throw error;
+    if(!data?.length){list.innerHTML='<div class="empty">এখনো কোনো Coach Archive করা হয়নি।</div>';return;}
+    const busIds=[...new Set(data.map(x=>x.bus_id).filter(Boolean))];
+    const routeIds=[...new Set(data.map(x=>x.route_id).filter(Boolean))];
+    const [busRes,routeRes]=await Promise.all([
+      busIds.length?supabase.from("buses").select("id,bus_name").in("id",busIds):Promise.resolve({data:[]}),
+      routeIds.length?supabase.from("routes").select("id,starting_point,ending_point,region").in("id",routeIds):Promise.resolve({data:[]})
+    ]);
+    const busesMap=new Map((busRes.data||[]).map(x=>[x.id,x]));
+    const routesMap=new Map((routeRes.data||[]).map(x=>[x.id,x]));
+    list.innerHTML="";
+    data.forEach(trip=>{
+      const bus=busesMap.get(trip.bus_id)||{},route=routesMap.get(trip.route_id)||{};
+      const card=document.createElement("div");card.className="trip-card";
+      card.innerHTML=`<h3>${escapeHtml(route.starting_point||"—")} → ${escapeHtml(route.ending_point||"—")}</h3>
+        <div class="trip-info"><span><b>Bus:</b> ${escapeHtml(bus.bus_name||"—")}</span><span><b>Coach:</b> ${escapeHtml(trip.coach_number||"—")}</span>
+        <span><b>Date:</b> ${escapeHtml(formatDhakaDateTime(trip.departure_time,{hour:undefined,minute:undefined}))}</span>
+        <span><b>Region:</b> ${escapeHtml(route.region||"—")}</span><span><b>Archived:</b> ${escapeHtml(formatDhakaDateTime(trip.archived_at))}</span></div>
+        <div class="actions"><button class="secondary archived-coach-details" data-id="${escapeHtml(trip.id)}">Seat Inventory ও Ticket দেখুন</button>
+        <button class="secondary restore-archived-coach" data-id="${escapeHtml(trip.id)}">Restore Coach</button></div>`;
+      list.appendChild(card);
+    });
+    list.querySelectorAll(".archived-coach-details").forEach(b=>b.addEventListener("click",()=>showArchivedCoachDetails(b.dataset.id)));
+    list.querySelectorAll(".restore-archived-coach").forEach(b=>b.addEventListener("click",()=>restoreArchivedCoach(b.dataset.id,b)));
+  } catch(error){list.innerHTML='<div class="empty">Archived Coach লোড হয়নি: '+escapeHtml(error.message)+'</div>';}
+}
+
+async function showArchivedCoachDetails(tripId) {
+  const panel=$("deletedCoachDetails");panel.classList.remove("hidden");panel.textContent="Seat Inventory ও Ticket History লোড হচ্ছে...";
+  try {
+    const {data,error}=await supabase.rpc("busnex_get_archived_trip_details",{p_trip_id:tripId});
+    if(error) throw error;
+    const trip=data.trip||{},bus=data.bus||{},route=data.route||{},seats=data.seats||[],tickets=data.tickets||[];
+    const cell=(value)=>escapeHtml(value??"—");
+    const seatRows=seats.map(x=>`<tr><td>${cell(x.seat_number)}</td><td>${cell(x.status)}</td><td>${cell(x.reservation_id)}</td></tr>`).join("");
+    const ticketRows=tickets.map(x=>`<tr><td>${cell(x.seat_number)}</td><td>${cell(x.passenger_name)}</td><td>${cell(x.passenger_phone)}</td><td>${cell(x.ticket_price)}</td><td>${cell(x.status)}</td><td>${cell(formatDhakaDateTime(x.created_at))}</td></tr>`).join("");
+    panel.innerHTML=`<div class="page-head"><div><h2>Archived Coach Details</h2><p class="small muted">${cell(route.starting_point)} → ${cell(route.ending_point)} | ${cell(bus.bus_name)} | Coach ${cell(trip.coach_number)}</p></div><button id="closeArchivedCoachDetails" class="secondary" type="button">বন্ধ করুন</button></div>
+      <div class="trip-info"><span><b>Departure:</b> ${cell(formatDhakaDateTime(trip.departure_time))}</span><span><b>Seat Inventory:</b> ${seats.length}</span><span><b>Ticket Records:</b> ${tickets.length}</span></div>
+      <h3>Seat Inventory</h3><div class="table-wrap"><table><thead><tr><th>Seat</th><th>Status</th><th>Reservation ID</th></tr></thead><tbody>${seatRows||'<tr><td colspan="3">Seat Inventory পাওয়া যায়নি</td></tr>'}</tbody></table></div>
+      <h3 style="margin-top:18px">Ticket / Passenger History</h3><div class="table-wrap"><table><thead><tr><th>Seat</th><th>Passenger</th><th>Mobile</th><th>Fare</th><th>Status</th><th>Sold At</th></tr></thead><tbody>${ticketRows||'<tr><td colspan="6">কোনো Ticket Record নেই</td></tr>'}</tbody></table></div>`;
+    $("closeArchivedCoachDetails").addEventListener("click",()=>panel.classList.add("hidden"));
+  } catch(error){panel.textContent="Coach Details লোড হয়নি: "+error.message;}
+}
+
+async function restoreArchivedCoach(tripId,button) {
+  if(!confirm("এই Coach আবার Active Schedule-এ ফিরিয়ে আনবেন?")) return;
+  button.disabled=true;
+  try {
+    const {error}=await supabase.rpc("busnex_restore_archived_trip",{p_trip_id:tripId});
+    if(error) throw error;
+    await loadDeletedCoaches();await loadTrips("upcoming");
+    tripMessage("Coach Restore হয়েছে।","ok");
+  } catch(error){alert("Restore হয়নি: "+error.message);button.disabled=false;}
+}
+
+$("tripSelectAll").addEventListener("change",event=>{
+  document.querySelectorAll(".trip-archive-check").forEach(item=>item.checked=event.target.checked);
+  updateTripArchiveSelection();
+});
+$("archiveSelectedTrips").addEventListener("click",archiveSelectedTrips);
+$("deletedCoachToggle").addEventListener("click",async()=>{
+  const panel=$("deletedCoachPanel");
+  panel.classList.toggle("hidden");
+  if(!panel.classList.contains("hidden")) await loadDeletedCoaches();
+});
+$("refreshDeletedCoaches").addEventListener("click",loadDeletedCoaches);
 
 async function deleteTrip(id,button) {
   if (!isAdmin()) return;
@@ -4598,7 +4728,7 @@ async function loadTripSheetTrips() {
   $("tripSheetTableWrap").innerHTML = '<div class="empty">Trip তালিকা লোড হচ্ছে...</div>';
   $("tripSheetPrint").disabled = true;
   try {
-    let query = supabase.from("trips").select("id,company_id,bus_id,departure_time,status,coach_number,ticket_price,buses(bus_name),routes(starting_point,ending_point)").order("departure_time",{ascending:false}).limit(200);
+    let query = supabase.from("trips").select("id,company_id,bus_id,departure_time,status,coach_number,ticket_price,buses(bus_name),routes(starting_point,ending_point)").is("archived_at",null).order("departure_time",{ascending:false}).limit(200);
     if (currentProfile.role !== "super_admin") {
       if (!currentProfile.company_id) throw new Error("আপনার Company Assignment পাওয়া যায়নি।");
       query = query.eq("company_id",currentProfile.company_id);
