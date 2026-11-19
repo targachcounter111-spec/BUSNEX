@@ -236,6 +236,7 @@ Deno.serve(async (req: Request) => {
   let region: string | null = null;
   let idType: string | null = null;
   let defaultBoardingPoint: string | null = null;
+  let scheduleRegions: string[] = [];
 
   if (action === "create_manager") {
     if (caller.role !== "super_admin") {
@@ -254,6 +255,15 @@ Deno.serve(async (req: Request) => {
     counterId = typeof body.counter_id === "string" ? body.counter_id : null;
     region = typeof body.region === "string" ? body.region.toUpperCase() : "ALL";
     idType = typeof body.id_type === "string" ? body.id_type.toUpperCase() : "OPERATOR";
+    scheduleRegions = Array.isArray(body.schedule_regions)
+      ? [...new Set(body.schedule_regions.filter((value): value is string => typeof value === "string").map(value => value.toUpperCase()))]
+      : [];
+    if (!["OPERATOR", "AGENT"].includes(idType)) {
+      return json(400, { success: false, message: "ID Type OPERATOR অথবা AGENT হতে হবে।" }, origin);
+    }
+    if (!scheduleRegions.length || scheduleRegions.some(value => !["NB", "DHAKA", "SB"].includes(value))) {
+      return json(400, { success: false, message: "Schedule দেখার জন্য NB, DHAKA অথবা SB থেকে অন্তত একটি Region নির্বাচন করুন।" }, origin);
+    }
     defaultBoardingPoint = typeof body.default_boarding_point === "string"
       ? body.default_boarding_point.trim()
       : "";
@@ -313,6 +323,7 @@ Deno.serve(async (req: Request) => {
     login_id: loginId,
     region,
     id_type: idType,
+    schedule_regions: scheduleRegions,
     default_boarding_point: defaultBoardingPoint,
     is_active: true,
   };
@@ -340,6 +351,7 @@ Deno.serve(async (req: Request) => {
       counter_id: counterId,
       region,
       id_type: idType,
+      schedule_regions: scheduleRegions,
       default_boarding_point: defaultBoardingPoint,
       is_active: true,
     },
