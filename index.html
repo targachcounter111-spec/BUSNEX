@@ -1828,6 +1828,7 @@ async function loadDashboardStats() {
 
     let tripQuery = supabase.from("trips")
       .select("id",{count:"exact"})
+      .is("archived_at",null)
       .gte("departure_time",startISO)
       .lt("departure_time",endISO);
 
@@ -3903,38 +3904,6 @@ $("deletedCoachToggle").addEventListener("click",async()=>{
 });
 $("refreshDeletedCoaches").addEventListener("click",loadDeletedCoaches);
 
-async function deleteTrip(id,button) {
-  if (!isAdmin()) return;
-
-  const confirmed = confirm(
-    "সতর্কতা!\n\nএই Trip স্থায়ীভাবে Delete করতে চাও?\nএই কাজটি পরে ফিরিয়ে আনা যাবে না।"
-  );
-
-  if (!confirmed) return;
-
-  button.disabled = true;
-  button.textContent = "Delete হচ্ছে...";
-
-  try {
-    const {error} = await supabase
-      .from("trips")
-      .delete()
-      .eq("id",id);
-
-    if (error) throw error;
-
-    if (editingTripId === id) stopEditing();
-
-    tripMessage("Trip স্থায়ীভাবে Delete করা হয়েছে।","ok");
-    await loadTrips();
-
-  } catch(error) {
-    console.error("DELETE TRIP ERROR:",error);
-    tripMessage("Trip Delete হয়নি: " + error.message,"error");
-    button.disabled = false;
-    button.textContent = "Delete Trip";
-  }
-}
 
 $("tripUpcomingButton").addEventListener("click",() => loadTrips("upcoming"));
 $("tripHistoryButton").addEventListener("click",() => loadTrips("history"));
@@ -4028,6 +3997,7 @@ async function loadSeatTrips() {
     let seatTripQuery = supabase
       .from("trips")
       .select("id,bus_id,departure_time,status,buses(bus_name),routes(starting_point,ending_point)")
+      .is("archived_at",null)
       .order("departure_time",{ascending:true})
       .limit(100);
     if (currentProfile?.role === "super_admin" && activeCompanyId) seatTripQuery = seatTripQuery.eq("company_id",activeCompanyId);
@@ -5077,6 +5047,7 @@ async function fetchBookingTrips(dateValue) {
     `)
     .eq("is_active",true)
     .eq("status","scheduled")
+    .is("archived_at",null)
     .gte("departure_time",range.start)
     .lt("departure_time",range.end)
     .order("departure_time",{ascending:true});
