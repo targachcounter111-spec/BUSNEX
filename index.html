@@ -3852,7 +3852,7 @@ async function loadDeletedCoaches() {
       const card=document.createElement("div");card.className="trip-card";
       card.innerHTML=`<h3>${escapeHtml(route.starting_point||"—")} → ${escapeHtml(route.ending_point||"—")}</h3>
         <div class="trip-info"><span><b>Bus:</b> ${escapeHtml(bus.bus_name||"—")}</span><span><b>Coach:</b> ${escapeHtml(trip.coach_number||"—")}</span>
-        <span><b>Date:</b> ${escapeHtml(formatDhakaDateTime(trip.departure_time,{hour:undefined,minute:undefined}))}</span>
+        <span><b>Date:</b> ${escapeHtml(new Date(trip.departure_time).toLocaleDateString("en-GB",{timeZone:"Asia/Dhaka"}))}</span>
         <span><b>Region:</b> ${escapeHtml(route.region||"—")}</span><span><b>Archived:</b> ${escapeHtml(formatDhakaDateTime(trip.archived_at))}</span></div>
         <div class="actions"><button class="secondary archived-coach-details" data-id="${escapeHtml(trip.id)}">Seat Inventory ও Ticket দেখুন</button>
         <button class="secondary restore-archived-coach" data-id="${escapeHtml(trip.id)}">Restore Coach</button></div>`;
