@@ -85,7 +85,7 @@ BEGIN
     RAISE EXCEPTION 'Restore করার অনুমতি নেই';
   END IF;
 
-  SELECT t.*, r.region INTO v_trip, v_region
+  SELECT t INTO v_trip
   FROM public.trips t JOIN public.routes r ON r.id=t.route_id
   WHERE t.id=p_trip_id AND t.archived_at IS NOT NULL
     AND (
