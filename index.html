@@ -3466,7 +3466,7 @@ async function loadTrips(view) {
       const busIsOff = trip.is_active === false;
 
       card.innerHTML = `
-        ${tripListView === "upcoming" && canArchiveTrips() ? `<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input class="trip-archive-check" type="checkbox" value="${escapeHtml(trip.id)}"> এই Schedule Archive করার জন্য নির্বাচন</label>` : ""}
+        ${tripListView === "upcoming" && canArchiveTrips() && status === "scheduled" ? `<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input class="trip-archive-check" type="checkbox" value="${escapeHtml(trip.id)}"> এই Schedule Archive করার জন্য নির্বাচন</label>` : ""}
         <h3>${escapeHtml(route.starting_point || "—")} → ${escapeHtml(route.ending_point || "—")}</h3>
         <div class="trip-info">
           <span><b>Bus:</b> ${escapeHtml(bus.bus_name || "—")}</span>
