@@ -6144,6 +6144,11 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
 
       const commonFields = document.createElement("div");
       commonFields.className = "form-row";
+      let passengerNameInput = null;
+      let passengerPhoneInput = null;
+      let passengerNameManuallyEdited = false;
+      let passengerLookupSequence = 0;
+      let lastPassengerLookupPhone = "";
       [
         {key:"name",label:"যাত্রীর নাম",type:"text",placeholder:"পূর্ণ নাম লিখুন",max:120},
         {key:"phone",label:"মোবাইল নম্বর",type:"tel",placeholder:"01XXXXXXXXX",max:20}
@@ -6158,9 +6163,42 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         input.maxLength = config.max;
         input.placeholder = config.placeholder;
         input.value = groupPassenger[config.key];
+        input.autocomplete = config.key === "phone" ? "tel" : "name";
         input.addEventListener("input",() => {
           groupPassenger[config.key] = input.value;
+          if (config.key === "name") {
+            passengerNameManuallyEdited = true;
+            return;
+          }
+
+          const phoneDigits = input.value.replace(/[^0-9]/g,"");
+          const phoneKey = phoneDigits.startsWith("880")
+            ? "0" + phoneDigits.slice(3)
+            : phoneDigits;
+          if (phoneKey.length < 8 || phoneKey.length > 15 || phoneKey === lastPassengerLookupPhone) return;
+          lastPassengerLookupPhone = phoneKey;
+          const lookupSequence = ++passengerLookupSequence;
+          supabase.rpc("busnex_find_passenger_name_by_phone",{
+            p_trip_id:trip.id,
+            p_phone:input.value
+          }).then(({data,error}) => {
+            if (lookupSequence !== passengerLookupSequence ||
+                phoneKey !== (input.value.replace(/[^0-9]/g,"").startsWith("880")
+                  ? "0" + input.value.replace(/[^0-9]/g,"").slice(3)
+                  : input.value.replace(/[^0-9]/g,""))) return;
+            if (error) {
+              console.warn("PASSENGER NAME AUTOFILL:",error.message);
+              return;
+            }
+            const savedName = typeof data === "string" ? data.trim() : "";
+            if (savedName && !passengerNameManuallyEdited) {
+              groupPassenger.name = savedName;
+              passengerNameInput.value = savedName;
+            }
+          }).catch(error => console.warn("PASSENGER NAME AUTOFILL:",error.message));
         });
+        if (config.key === "name") passengerNameInput = input;
+        if (config.key === "phone") passengerPhoneInput = input;
         wrapper.append(label,input);
         commonFields.appendChild(wrapper);
       });
