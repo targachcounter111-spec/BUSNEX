@@ -4744,7 +4744,7 @@ async function loadTripSheet(tripId) {
     // must not hide the entire sheet when one related table is unavailable.
     const [tripResult,ticketResult,pointResult,stopResult]=await Promise.all([
       supabase.from("trips").select("id,company_id,departure_time,status,coach_number,ticket_price,supervisor_name,supervisor,buses(bus_name),routes(starting_point,ending_point)").eq("id",tripId).single(),
-      supabase.from("tickets").select("id,seat_number,passenger_name,passenger_phone,passenger_gender,ticket_price,status,created_at,boarding_stop_id,dropping_stop_id,counter_id").eq("trip_id",tripId).eq("status","sold").order("seat_number",{ascending:true}),
+      supabase.from("tickets").select("id,seat_number,passenger_name,passenger_phone,passenger_gender,ticket_price,discount_amount,paid_price,status,created_at,boarding_stop_id,dropping_stop_id,counter_id").eq("trip_id",tripId).eq("status","sold").order("seat_number",{ascending:true}),
       supabase.from("trip_boarding_points").select("point_name,boarding_time,point_order").eq("trip_id",tripId).order("point_order",{ascending:true}),
       supabase.from("trip_stops").select("id,stop_name,stop_order").eq("trip_id",tripId).order("stop_order",{ascending:true})
     ]);
@@ -5587,6 +5587,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const seatButtons = new Map();
     const soldTicketGroups = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
+    const seatDiscounts = new Map();
 
 
     async function showReservationSlip(reservationId) {
@@ -6170,6 +6171,56 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       note.textContent = bookingMode === "reservation" ? "একই নাম, মোবাইল, Gender, Boarding ও Dropping Stop সব নির্বাচিত Seat-এর Reservation-এ ব্যবহার হবে। সব তথ্য একবারই পূরণ করুন।" : "একই নাম, মোবাইল, Gender, Boarding ও Dropping Stop সব নির্বাচিত Seat-এর Ticket-এ ব্যবহার হবে। সব তথ্য একবারই পূরণ করুন।";
       passengerPanel.appendChild(note);
 
+      if (bookingMode !== "reservation" && currentProfile?.role === "counter_operator") {
+        const discountCard = document.createElement("div");
+        discountCard.className = "card";
+        discountCard.style.marginTop = "12px";
+        const discountHeading = document.createElement("b");
+        discountHeading.textContent = "প্রতি Seat-এর Fare Discount";
+        discountCard.appendChild(discountHeading);
+        const fare = Number(trip.ticket_price || 0);
+        selectedSeats.forEach(seatNumber => {
+          const row = document.createElement("div");
+          row.className = "form-row";
+          row.style.alignItems = "end";
+          row.style.gap = "8px";
+          const fareWrap = document.createElement("div");
+          fareWrap.className = "field";
+          const fareLabel = document.createElement("label");
+          fareLabel.textContent = "Seat " + seatNumber + " — মূল Fare";
+          const fareValue = document.createElement("strong");
+          fareValue.textContent = "৳" + fare.toFixed(2);
+          fareWrap.append(fareLabel,fareValue);
+          const discountWrap = document.createElement("div");
+          discountWrap.className = "field";
+          const discountLabel = document.createElement("label");
+          discountLabel.textContent = "Discount (৳)";
+          const discountInput = document.createElement("input");
+          discountInput.type = "number";
+          discountInput.min = "0";
+          discountInput.max = String(fare);
+          discountInput.step = "0.01";
+          discountInput.inputMode = "decimal";
+          discountInput.placeholder = "0";
+          discountInput.value = String(seatDiscounts.get(seatNumber) || 0);
+          const paidValue = document.createElement("small");
+          const updatePaid = () => {
+            const discount = Number(discountInput.value || 0);
+            paidValue.textContent = "যাত্রী দেবেন: ৳" + (fare - (Number.isFinite(discount) ? discount : 0)).toFixed(2);
+          };
+          discountInput.addEventListener("input",() => { seatDiscounts.set(seatNumber,discountInput.value); updatePaid(); });
+          updatePaid();
+          discountWrap.append(discountLabel,discountInput,paidValue);
+          row.append(fareWrap,discountWrap);
+          discountCard.appendChild(row);
+        });
+        const discountHint = document.createElement("p");
+        discountHint.className = "notice small";
+        discountHint.textContent = "Discount ০ রাখলে পুরো Fare দিতে হবে। Discount মূল Trip Fare পরিবর্তন করবে না।";
+        discountCard.appendChild(discountHint);
+        passengerPanel.appendChild(discountCard);
+      }
+
       const submit = document.createElement("button");
       submit.type = "button";
       submit.className = "btn btn-primary";
@@ -6196,9 +6247,17 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         submit.textContent = "টিকিট বিক্রি হচ্ছে...";
         const sold = [];
         try {
-          const {data:batchData,error:batchError} = await supabase.rpc("busnex_sell_tickets_batch",{
+          const discountAmounts = seatsToSell.map(seatNumber => {
+            const value = currentProfile?.role === "counter_operator" ? Number(seatDiscounts.get(seatNumber) || 0) : 0;
+            if (!Number.isFinite(value) || value < 0 || value > Number(trip.ticket_price || 0) || Math.round(value * 100) !== value * 100) {
+              throw new Error("Seat " + seatNumber + "-এর Discount সঠিক নয়। ০ থেকে মূল Fare-এর মধ্যে সর্বোচ্চ ২ দশমিক ঘর দিন।");
+            }
+            return value;
+          });
+          const {data:batchData,error:batchError} = await supabase.rpc("busnex_sell_tickets_batch_with_discount",{
             p_trip_id:trip.id,
             p_seat_numbers:seatsToSell,
+            p_discount_amounts:discountAmounts,
             p_passenger_name:groupPassenger.name.trim(),
             p_passenger_phone:groupPassenger.phone.trim(),
             p_boarding_stop_id:groupPassenger.boarding,
@@ -6222,6 +6281,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           sold.forEach(p => {
             selectedSeats.delete(p.seatNumber);
             passengerData.delete(p.seatNumber);
+            seatDiscounts.delete(p.seatNumber);
             const seatButton = seatButtons.get(p.seatNumber);
             if (seatButton) {
               seatButton.classList.remove("selected","available");
