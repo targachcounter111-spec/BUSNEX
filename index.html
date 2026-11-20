@@ -5587,7 +5587,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const seatButtons = new Map();
     const soldTicketGroups = new Map();
     const groupPassenger = {name:"",phone:"",gender:"",boarding:"",dropping:""};
-    const seatDiscounts = new Map();
+    let groupDiscountAmount = "0";
 
 
     async function showReservationSlip(reservationId) {
@@ -6181,51 +6181,46 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         discountCard.className = "card";
         discountCard.style.marginTop = "12px";
         const discountHeading = document.createElement("b");
-        discountHeading.textContent = "প্রতি Seat-এর Fare Discount";
+        discountHeading.textContent = "একসঙ্গে নির্বাচিত সব Seat-এর Discount";
         discountCard.appendChild(discountHeading);
         const fare = Number(trip.ticket_price || 0);
-        selectedSeats.forEach(seatNumber => {
-          const row = document.createElement("div");
-          row.className = "form-row";
-          row.style.alignItems = "end";
-          row.style.gap = "8px";
-          const fareWrap = document.createElement("div");
-          fareWrap.className = "field";
-          const fareLabel = document.createElement("label");
-          fareLabel.textContent = "Seat " + seatNumber + " — মূল Fare";
-          const fareValue = document.createElement("strong");
-          fareValue.textContent = "৳" + fare.toFixed(2);
-          fareWrap.append(fareLabel,fareValue);
-          const discountWrap = document.createElement("div");
-          discountWrap.className = "field";
-          const discountLabel = document.createElement("label");
-          discountLabel.textContent = "Discount (৳)";
-          const discountInput = document.createElement("input");
-          discountInput.type = "number";
-          discountInput.min = "0";
-          discountInput.max = String(fare);
-          discountInput.step = "0.01";
-          discountInput.inputMode = "decimal";
-          discountInput.placeholder = "0";
-          discountInput.value = String(seatDiscounts.get(seatNumber) || 0);
-          const paidValue = document.createElement("small");
-          const updatePaid = () => {
-            const discount = Number(discountInput.value || 0);
-            paidValue.textContent = "যাত্রী দেবেন: ৳" + (fare - (Number.isFinite(discount) ? discount : 0)).toFixed(2);
-          };
-          discountInput.addEventListener("input",() => { seatDiscounts.set(seatNumber,discountInput.value); updatePaid(); });
-          updatePaid();
-          discountWrap.append(discountLabel,discountInput,paidValue);
-          row.append(fareWrap,discountWrap);
-          discountCard.appendChild(row);
-        });
+        const totalFare = fare * selectedSeats.size;
+        const fareSummary = document.createElement("div");
+        fareSummary.className = "field";
+        const fareLabel = document.createElement("label");
+        fareLabel.textContent = "মোট মূল Fare (" + selectedSeats.size + "টি Seat)";
+        const fareValue = document.createElement("strong");
+        fareValue.textContent = "৳" + totalFare.toFixed(2);
+        fareSummary.append(fareLabel,fareValue);
+        const discountWrap = document.createElement("div");
+        discountWrap.className = "field";
+        const discountLabel = document.createElement("label");
+        discountLabel.textContent = "সব Seat মিলিয়ে মোট Discount (৳)";
+        const discountInput = document.createElement("input");
+        discountInput.type = "number";
+        discountInput.min = "0";
+        discountInput.max = String(totalFare);
+        discountInput.step = "0.01";
+        discountInput.inputMode = "decimal";
+        discountInput.placeholder = "0";
+        discountInput.value = groupDiscountAmount;
+        const paidValue = document.createElement("strong");
+        const updatePaid = () => {
+          const discount = Number(discountInput.value || 0);
+          const valid = Number.isFinite(discount) && discount >= 0 && discount <= totalFare;
+          paidValue.textContent = "সব Seat মিলিয়ে যাত্রী দেবেন: ৳" + (valid ? totalFare - discount : totalFare).toFixed(2);
+          paidValue.style.color = valid ? "#166534" : "#b91c1c";
+        };
+        discountInput.addEventListener("input",() => { groupDiscountAmount = discountInput.value; updatePaid(); });
+        updatePaid();
+        discountWrap.append(discountLabel,discountInput,paidValue);
+        discountCard.append(fareSummary,discountWrap);
         const discountHint = document.createElement("p");
         discountHint.className = "notice small";
-        discountHint.textContent = "Discount ০ রাখলে পুরো Fare দিতে হবে। Discount মূল Trip Fare পরিবর্তন করবে না।";
+        discountHint.textContent = "এখানে সব নির্বাচিত Seat-এর জন্য একবারে মোট Discount লিখুন। সিস্টেম Discount-টি Seat-গুলোর মধ্যে ভাগ করে হিসাব করবে।";
         discountCard.appendChild(discountHint);
         passengerPanel.appendChild(discountCard);
       }
-
       const submit = document.createElement("button");
       submit.type = "button";
       submit.className = "btn btn-primary";
@@ -6252,13 +6247,15 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         submit.textContent = "টিকিট বিক্রি হচ্ছে...";
         const sold = [];
         try {
-          const discountAmounts = seatsToSell.map(seatNumber => {
-            const value = currentProfile?.role === "counter_operator" ? Number(seatDiscounts.get(seatNumber) || 0) : 0;
-            if (!Number.isFinite(value) || value < 0 || value > Number(trip.ticket_price || 0) || Math.round(value * 100) !== value * 100) {
-              throw new Error("Seat " + seatNumber + "-এর Discount সঠিক নয়। ০ থেকে মূল Fare-এর মধ্যে সর্বোচ্চ ২ দশমিক ঘর দিন।");
-            }
-            return value;
-          });
+          const totalFareCents = Math.round(Number(trip.ticket_price || 0) * 100) * seatsToSell.length;
+          const totalDiscount = currentProfile?.role === "counter_operator" ? Number(groupDiscountAmount || 0) : 0;
+          const totalDiscountCents = Math.round(totalDiscount * 100);
+          if (!Number.isFinite(totalDiscount) || totalDiscount < 0 || Math.round(totalDiscount * 100) !== totalDiscount * 100 || totalDiscountCents > totalFareCents) {
+            throw new Error("সব নির্বাচিত Seat-এর মোট Discount সঠিক দিন। Discount মোট Fare-এর বেশি হতে পারবে না এবং সর্বোচ্চ ২ দশমিক ঘর ব্যবহার করুন।");
+          }
+          const baseDiscountCents = Math.floor(totalDiscountCents / seatsToSell.length);
+          const extraDiscountCents = totalDiscountCents % seatsToSell.length;
+          const discountAmounts = seatsToSell.map((seatNumber,index) => (baseDiscountCents + (index < extraDiscountCents ? 1 : 0)) / 100);
           const {data:batchData,error:batchError} = await supabase.rpc("busnex_sell_tickets_batch_with_discount",{
             p_trip_id:trip.id,
             p_seat_numbers:seatsToSell,
@@ -6286,7 +6283,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           sold.forEach(p => {
             selectedSeats.delete(p.seatNumber);
             passengerData.delete(p.seatNumber);
-            seatDiscounts.delete(p.seatNumber);
+
             const seatButton = seatButtons.get(p.seatNumber);
             if (seatButton) {
               seatButton.classList.remove("selected","available");
@@ -6320,6 +6317,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             groupPassenger.gender = "";
             groupPassenger.boarding = "";
             groupPassenger.dropping = "";
+            groupDiscountAmount = "0";
           }
           renderPassengerFields();
           alert(sold.length + "টি Ticket সফলভাবে বিক্রি হয়েছে।");
