@@ -4262,10 +4262,14 @@ async function loadCounterDirectory() {
   $("subManagerCreatePanel").classList.toggle("hidden", !isAdmin() || !["super_admin","company_manager"].includes(currentProfile?.role));
   try {
     let query=supabase.from("counters").select("id,company_id,name,address,region,created_at,is_active").order("name");
-    if(currentProfile.role!=="super_admin") query=query.eq("company_id",currentProfile.company_id);
-    else if(activeCompanyId) query=query.eq("company_id",activeCompanyId);
+    if(currentProfile.role==="super_admin") {
+      if(!activeCompanyId) throw new Error("Super Admin-এর আগে Company Workspace নির্বাচন করতে হবে।");
+      query=query.eq("company_id",activeCompanyId);
+    } else {
+      if(!currentProfile.company_id) throw new Error("আপনার Company Assignment পাওয়া যায়নি।");
+      query=query.eq("company_id",currentProfile.company_id);
+    }
     if(currentProfile.role==="nb_sub_manager") query=query.eq("region","NB");
-    else throw new Error("Super Admin-এর আগে Company Workspace নির্বাচন করতে হবে।");
     const {data,error}=await query;
     if(error) throw error;
     const counters = data || [];
