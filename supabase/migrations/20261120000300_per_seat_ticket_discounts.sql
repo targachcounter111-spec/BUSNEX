@@ -119,7 +119,6 @@ SET search_path TO ''
 AS $function$
 DECLARE
   v_seat text;
-  v_index integer := 0;
   v_result jsonb := '[]'::jsonb;
   v_ticket jsonb;
   v_count integer;
@@ -153,11 +152,10 @@ BEGIN
     FROM unnest(p_seat_numbers) AS x(seat_number)
     ORDER BY btrim(x.seat_number)
   LOOP
-    v_index := v_index + 1;
     v_ticket := public.busnex_sell_ticket_with_discount(
       p_trip_id, v_seat, p_passenger_name, p_passenger_phone,
       p_boarding_stop_id, p_dropping_stop_id, p_passenger_gender,
-      COALESCE(p_confirm_past_date, false), p_discount_amounts[v_index]
+      COALESCE(p_confirm_past_date, false), p_discount_amounts[array_position(p_seat_numbers, v_seat)]
     );
     v_result := v_result || jsonb_build_array(
       jsonb_build_object('seat_number', v_seat, 'result', v_ticket)
