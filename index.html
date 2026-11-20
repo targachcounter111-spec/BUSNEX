@@ -4308,6 +4308,8 @@ async function loadCounterDirectory() {
   } catch(error) {
     $("counterDirectoryMessage").textContent="Counter লোড হয়নি: "+error.message;
     $("counterDirectory").innerHTML='<div class="empty">Counter তালিকা পাওয়া যায়নি।</div>';
+    // Keep Operator/Agent visibility independent from Counter-directory errors.
+    if (isAdmin()) await loadOperatorDirectory([]);
   }
   try {
     const {data,error}=await supabase.from("counter_reservation_permissions").select("*").order("created_at",{ascending:false}).limit(300);
