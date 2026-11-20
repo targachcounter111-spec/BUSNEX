@@ -1597,10 +1597,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
       <section id="page-billing" class="page hidden">
         <div class="page-head"><div><h1>Billing</h1><div class="muted small">মাসিক Ticket Sale হিসাব</div></div><button id="billingRefresh" class="secondary" type="button">↻ হিসাব Refresh</button></div>
         <div class="card">
-          <div class="notice">প্রতি Sold Seat-এর Service Charge ৳০.৫০। Cancelled Ticket বাদ। Invoice-এর সময়সীমা বাংলাদেশ সময় অনুযায়ী গণনা হবে। Payment ও Due হিসাব Database Ledger-এ সংরক্ষিত থাকবে।</div>
+          <div class="notice">প্রতিটি Company-এর জন্য Super Admin আলাদা Service Charge নির্ধারণ করতে পারবেন। নতুন Sold Seat-এ তখনকার নির্ধারিত Rate একবারই সংরক্ষিত হবে; পুরোনো Ticket-এর Rate পরিবর্তন হবে না। Reserved, Cancelled বা Expired Seat-এর জন্য Charge হবে না।</div>
           <div id="billingAdminControls" class="section hidden">
             <div class="field"><label for="billingCompanySelect">Company Filter</label><select id="billingCompanySelect"><option value="">সব Company</option></select></div>
-            <div class="small muted">Invoice এখন Ticket Sold হলেই স্বয়ংক্রিয়ভাবে তৈরি/আপডেট হয়। এখানে হাতে Generate করার প্রয়োজন নেই।</div>
+            <div class="small muted">Invoice Ticket Sold হলেই স্বয়ংক্রিয়ভাবে তৈরি/আপডেট হয়।</div>
+            <div id="billingRateSettings" class="section">
+              <h2>Company অনুযায়ী Service Charge</h2>
+              <p class="small muted">প্রতি Sold Seat-এর জন্য টাকা নির্ধারণ করুন। Rate পরিবর্তন হলে শুধু পরবর্তী Sold Ticket-এ কার্যকর হবে।</p>
+              <div id="billingRateMessage" class="message" aria-live="polite"></div>
+              <div id="billingRateList" class="table-wrap"><div class="empty">Company Rate লোড হচ্ছে...</div></div>
+            </div>
           </div>
           <div id="billingMessage" class="message">Invoice হিসাব লোড হচ্ছে...</div>
           <div class="grid">
@@ -4337,10 +4343,10 @@ async function loadBillingPage() {
   try {
     if (isSuperAdmin) {
       const companySelect = $("billingCompanySelect");
+      const {data:companyRows,error:companyError} = await supabase
+        .from("companies").select("id,name").order("name");
+      if (companyError) throw companyError;
       if (companySelect.options.length <= 1) {
-        const {data:companyRows,error:companyError} = await supabase
-          .from("companies").select("id,name").order("name");
-        if (companyError) throw companyError;
         (companyRows || []).forEach(company => {
           const option = document.createElement("option");
           option.value = company.id;
@@ -4349,6 +4355,54 @@ async function loadBillingPage() {
         });
       }
       companySelect.value = activeCompanyId || "";
+
+      const {data:rateRows,error:rateError} = await supabase
+        .from("company_billing_rates")
+        .select("company_id,rate_per_seat");
+      if (rateError) throw rateError;
+      const rateByCompany = new Map((rateRows || []).map(row => [
+        row.company_id, Number(row.rate_per_seat)
+      ]));
+      $("billingRateList").innerHTML = (companyRows || []).length
+        ? '<table><thead><tr><th>Company</th><th>প্রতি Sold Seat Charge (৳)</th><th>Action</th></tr></thead><tbody>' +
+          companyRows.map(company => '<tr><td>'+escapeHtml(company.name)+'</td><td><input class="billing-rate-input" type="number" min="0" max="9999999999.99" step="0.01" inputmode="decimal" aria-label="'+escapeHtml(company.name)+' Service Charge" data-company-id="'+escapeHtml(company.id)+'" value="'+(rateByCompany.has(company.id) ? rateByCompany.get(company.id).toFixed(2) : "0.50")+'" style="width:125px;padding:9px;border:1px solid #cbded0;border-radius:8px"></td><td><button type="button" class="primary billing-rate-save" data-company-id="'+escapeHtml(company.id)+'">Rate Save</button></td></tr>').join("") +
+          '</tbody></table>'
+        : '<div class="empty">কোনো Company পাওয়া যায়নি।</div>';
+
+      $("billingRateList").querySelectorAll(".billing-rate-save").forEach(button => {
+        button.addEventListener("click", async () => {
+          const companyId = button.dataset.companyId;
+          const input = $("billingRateList").querySelector('.billing-rate-input[data-company-id="'+companyId+'"]');
+          const rate = Number(input?.value);
+          if (!input || !Number.isFinite(rate) || rate < 0 ||
+              Math.abs(rate * 100 - Math.round(rate * 100)) > 0.000001) {
+            $("billingRateMessage").textContent = "Rate শূন্য বা তার বেশি হতে হবে এবং সর্বোচ্চ ২ দশমিক ঘর দেওয়া যাবে।";
+            $("billingRateMessage").className = "message error";
+            return;
+          }
+          button.disabled = true;
+          $("billingRateMessage").textContent = "Company Service Charge সংরক্ষণ হচ্ছে...";
+          $("billingRateMessage").className = "message";
+          try {
+            const {data:saveResult,error:saveError} = await supabase.rpc(
+              "busnex_set_company_billing_rate",
+              {p_company_id:companyId,p_rate_per_seat:rate}
+            );
+            if (saveError) throw saveError;
+            $("billingRateMessage").textContent =
+              (saveResult?.company_name || "Company") + " — প্রতি Sold Seat ৳" +
+              Number(saveResult?.rate_per_seat ?? rate).toFixed(2) +
+              " Service Charge সংরক্ষিত হয়েছে। নতুন Sold Ticket-এ কার্যকর হবে।";
+            $("billingRateMessage").className = "message ok";
+            input.value = Number(saveResult?.rate_per_seat ?? rate).toFixed(2);
+          } catch(saveError) {
+            $("billingRateMessage").textContent = "Rate সংরক্ষণ হয়নি: " + saveError.message;
+            $("billingRateMessage").className = "message error";
+          } finally {
+            button.disabled = false;
+          }
+        });
+      });
     }
     let query = supabase
       .from("company_billing_invoices")
