@@ -5769,6 +5769,9 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         if (!details || !details.ticket) throw new Error("বিক্রিত Ticket-এর রেকর্ড পাওয়া যায়নি।");
 
         const ticket = details.ticket;
+        const savedPriceResult = await supabase.from("tickets").select("ticket_price,discount_amount,paid_price").eq("id",ticket.id).single();
+        if (savedPriceResult.error) throw savedPriceResult.error;
+        Object.assign(ticket,savedPriceResult.data);
 
         // Batch sale calls the ticket-sale RPC repeatedly inside one database transaction.
         // PostgreSQL transaction timestamps are identical, so created_at identifies the
@@ -5800,6 +5803,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         }));
         const groupTickets = [ticket,...groupDetails];
         const groupFare = groupTickets.reduce((sum,item) => sum + Number(item.ticket_price || 0),0);
+        const groupDiscount = groupTickets.reduce((sum,item) => sum + Number(item.discount_amount || 0),0);
+        const groupPaid = groupTickets.reduce((sum,item) => sum + Number(item.paid_price ?? item.ticket_price ?? 0),0);
         const seatLabel = allSeatNumbers.join(", ");
         const seller = details.seller || {};
         const tripDetails = details.trip || {};
@@ -5827,7 +5832,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div><b>Name :</b> ${safe(ticket.passenger_name)}</div><div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div>
               <div><b>Coach :</b> [${safe(coach)}]</div><div><b>Seats :</b> [${safe(seatLabel)}]</div>
               <div><b>Date :</b> ${safe(journey)}</div><div><b>Time :</b> ${safe(journey)}</div>
-              <div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div>
+              <div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div><div><b>Group Original Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div><div><b>Group Discount :</b> BDT. ${safe(groupDiscount.toFixed(2))}</div><div><b>Group Paid Fare :</b> BDT. ${safe(groupPaid.toFixed(2))}</div><div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div>
               <div><b>PNR :</b> ${safe(String(ticket.id).slice(0,13).toUpperCase())}</div><div><b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
               <div><b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
               <div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> ${safe(created)}</div><div><b>Issued By :</b> ${safe(sellerText)}</div>
@@ -5837,7 +5842,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div class="bpt-copy-top"><span>Name : <b>${safe(ticket.passenger_name)}</b></span><span>PNR : ${safe(String(ticket.id).slice(0,13).toUpperCase())}</span></div>
               <div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div><div><b>Coach :</b> [${safe(coach)}]</div>
               <div><b>Journey Date :</b> ${safe(journey)}</div><div><b>Departure Time :</b> ◷ ${safe(journey)}</div>
-              <div><b>Reporting Time :</b> ◷ ${safe(journey)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div>
+              <div><b>Reporting Time :</b> ◷ ${safe(journey)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div><div><b>Group Original Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div><div><b>Group Discount :</b> BDT. ${safe(groupDiscount.toFixed(2))}</div><div><b>Group Paid Fare :</b> BDT. ${safe(groupPaid.toFixed(2))}</div>
               <div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div><div><b>Seats :</b> [${safe(seatLabel)}]</div>
               <div><b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}</div><div><b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
               <div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}</div><div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
@@ -5849,7 +5854,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div><b>Name :</b> ${safe(ticket.passenger_name)}</div><div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div>
               <div><b>Coach :</b> [${safe(coach)}]</div><div><b>Seats :</b> [${safe(seatLabel)}]</div>
               <div><b>Date :</b> ${safe(journey)}</div><div><b>Time :</b> ${safe(journey)}</div>
-              <div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div>
+              <div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div><div><b>Group Original Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div><div><b>Group Discount :</b> BDT. ${safe(groupDiscount.toFixed(2))}</div><div><b>Group Paid Fare :</b> BDT. ${safe(groupPaid.toFixed(2))}</div><div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div>
               <div><b>PNR :</b> ${safe(String(ticket.id).slice(0,13).toUpperCase())}</div><div><b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
               <div><b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}</div>
               <div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> ${safe(created)}</div><div><b>Issued By :</b> ${safe(sellerText)}</div>
