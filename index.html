@@ -1782,7 +1782,7 @@ function canCreateBus() {
 
 // Sub Managers can manage Trips only; they do not inherit general admin access.
 function canCreateCounter() {
-  return currentProfile && ["super_admin","company_manager","nb_sub_manager"].includes(currentProfile.role);
+  return currentProfile && ["super_admin","company_manager","nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role);
 }
 
 function isTripManager() {
@@ -4175,7 +4175,7 @@ async function createCounter() {
   message.className = "message";
   try {
     const {data,error} = await supabase.from("counters")
-      .insert({company_id:companyId,name,address:address || null,...(currentProfile.role==="nb_sub_manager"?{region:"NB"}:{})})
+      .insert({company_id:companyId,name,address:address || null,...(["nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role)?{region:currentProfile.role==="nb_sub_manager"?"NB":"DHAKA"}:{})})
       .select("id,name")
       .single();
     if (error) throw error;
@@ -4270,6 +4270,7 @@ async function loadCounterDirectory() {
       query=query.eq("company_id",currentProfile.company_id);
     }
     if(currentProfile.role==="nb_sub_manager") query=query.eq("region","NB");
+    if(currentProfile.role==="dhaka_sub_manager") query=query.eq("region","DHAKA");
     const {data,error}=await query;
     if(error) throw error;
     const counters = data || [];
