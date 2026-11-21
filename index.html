@@ -3133,17 +3133,26 @@ async function getOrCreateRoute(companyId,from,to) {
   return newRoute.id;
 }
 
+function dhakaDateISO(dateValue = new Date()) {
+  return new Intl.DateTimeFormat("en-CA",{
+    timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"
+  }).format(dateValue);
+}
+function shiftDhakaDateISO(dateValue, offsetDays) {
+  const match = String(dateValue || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return dhakaDateISO();
+  return new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])+offsetDays))
+    .toISOString().slice(0,10);
+}
 function localDateValue(dateValue) {
-  const date = new Date(dateValue);
-  const year = date.getFullYear();
-  const month = String(date.getMonth()+1).padStart(2,"0");
-  const day = String(date.getDate()).padStart(2,"0");
-  return `${year}-${month}-${day}`;
-}function localTimeValue(dateValue) {
-  const date = new Date(dateValue);
-  const hours = String(date.getHours()).padStart(2,"0");
-  const minutes = String(date.getMinutes()).padStart(2,"0");
-  return `${hours}:${minutes}`;
+  return dhakaDateISO(new Date(dateValue));
+}
+function localTimeValue(dateValue) {
+  const parts = new Intl.DateTimeFormat("en-GB",{
+    timeZone:"Asia/Dhaka",hour:"2-digit",minute:"2-digit",hourCycle:"h23"
+  }).formatToParts(new Date(dateValue));
+  const get = type => parts.find(part=>part.type===type)?.value || "00";
+  return get("hour")+":"+get("minute");
 }
 
 function clearTripFormFields() {
@@ -3168,7 +3177,7 @@ function clearTripFormFields() {
   $("tripPrice").value = "";
   $("tripSupervisor").value = "";
   $("tripBus").value = "";
-  $("tripDate").value = new Date().toLocaleDateString("en-CA");
+  $("tripDate").value = dhakaDateISO();
 }
 
 function stopEditing() {
@@ -3240,8 +3249,8 @@ $("tripSaveButton").addEventListener("click",async() => {
   }
   if (dateEnd < date) return tripMessage("শেষ তারিখ শুরুর তারিখের আগে হতে পারবে না।","error");
   if (isEditing && dateEnd !== date) return tripMessage("একটি পুরোনো Trip Edit করার সময় Date Range ব্যবহার করা যাবে না। নতুন Trip তৈরির জন্য Edit বাতিল করুন।","error");
-  const startDay = new Date(date+"T00:00:00");
-  const endDay = new Date(dateEnd+"T00:00:00");
+  const startDay = new Date(date+"T00:00:00Z");
+  const endDay = new Date(dateEnd+"T00:00:00Z");
   const dayCount = Math.round((endDay-startDay)/86400000)+1;
   if (!isEditing && dayCount > 60) return tripMessage("একবারে সর্বোচ্চ ৬০ দিনের Trip তৈরি করা যাবে।","error");
 
@@ -3303,17 +3312,17 @@ $("tripSaveButton").addEventListener("click",async() => {
     } else {
       routeId = await createSavedRoute(companyId,from,to);
     }
-    const departureDateTime = new Date(date + "T" + time + ":00");
+    const departureDateTime = new Date(date + "T" + time + ":00+06:00");
 
     if (Number.isNaN(departureDateTime.getTime())) {
       throw new Error("Departure Date বা Time সঠিক নয়।");
     }
 
     const arrivalDateTime = arrivalTime
-      ? new Date(date+"T"+arrivalTime+":00")
+      ? new Date(date+"T"+arrivalTime+":00+06:00")
       : null;
     if (arrivalDateTime && arrivalDateTime <= departureDateTime) {
-      arrivalDateTime.setDate(arrivalDateTime.getDate()+1);
+      arrivalDateTime.setTime(arrivalDateTime.getTime()+86400000);
     }
     const tripPayload = {
       company_id:companyId,
@@ -3348,9 +3357,9 @@ $("tripSaveButton").addEventListener("click",async() => {
       }
       for (const sibling of groupTrips) {
         const siblingDate = sibling.id === editingTripId ? date : localDateValue(sibling.departure_time);
-        const siblingDeparture = new Date(siblingDate+"T"+time+":00");
-        const siblingArrival = arrivalTime ? new Date(siblingDate+"T"+arrivalTime+":00") : null;
-        if (siblingArrival && siblingArrival <= siblingDeparture) siblingArrival.setDate(siblingArrival.getDate()+1);
+        const siblingDeparture = new Date(siblingDate+"T"+time+":00+06:00");
+        const siblingArrival = arrivalTime ? new Date(siblingDate+"T"+arrivalTime+":00+06:00") : null;
+        if (siblingArrival && siblingArrival <= siblingDeparture) siblingArrival.setTime(siblingArrival.getTime()+86400000);
         const siblingPayload = {...tripPayload,departure_time:siblingDeparture.toISOString(),arrival_time:siblingArrival ? siblingArrival.toISOString() : null};
         const {error:updateError} = await supabase.from("trips")
           .update(siblingPayload).eq("id",sibling.id).eq("company_id",companyId);
@@ -3361,11 +3370,11 @@ $("tripSaveButton").addEventListener("click",async() => {
       const scheduleGroupId = dayCount > 1 ? crypto.randomUUID() : null;
       for (let dayIndex=0; dayIndex<dayCount; dayIndex++) {
         const tripDate = new Date(startDay);
-        tripDate.setDate(startDay.getDate()+dayIndex);
-        const dayString = localDateValue(tripDate);
-        const dayDeparture = new Date(dayString+"T"+time+":00");
-        const dayArrival = arrivalTime ? new Date(dayString+"T"+arrivalTime+":00") : null;
-        if (dayArrival && dayArrival <= dayDeparture) dayArrival.setDate(dayArrival.getDate()+1);
+        tripDate.setUTCDate(startDay.getUTCDate()+dayIndex);
+        const dayString = tripDate.toISOString().slice(0,10);
+        const dayDeparture = new Date(dayString+"T"+time+":00+06:00");
+        const dayArrival = arrivalTime ? new Date(dayString+"T"+arrivalTime+":00+06:00") : null;
+        if (dayArrival && dayArrival <= dayDeparture) dayArrival.setTime(dayArrival.getTime()+86400000);
         const dayPayload = {...tripPayload,departure_time:dayDeparture.toISOString(),
           arrival_time:dayArrival ? dayArrival.toISOString() : null};
         const {data:trip,error:tripError} = await supabase.from("trips")
@@ -3628,7 +3637,7 @@ async function loadTrips(view) {
       const bus = trip.buses || {};
       const points = (trip.trip_boarding_points || []).sort((a,b) => a.point_order - b.point_order);
       const departure = new Date(trip.departure_time);
-      const dateText = departure.toLocaleDateString("en-GB");
+      const dateText = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka"}).format(departure);
       const timeText = formatDhakaTime(departure);
       const card = document.createElement("div");
       card.className = "trip-card";
@@ -7071,7 +7080,7 @@ async function renderBookingResults(trips,from="",to="") {
   let lastOpenTrip="";try{lastOpenTrip=localStorage.getItem("busnex_booking_open_trip")||"";}catch(e){}
   if(lastOpenTrip){const targetIndex=matches.findIndex(t=>t.id===lastOpenTrip);if(targetIndex>=0){const targetButton=body.children[targetIndex]?.querySelector(".counter-open-button");if(targetButton)targetButton.click();}}
 }
-const todayBookingDate = new Date().toLocaleDateString("en-CA");
+const todayBookingDate = dhakaDateISO();
 let savedBookingDate = "";
 try { savedBookingDate = localStorage.getItem("busnex_booking_journey_date") || ""; } catch(e) {}
 $("journeyDate").value = /^\d{4}-\d{2}-\d{2}$/.test(savedBookingDate) ? savedBookingDate : todayBookingDate;
@@ -7117,16 +7126,16 @@ $("journeyDate").addEventListener("change",loadBookingStopsForSelectedDate);
 });
 
 function bookingDateToISO(date) {
-  return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");
+  return date.toISOString().slice(0,10);
 }
 function syncBookingDayButtons() {
   const selected = $("journeyDate").value;
   if (!selected) return;
   const parts = selected.split("-").map(Number);
   if (parts.length !== 3 || parts.some(Number.isNaN)) return;
-  const selectedDate = new Date(parts[0],parts[1]-1,parts[2],12);
-  const today = new Date();
-  today.setHours(12,0,0,0);
+  const selectedDate = Date.UTC(parts[0],parts[1]-1,parts[2]);
+  const todayParts = dhakaDateISO().split("-").map(Number);
+  const today = Date.UTC(todayParts[0],todayParts[1]-1,todayParts[2]);
   const offset = Math.round((selectedDate-today)/86400000);
   document.querySelectorAll("[data-day-offset]").forEach(item => {
     item.classList.toggle("active",Number(item.dataset.dayOffset)===offset && offset>=-1 && offset<=1);
@@ -7135,23 +7144,8 @@ function syncBookingDayButtons() {
 }
 document.querySelectorAll("[data-day-offset]").forEach(button=>button.addEventListener("click",()=>{
   const offset = Number(button.dataset.dayOffset);
-  let date;
-  if (offset === 0) {
-    // Today’s Trip সবসময় বর্তমান স্থানীয় তারিখে ফিরিয়ে নেবে।
-    date = new Date();
-    date.setHours(12,0,0,0);
-  } else {
-    const current = $("journeyDate").value;
-    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(current)) {
-      const [year,month,day] = current.split("-").map(Number);
-      date = new Date(year,month-1,day,12);
-    } else {
-      date = new Date();
-      date.setHours(12,0,0,0);
-    }
-    date.setDate(date.getDate()+offset);
-  }
-  $("journeyDate").value=bookingDateToISO(date);
+  const current = $("journeyDate").value || dhakaDateISO();
+  $("journeyDate").value = offset === 0 ? dhakaDateISO() : shiftDhakaDateISO(current,offset);
   syncBookingDayButtons();
   loadBookingStopsForSelectedDate();
 }));
