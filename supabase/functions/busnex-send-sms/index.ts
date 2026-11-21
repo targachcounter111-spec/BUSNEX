@@ -33,8 +33,8 @@ function renderMessage(row: Record<string, unknown>): string {
   let message = String(row.message_template ?? "");
   for (const [key, value] of Object.entries(replacements)) {
     const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    message = message.replace(new RegExp(String.raw`\\{\\{\\s*${escaped}\\s*\\}\\}`, "gi"), value);
-    message = message.replace(new RegExp(String.raw`\\{\\s*${escaped}\\s*\\}`, "gi"), value);
+    message = message.replace(new RegExp(String.raw`\{\{\s*${escaped}\s*\}\}`, "gi"), value);
+    message = message.replace(new RegExp(String.raw`\{\s*${escaped}\s*\}`, "gi"), value);
     message = message.replaceAll(`[${key}]`, value);
   }
   return message.trim();
@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
 
   // Only trusted Supabase scheduler/service-role invocations may process the queue.
   const auth = req.headers.get("Authorization") ?? "";
-  const token = auth.replace(/^Bearer\\s+/i, "").trim();
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
   if (!serviceKey || !token || token !== serviceKey) {
     return json(401, { success: false, message: "Unauthorized" });
   }
@@ -97,9 +97,9 @@ Deno.serve(async (req: Request) => {
 
     if (claimError || !claimed) { skipped++; continue; }
 
-    const number = String(row.passenger_phone ?? "").replace(/[^0-9]/g, "").replace(/^\\+/, "");
+    const number = String(row.passenger_phone ?? "").replace(/[^0-9]/g, "").replace(/^\+/, "");
     const message = renderMessage(row);
-    if (!/^8801[3-9]\\d{8}$/.test(number) || !message) {
+    if (!/^8801[3-9]\d{8}$/.test(number) || !message) {
       await admin.from("company_sms_outbox")
         .update({ status: "skipped_invalid_number", provider_response: !message ? "Empty SMS message" : "Invalid Bangladesh mobile number" })
         .eq("id", row.id).eq("status", "sending");
@@ -122,7 +122,7 @@ Deno.serve(async (req: Request) => {
         signal: AbortSignal.timeout(20000),
       });
       const responseText = (await response.text()).slice(0, 2000);
-      const accepted = response.ok && /(^|\\b)202(\\b|$)/.test(responseText);
+      const accepted = response.ok && /(^|\b)202(\b|$)/.test(responseText);
 
       if (accepted) {
         const { error: updateError } = await admin.from("company_sms_outbox")
