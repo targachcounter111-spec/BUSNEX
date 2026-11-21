@@ -76,8 +76,24 @@ Deno.serve(async (req: Request) => {
     .limit(BATCH_SIZE);
 
   if (readError) {
-    console.error("SMS queue read failed", readError.message);
-    return json(500, { success: false, message: "Queue read failed" });
+    // Return safe PostgREST diagnostics (never credentials or passenger data) so
+    // permission/schema errors can be fixed without exposing secrets.
+    console.error("SMS queue read failed", {
+      code: readError.code,
+      message: readError.message,
+      details: readError.details,
+      hint: readError.hint,
+    });
+    return json(500, {
+      success: false,
+      message: "Queue read failed",
+      database_error: {
+        code: readError.code ?? null,
+        message: readError.message,
+        details: readError.details ?? null,
+        hint: readError.hint ?? null,
+      },
+    });
   }
 
   let sent = 0;
