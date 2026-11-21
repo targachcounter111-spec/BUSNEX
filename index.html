@@ -2450,7 +2450,7 @@ $("loginForm").addEventListener("submit",async event => {
       if (userData?.user) {
         const {data:profileData,error:profileError} = await supabase
           .from("profiles")
-          .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point")
+          .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active")
           .eq("id",userData.user.id)
           .maybeSingle();
 
@@ -2957,6 +2957,12 @@ function parseRouteStopsInput() {
 function allowedTripRegions() {
   if (currentProfile?.role === "nb_sub_manager") return ["NB"];
   if (currentProfile?.role === "dhaka_sub_manager") return ["DHAKA"];
+  if (currentProfile?.role === "counter_operator") {
+    const assigned = Array.isArray(currentProfile.schedule_regions)
+      ? currentProfile.schedule_regions
+      : (currentProfile.region ? [currentProfile.region] : []);
+    return assigned.filter(region => ["NB","DHAKA","SB"].includes(region));
+  }
   return ["NB","DHAKA","SB"];
 }
 
@@ -5276,7 +5282,7 @@ async function fetchBookingTrips(dateValue) {
     .select(`
       id,company_id,departure_time,ticket_price,status,is_active,coach_number,supervisor,supervisor_name,supervisor_phone,
       buses(bus_name,bus_type,registration_number,total_seats),
-      routes(starting_point,ending_point),
+      routes!inner(starting_point,ending_point,region),
       trip_stops(id,stop_name,stop_type,stop_order,scheduled_time,is_active)
     `)
     .eq("is_active",true)
@@ -5288,9 +5294,13 @@ async function fetchBookingTrips(dateValue) {
   if (currentProfile?.role === "super_admin" && activeCompanyId) {
     bookingQuery = bookingQuery.eq("company_id",activeCompanyId);
   } else if (currentProfile?.role === "counter_operator") {
-    // Keep Counter ID schedule searches explicitly inside its own Company.
+    // Keep Counter ID searches inside both its own Company and assigned Schedule Regions.
     if (!currentProfile.company_id) throw new Error("এই Counter ID-এর Company তথ্য পাওয়া যায়নি।");
-    bookingQuery = bookingQuery.eq("company_id",currentProfile.company_id);
+    const assignedRegions = allowedTripRegions();
+    if (!assignedRegions.length) throw new Error("এই Counter ID-এর Schedule Region সেট করা নেই। Company Manager-এর সঙ্গে যোগাযোগ করুন।");
+    bookingQuery = bookingQuery
+      .eq("company_id",currentProfile.company_id)
+      .in("routes.region",assignedRegions);
   }
   const {data,error} = await bookingQuery;
 
@@ -7190,7 +7200,7 @@ if (!isPasswordSetupLink) {
         if (userData?.user) {
           const {data:profile,error} = await supabase
             .from("profiles")
-            .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point")
+            .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active")
             .eq("id",userData.user.id)
             .maybeSingle();
 
