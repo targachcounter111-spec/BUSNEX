@@ -67,6 +67,34 @@ Deno.serve(async (req: Request) => {
     return json(403, { success: false, message: "আপনার এই কাজের অনুমতি নেই।" }, origin);
   }
 
+  // During maintenance, only Super Admin may use account-management actions.
+  // Fail closed if the maintenance setting cannot be verified.
+  if (caller.role !== "super_admin") {
+    const { data: maintenanceSettings, error: maintenanceError } = await admin
+      .from("busnex_maintenance_settings")
+      .select("maintenance_enabled")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (maintenanceError || !maintenanceSettings) {
+      console.error("manage-company-users maintenance check failed", {
+        code: maintenanceError?.code ?? null,
+        message: maintenanceError?.message ?? null,
+      });
+      return json(503, {
+        success: false,
+        message: "BUSNEX maintenance status যাচাই করা যাচ্ছে না। পরে চেষ্টা করুন।",
+      }, origin);
+    }
+
+    if (maintenanceSettings.maintenance_enabled === true) {
+      return json(503, {
+        success: false,
+        message: "BUSNEX বর্তমানে Maintenance Mode-এ আছে। Account পরিচালনা সাময়িকভাবে বন্ধ রয়েছে।",
+      }, origin);
+    }
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();
