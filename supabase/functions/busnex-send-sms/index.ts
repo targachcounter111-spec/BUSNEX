@@ -72,7 +72,6 @@ Deno.serve(async (req: Request) => {
     .from("company_sms_outbox")
     .select("id,ticket_id,passenger_phone,passenger_name,company_name,seat_number,journey_at,message_template,attempts")
     .eq("status", "pending")
-    .lte("next_attempt_at", new Date().toISOString())
     .order("created_at", { ascending: true })
     .limit(BATCH_SIZE);
 
