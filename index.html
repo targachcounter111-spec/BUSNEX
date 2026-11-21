@@ -1147,6 +1147,20 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
   </div>
 </div>
 
+<div id="maintenanceScreen" class="hidden" style="position:fixed;inset:0;z-index:99999;min-height:100vh;background:linear-gradient(145deg,#f0fdf4,#ffffff 55%,#dcfce7);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+  <div style="width:min(560px,100%);background:#fff;border:1px solid #dce9df;border-radius:24px;padding:clamp(28px,5vw,48px);box-shadow:0 24px 70px rgba(20,83,45,.12);text-align:center">
+    <div style="width:76px;height:76px;border-radius:24px;background:#dcfce7;color:#166534;display:grid;place-items:center;font-size:36px;margin:0 auto 22px">⚙</div>
+    <div style="font-size:13px;font-weight:800;letter-spacing:2px;color:#15803d">BUSNEX SYSTEM NOTICE</div>
+    <h1 style="font-size:clamp(25px,5vw,34px);color:#14532d;margin:12px 0">সাময়িক রক্ষণাবেক্ষণ চলছে</h1>
+    <p id="maintenanceNoticeMessage" style="font-size:16px;line-height:1.8;color:#526457;margin:0 auto 26px;white-space:pre-wrap">BUSNEX বর্তমানে রক্ষণাবেক্ষণের কাজে সাময়িকভাবে বন্ধ রয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button id="maintenanceRetryButton" class="primary" type="button">আবার চেষ্টা করুন</button>
+      <button id="maintenanceLogoutButton" class="secondary" type="button">লগআউট</button>
+    </div>
+    <div class="busnex-site-footer" data-busnex-footer style="margin-top:28px">BUSNEX BD CONCERN OF TAFSIR</div>
+  </div>
+</div>
+
 <div id="appScreen" class="app hidden">
   <header class="topbar">
     <div class="topbar-left">
@@ -1197,6 +1211,25 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
         <div class="field"><label>&nbsp;</label><button id="createManagerButton" class="primary" type="submit">Create Manager ID</button></div>
       </form>
       <div id="managerCreateMessage" class="message" aria-live="polite">নতুন Company তৈরি করার পর Manager Login তৈরি করুন।</div>
+    </div>
+    <div id="maintenanceSettingsPanel" class="company-add-panel section">
+      <h2>⚙ Developer / Maintenance Mode</h2>
+      <p class="muted">সিস্টেম আপডেট বা জরুরি কাজের সময় সাধারণ ব্যবহারকারীদের Dashboard ও কাজ সাময়িকভাবে বন্ধ রাখুন। Super Admin-এর প্রবেশাধিকার চালু থাকবে।</p>
+      <div class="form-row">
+        <div class="field" style="flex:1;min-width:240px">
+          <label for="maintenanceMessageInput">ব্যবহারকারীদের জন্য Notice</label>
+          <input id="maintenanceMessageInput" maxlength="500" value="BUSNEX বর্তমানে রক্ষণাবেক্ষণের কাজে সাময়িকভাবে বন্ধ রয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।">
+        </div>
+        <div class="field">
+          <label>বর্তমান অবস্থা</label>
+          <div id="maintenanceStatusLabel" class="notice" role="status">অবস্থা যাচাই হচ্ছে...</div>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="maintenanceToggleButton" class="primary" type="button" disabled>লোড হচ্ছে...</button>
+        </div>
+      </div>
+      <div id="maintenanceSettingsMessage" class="message" aria-live="polite">Maintenance Mode ডিফল্টভাবে OFF থাকে।</div>
     </div>
     <div id="footerSettingsPanel" class="company-add-panel section">
       <h2>Website Footer পরিচালনা</h2>
@@ -1898,11 +1931,125 @@ async function loadDashboardStats() {
   }
 }
 
-function showDashboard(profile) {
+let maintenanceWatchTimer = null;
+
+function showMaintenanceScreen(message) {
+  $("loginScreen").classList.add("hidden");
+  $("appScreen").classList.add("hidden");
+  $("maintenanceNoticeMessage").textContent = message ||
+    "BUSNEX বর্তমানে রক্ষণাবেক্ষণের কাজে সাময়িকভাবে বন্ধ রয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।";
+  $("maintenanceScreen").classList.remove("hidden");
+  document.title = "BUSNEX | Maintenance";
+}
+
+async function loadMaintenanceAdminPanel() {
+  const status = $("maintenanceStatusLabel");
+  const button = $("maintenanceToggleButton");
+  const message = $("maintenanceSettingsMessage");
+  button.disabled = true;
+  status.textContent = "অবস্থা যাচাই হচ্ছে...";
+  try {
+    const {data,error} = await supabase
+      .from("busnex_maintenance_settings")
+      .select("maintenance_enabled,maintenance_message")
+      .eq("id",1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Maintenance settings পাওয়া যায়নি।");
+    const enabled = data.maintenance_enabled === true;
+    status.textContent = enabled ? "ON — সাধারণ ব্যবহারকারীদের প্রবেশ বন্ধ" : "OFF — Website স্বাভাবিকভাবে চালু";
+    status.className = enabled ? "notice error" : "notice";
+    if (data.maintenance_message) $("maintenanceMessageInput").value = data.maintenance_message;
+    button.textContent = enabled ? "Maintenance OFF করুন" : "Maintenance ON করুন";
+    button.className = enabled ? "secondary" : "primary";
+    button.dataset.enabled = String(enabled);
+    button.disabled = false;
+    message.textContent = "সর্বশেষ অবস্থা Database থেকে যাচাই করা হয়েছে।";
+    message.className = "message ok";
+  } catch(error) {
+    status.textContent = "অবস্থা যাচাই করা যায়নি";
+    button.disabled = true;
+    message.textContent = "ত্রুটি: " + (error.message || "অজানা সমস্যা");
+    message.className = "message error";
+  }
+}
+
+async function toggleMaintenanceMode() {
+  const button = $("maintenanceToggleButton");
+  const message = $("maintenanceSettingsMessage");
+  const enabled = button.dataset.enabled !== "true";
+  const notice = $("maintenanceMessageInput").value.trim();
+  button.disabled = true;
+  message.textContent = "Maintenance Mode পরিবর্তন হচ্ছে...";
+  message.className = "message";
+  try {
+    const {error} = await supabase.rpc("busnex_set_maintenance_mode", {
+      p_enabled: enabled,
+      p_message: notice || null
+    });
+    if (error) throw error;
+    message.textContent = enabled
+      ? "Maintenance Mode ON করা হয়েছে। সাধারণ ব্যবহারকারীদের কাজ বন্ধ থাকবে।"
+      : "Maintenance Mode OFF করা হয়েছে। Website স্বাভাবিকভাবে চালু।";
+    message.className = "message ok";
+    await loadMaintenanceAdminPanel();
+  } catch(error) {
+    message.textContent = "পরিবর্তন করা যায়নি: " + (error.message || "অজানা সমস্যা");
+    message.className = "message error";
+    button.disabled = false;
+  }
+}
+
+async function showDashboard(profile) {
   currentProfile = profile || {};
   activeCompanyId = null;
   activeCompanyName = "";
 
+  if (currentProfile.role !== "super_admin") {
+    try {
+      const {data:maintenance,error:maintenanceError} = await supabase
+        .from("busnex_maintenance_settings")
+        .select("maintenance_enabled,maintenance_message")
+        .eq("id",1)
+        .maybeSingle();
+      if (maintenanceError || !maintenance) {
+        showMaintenanceScreen("BUSNEX-এর নিরাপত্তার কারণে Maintenance Status যাচাই করা যাচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।");
+        return;
+      }
+      if (maintenance.maintenance_enabled === true) {
+        showMaintenanceScreen(maintenance.maintenance_message);
+        return;
+      }
+    } catch(error) {
+      console.error("MAINTENANCE CHECK ERROR:",error);
+      showMaintenanceScreen("BUSNEX-এর Maintenance Status যাচাই করা যাচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।");
+      return;
+    }
+
+    if (maintenanceWatchTimer) clearInterval(maintenanceWatchTimer);
+    maintenanceWatchTimer = setInterval(async() => {
+      if (!currentProfile || currentProfile.role === "super_admin") return;
+      try {
+        const {data,error} = await supabase
+          .from("busnex_maintenance_settings")
+          .select("maintenance_enabled,maintenance_message")
+          .eq("id",1)
+          .maybeSingle();
+        if (error || !data) {
+          showMaintenanceScreen("BUSNEX-এর নিরাপত্তার কারণে Maintenance Status যাচাই করা যাচ্ছে না।");
+        } else if (data.maintenance_enabled === true) {
+          showMaintenanceScreen(data.maintenance_message);
+        }
+      } catch(error) {
+        showMaintenanceScreen("BUSNEX-এর Maintenance Status যাচাই করা যাচ্ছে না।");
+      }
+    },10000);
+  } else if (maintenanceWatchTimer) {
+    clearInterval(maintenanceWatchTimer);
+    maintenanceWatchTimer = null;
+  }
+
+  $("maintenanceScreen").classList.add("hidden");
   $("loginScreen").classList.add("hidden");
   $("appScreen").classList.remove("hidden");
 
@@ -1926,6 +2073,7 @@ function showDashboard(profile) {
     document.title = "BUSNEX | Super Admin Global";
     loadGlobalCompanyHub();
     loadFooterSettingsAdmin();
+    loadMaintenanceAdminPanel();
     return;
   }
 
@@ -2337,6 +2485,22 @@ $("loginForm").addEventListener("submit",async event => {
 
 $("logoutButton").addEventListener("click",async() => {
   await supabase.auth.signOut();
+  if (maintenanceWatchTimer) clearInterval(maintenanceWatchTimer);
+  maintenanceWatchTimer = null;
+  $("maintenanceScreen").classList.add("hidden");
+  showLogin();
+});
+
+$("maintenanceToggleButton").addEventListener("click",toggleMaintenanceMode);
+$("maintenanceRetryButton").addEventListener("click",() => {
+  if (currentProfile) showDashboard(currentProfile);
+  else showLogin();
+});
+$("maintenanceLogoutButton").addEventListener("click",async() => {
+  await supabase.auth.signOut();
+  if (maintenanceWatchTimer) clearInterval(maintenanceWatchTimer);
+  maintenanceWatchTimer = null;
+  $("maintenanceScreen").classList.add("hidden");
   showLogin();
 });
 
