@@ -5160,49 +5160,7 @@ async function loadTripSheet(tripId) {
     $("tripSheetMessage").className="message section "+(warnings.length?"error":"ok");
     $("tripSheetPrint").disabled=false;
     $("tripSheetPrint").dataset.printHtml='<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#183b38;margin:0;font-size:10px}.head{background:#123b3a;color:#fff;padding:18px 20px;border-bottom:4px solid #c18a55}.brand{font-size:23px;font-weight:900;letter-spacing:3px}.sub{color:#e2c49e;font-size:10px;letter-spacing:2px;margin-top:4px}.title{display:flex;justify-content:space-between;align-items:end;margin:18px 0 12px}.title h1{font-size:19px;margin:0}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}.fact{border:1px solid #d8e1dc;background:#f6f8f5;padding:9px}.fact span{display:block;color:#687a73;font-size:8px;margin-bottom:4px}.fact b{font-size:11px}.section-title{font-size:12px;margin:17px 0 7px;padding-bottom:5px;border-bottom:2px solid #c18a55}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #cbd5d0;padding:6px;text-align:left}th{background:#e8efea;color:#183b38}.summary{display:flex;justify-content:space-between;margin-top:12px;padding:12px;background:#f5f1e9;border:1px solid #d8e1dc;font-weight:bold}.foot{margin-top:24px;padding-top:9px;border-top:1px solid #cbd5d0;color:#718078;font-size:8px;display:flex;justify-content:space-between}tr{break-inside:avoid}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="brand">BUSNEX</div><div class="sub">BUS OPERATIONS · OFFICIAL TRIP DOCUMENT</div></header><div class="title"><h1>TRIP SHEET / যাত্রার তালিকা</h1><b>'+esc((trip.status||"—").toUpperCase())+'</b></div><div class="facts"><div class="fact"><span>Route / রুট</span><b>'+esc(route.starting_point)+' → '+esc(route.ending_point)+'</b></div><div class="fact"><span>Bus / বাস</span><b>'+esc(bus.bus_name)+'</b></div><div class="fact"><span>Coach No.</span><b>'+esc(trip.coach_number)+'</b></div><div class="fact"><span>Departure / যাত্রা</span><b>'+esc(journey)+'</b></div><div class="fact"><span>Ticket Fare / ভাড়া</span><b>৳'+esc(trip.ticket_price)+'</b></div><div class="fact"><span>Sold Seats / বিক্রিত সিট</span><b>'+tickets.length+'</b></div><div class="fact"><span>Company / কোম্পানি</span><b>'+esc(companyName)+'</b></div><div class="fact"><span>Supervisor / সুপারভাইজার</span><b>'+esc(supervisorName)+'</b></div></div><div class="section-title">BOARDING SCHEDULE / ওঠার সময়সূচি</div><table><thead><tr><th>#</th><th>Boarding Point</th><th>Time</th></tr></thead><tbody>'+(pointRows||'<tr><td colspan="3">কোনো Boarding Schedule পাওয়া যায়নি</td></tr>')+'</tbody></table><div class="section-title">PASSENGER MANIFEST / যাত্রী তালিকা</div><table><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th><th>Sold By / বিক্রেতা</th></tr></thead><tbody>'+(rows||'<tr><td colspan="9">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table><div class="summary"><span>Total Passengers: '+tickets.length+'</span><span>Total Collected Fare: ৳'+total.toFixed(2)+'</span></div><footer class="foot"><span>BUSNEX · Official Counter Trip Sheet</span><span>Printed: '+esc(formatDhakaDateTime(new Date()))+'</span></footer>
-<style id="busnex-final-emerald-all-pages">
-/* Final high-specificity emerald/ivory cascade. Presentation only; no workflow or data logic changes. */
-:root{--bg:#f7f8f2!important;--card:#fff!important;--text:#1b3327!important;--muted:#68796e!important;--line:#e1e9df!important;--navy:#123f32!important;--blue:#176b4b!important;--cyan:#d8bd82!important}
-html,body{background:#f7f8f2!important;color:#1b3327!important}
-#loginScreen{background:radial-gradient(ellipse at 15% 10%,#e7f2e8 0,transparent 38%),radial-gradient(ellipse at 90% 85%,#f2ead8 0,transparent 34%),linear-gradient(135deg,#fafbf7,#eef4ec)!important}
-#loginScreen .login-card{border:1px solid #e1e9df!important;box-shadow:0 24px 65px rgba(25,75,48,.13)!important}
-#loginScreen .login-logo{background:linear-gradient(125deg,#10392f,#1b7553)!important}
-#loginScreen .login-card h1{color:#174b36!important}
-#loginScreen button.primary{background:linear-gradient(120deg,#176b4b,#23835b)!important;color:#fff!important}
-#appScreen{background:#f7f8f2!important;color:#1b3327!important}
-#appScreen>.topbar{background:linear-gradient(112deg,#10392f,#155b43 58%,#1b7553)!important;color:#fff!important;border-bottom:1px solid rgba(255,255,255,.12)!important;box-shadow:0 8px 28px rgba(14,55,41,.16)!important}
-#appScreen>.topbar .brand{color:#fff!important}
-#appScreen>.topbar .brand span{color:#d9c18d!important}
-#appScreen>.topbar .topbar-company,#appScreen>.topbar .user-chip{background:rgba(255,255,255,.14)!important;color:#fff!important;border-color:rgba(255,255,255,.18)!important}
-#appScreen>.topbar #logoutButton{background:#f3ead5!important;color:#244d3a!important;border-color:#e1d2ad!important}
-#appScreen>.layout>.sidebar{background:linear-gradient(180deg,#fff,#f4f8f3)!important;border-right:1px solid #e1e9df!important;box-shadow:8px 0 26px rgba(31,78,53,.05)!important}
-#appScreen>.layout>.sidebar:before{color:#a17e42!important}
-#appScreen>.layout>.sidebar .nav-btn{color:#53675d!important;border-radius:12px!important}
-#appScreen>.layout>.sidebar .nav-btn:hover{background:#edf5ee!important;color:#176c4b!important}
-#appScreen>.layout>.sidebar .nav-btn.active{background:linear-gradient(105deg,#e2f2e7,#f1f7ee)!important;color:#145d40!important;box-shadow:inset 3px 0 0 #1b8b60!important}
-#appScreen>.layout>.main{background:radial-gradient(ellipse at 85% 0%,rgba(210,230,211,.34),transparent 34%),#f7f8f2!important;color:#1b3327!important}
-#appScreen .page-head h1,#appScreen .counter-reference-heading h1,#appScreen .page h1,#appScreen .page h2,#appScreen .page h3{color:#174b36}
-#appScreen .card,#appScreen .section.card,#appScreen .trip-card,#appScreen .company-brand-strip,#appScreen .company-add-panel{background:#fff!important;border:1px solid #e1e9df!important;border-radius:16px!important;box-shadow:0 8px 24px rgba(31,78,53,.055)!important}
-#appScreen .field label,#appScreen label{color:#52685b}
-#appScreen input:not([type=checkbox]):not([type=radio]),#appScreen select,#appScreen textarea{background:#fff!important;color:#263b30!important;border:1px solid #dce6dc!important;border-radius:10px!important}
-#appScreen input:focus,#appScreen select:focus,#appScreen textarea:focus{border-color:#4c9870!important;box-shadow:0 0 0 3px rgba(48,133,88,.13)!important}
-#appScreen button.primary,#appScreen .primary{background:linear-gradient(115deg,#176b4b,#23835b)!important;color:#fff!important;border:1px solid #176b4b!important}
-#appScreen button.secondary,#appScreen .secondary{background:#effaf2!important;color:#166534!important;border:1px solid #ccebd4!important}
-#appScreen button.success,#appScreen .success{background:#dcfce7!important;color:#166534!important;border:1px solid #bbf7d0!important}
-#appScreen button.danger,#appScreen .danger{background:#fff1f2!important;color:#b91c1c!important;border:1px solid #fecdd3!important}
-#appScreen th{background:#1d5940!important;color:#fff!important;border-color:#2a6a4d!important}
-#appScreen td{color:#30483a!important;border-color:#e8eee6!important}
-#appScreen tr:nth-child(even) td{background:#f8fcf9!important}
-#appScreen tr:hover td{background:#f0f8f1!important}
-#appScreen .notice{background:#f0f7ed!important;color:#31513b!important;border-color:#dce9dc!important}
-#appScreen .message.ok{background:#effaf2!important;color:#166534!important;border-color:#bbf7d0!important}
-#appScreen .page-head.dashboard-hero{background:linear-gradient(112deg,#103b30,#176447 58%,#23815b)!important;color:#fff!important;border-color:rgba(255,255,255,.13)!important}
-#appScreen .page-head.dashboard-hero h1{color:#fff!important}
-#appScreen .dashboard-stat-card{background:linear-gradient(145deg,#fff,#fbfcf8)!important;border-color:#e4ebe1!important}
-#appScreen .dashboard-stat-card .stat-value{color:#183e30!important}
-#appScreen .dashboard-welcome-card{background:linear-gradient(120deg,#fff,#f5f9f1)!important;border-color:#e3eade!important}
-@media(max-width:650px){#appScreen>.layout>.main{padding:14px!important}}
-</style>
+
 
 </body></html>';
   } catch(error) {
@@ -7745,6 +7703,49 @@ a:hover{color:var(--busnex-green-900)}
 @media(max-width:900px){#appScreen #page-booking .booking-workspace{grid-template-columns:minmax(0,1fr)!important}#appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:650px){#appScreen #page-booking .counter-search-panel{padding:12px!important}#appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#appScreen #page-booking .counter-control-row{grid-template-columns:1fr!important}#appScreen #page-booking .counter-day-controls{grid-template-columns:repeat(3,minmax(0,1fr))!important}#appScreen #page-booking .booking-seat-panel,#appScreen #page-booking .booking-passenger-panel{padding:12px!important}}
 
+</style>
+<style id="busnex-final-emerald-all-pages">
+/* Final high-specificity emerald/ivory cascade. Presentation only; no workflow or data logic changes. */
+:root{--bg:#f7f8f2!important;--card:#fff!important;--text:#1b3327!important;--muted:#68796e!important;--line:#e1e9df!important;--navy:#123f32!important;--blue:#176b4b!important;--cyan:#d8bd82!important}
+html,body{background:#f7f8f2!important;color:#1b3327!important}
+#loginScreen{background:radial-gradient(ellipse at 15% 10%,#e7f2e8 0,transparent 38%),radial-gradient(ellipse at 90% 85%,#f2ead8 0,transparent 34%),linear-gradient(135deg,#fafbf7,#eef4ec)!important}
+#loginScreen .login-card{border:1px solid #e1e9df!important;box-shadow:0 24px 65px rgba(25,75,48,.13)!important}
+#loginScreen .login-logo{background:linear-gradient(125deg,#10392f,#1b7553)!important}
+#loginScreen .login-card h1{color:#174b36!important}
+#loginScreen button.primary{background:linear-gradient(120deg,#176b4b,#23835b)!important;color:#fff!important}
+#appScreen{background:#f7f8f2!important;color:#1b3327!important}
+#appScreen>.topbar{background:linear-gradient(112deg,#10392f,#155b43 58%,#1b7553)!important;color:#fff!important;border-bottom:1px solid rgba(255,255,255,.12)!important;box-shadow:0 8px 28px rgba(14,55,41,.16)!important}
+#appScreen>.topbar .brand{color:#fff!important}
+#appScreen>.topbar .brand span{color:#d9c18d!important}
+#appScreen>.topbar .topbar-company,#appScreen>.topbar .user-chip{background:rgba(255,255,255,.14)!important;color:#fff!important;border-color:rgba(255,255,255,.18)!important}
+#appScreen>.topbar #logoutButton{background:#f3ead5!important;color:#244d3a!important;border-color:#e1d2ad!important}
+#appScreen>.layout>.sidebar{background:linear-gradient(180deg,#fff,#f4f8f3)!important;border-right:1px solid #e1e9df!important;box-shadow:8px 0 26px rgba(31,78,53,.05)!important}
+#appScreen>.layout>.sidebar:before{color:#a17e42!important}
+#appScreen>.layout>.sidebar .nav-btn{color:#53675d!important;border-radius:12px!important}
+#appScreen>.layout>.sidebar .nav-btn:hover{background:#edf5ee!important;color:#176c4b!important}
+#appScreen>.layout>.sidebar .nav-btn.active{background:linear-gradient(105deg,#e2f2e7,#f1f7ee)!important;color:#145d40!important;box-shadow:inset 3px 0 0 #1b8b60!important}
+#appScreen>.layout>.main{background:radial-gradient(ellipse at 85% 0%,rgba(210,230,211,.34),transparent 34%),#f7f8f2!important;color:#1b3327!important}
+#appScreen .page-head h1,#appScreen .counter-reference-heading h1,#appScreen .page h1,#appScreen .page h2,#appScreen .page h3{color:#174b36}
+#appScreen .card,#appScreen .section.card,#appScreen .trip-card,#appScreen .company-brand-strip,#appScreen .company-add-panel{background:#fff!important;border:1px solid #e1e9df!important;border-radius:16px!important;box-shadow:0 8px 24px rgba(31,78,53,.055)!important}
+#appScreen .field label,#appScreen label{color:#52685b}
+#appScreen input:not([type=checkbox]):not([type=radio]),#appScreen select,#appScreen textarea{background:#fff!important;color:#263b30!important;border:1px solid #dce6dc!important;border-radius:10px!important}
+#appScreen input:focus,#appScreen select:focus,#appScreen textarea:focus{border-color:#4c9870!important;box-shadow:0 0 0 3px rgba(48,133,88,.13)!important}
+#appScreen button.primary,#appScreen .primary{background:linear-gradient(115deg,#176b4b,#23835b)!important;color:#fff!important;border:1px solid #176b4b!important}
+#appScreen button.secondary,#appScreen .secondary{background:#effaf2!important;color:#166534!important;border:1px solid #ccebd4!important}
+#appScreen button.success,#appScreen .success{background:#dcfce7!important;color:#166534!important;border:1px solid #bbf7d0!important}
+#appScreen button.danger,#appScreen .danger{background:#fff1f2!important;color:#b91c1c!important;border:1px solid #fecdd3!important}
+#appScreen th{background:#1d5940!important;color:#fff!important;border-color:#2a6a4d!important}
+#appScreen td{color:#30483a!important;border-color:#e8eee6!important}
+#appScreen tr:nth-child(even) td{background:#f8fcf9!important}
+#appScreen tr:hover td{background:#f0f8f1!important}
+#appScreen .notice{background:#f0f7ed!important;color:#31513b!important;border-color:#dce9dc!important}
+#appScreen .message.ok{background:#effaf2!important;color:#166534!important;border-color:#bbf7d0!important}
+#appScreen .page-head.dashboard-hero{background:linear-gradient(112deg,#103b30,#176447 58%,#23815b)!important;color:#fff!important;border-color:rgba(255,255,255,.13)!important}
+#appScreen .page-head.dashboard-hero h1{color:#fff!important}
+#appScreen .dashboard-stat-card{background:linear-gradient(145deg,#fff,#fbfcf8)!important;border-color:#e4ebe1!important}
+#appScreen .dashboard-stat-card .stat-value{color:#183e30!important}
+#appScreen .dashboard-welcome-card{background:linear-gradient(120deg,#fff,#f5f9f1)!important;border-color:#e3eade!important}
+@media(max-width:650px){#appScreen>.layout>.main{padding:14px!important}}
 </style>
 </body>
 </html>
