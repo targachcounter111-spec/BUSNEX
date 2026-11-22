@@ -2299,6 +2299,14 @@ async function toggleMaintenanceMode() {
 }
 
 async function showDashboard(profile) {
+  // A fresh successful login/session restore must trigger the reminder again.
+  billReminderShownForSession = false;
+  if (billReminderTimer) {
+    clearTimeout(billReminderTimer);
+    billReminderTimer = null;
+  }
+  const previousBillOverlay = document.getElementById("busnexBillReminderOverlay");
+  if (previousBillOverlay) previousBillOverlay.hidden = true;
   currentProfile = profile || {};
   const noticeManagerPanel=$("companyNoticeManagerPanel");
   if(noticeManagerPanel)noticeManagerPanel.classList.toggle("hidden",currentProfile.role!=="company_manager");
@@ -2790,6 +2798,10 @@ $("loginForm").addEventListener("submit",async event => {
 
 $("logoutButton").addEventListener("click",async() => {
   await supabase.auth.signOut();
+  billReminderShownForSession = false;
+  if (billReminderTimer) { clearTimeout(billReminderTimer); billReminderTimer = null; }
+  const billOverlay = document.getElementById("busnexBillReminderOverlay");
+  if (billOverlay) billOverlay.hidden = true;
   if (maintenanceWatchTimer) clearInterval(maintenanceWatchTimer);
   maintenanceWatchTimer = null;
   $("maintenanceScreen").classList.add("hidden");
@@ -2807,6 +2819,10 @@ $("maintenanceRetryButton").addEventListener("click",() => {
 });
 $("maintenanceLogoutButton").addEventListener("click",async() => {
   await supabase.auth.signOut();
+  billReminderShownForSession = false;
+  if (billReminderTimer) { clearTimeout(billReminderTimer); billReminderTimer = null; }
+  const billOverlay = document.getElementById("busnexBillReminderOverlay");
+  if (billOverlay) billOverlay.hidden = true;
   if (maintenanceWatchTimer) clearInterval(maintenanceWatchTimer);
   maintenanceWatchTimer = null;
   $("maintenanceScreen").classList.add("hidden");
