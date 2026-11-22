@@ -7703,10 +7703,24 @@ a:hover{color:var(--busnex-green-900)}
 </style>
 
 <style id="busnex-restore-original-header-wordmark">
-/* Restore the original BUSNEX header wordmark; do not replace its text with pseudo content. */
-#appScreen>.topbar .brand{font-size:24px!important;letter-spacing:1px!important;color:#14532d!important;width:auto!important;flex:0 0 auto!important}
+/* Premium BUSNEX wordmark on the white application header. */
+#appScreen>.topbar .brand{
+  font-family:Inter,"Segoe UI",Arial,sans-serif!important;
+  font-size:25px!important;
+  font-weight:950!important;
+  letter-spacing:1.35px!important;
+  line-height:1!important;
+  color:#14532d!important;
+  width:auto!important;
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+}
 #appScreen>.topbar .brand:after{content:none!important;display:none!important}
-#appScreen>.topbar .brand span{display:inline!important;color:#57d3ed!important}
+#appScreen>.topbar .brand span{
+  display:inline!important;
+  color:#b58a3b!important;
+  font-weight:950!important;
+}
 </style>
 </body>
 </html>
