@@ -2388,6 +2388,7 @@ async function showDashboard(profile) {
   loadBillingDashboardNotice();
   loadCompanyBillReminderForUser();
   loadCompanyNoticeBanners();
+  if(currentProfile.role==="company_manager") loadCompanyNotices(currentProfile.company_id,"manager");
   loadBookingStopsForSelectedDate();
 }
 
