@@ -1767,7 +1767,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
         </div>
         <div class="card section" id="subManagerCreatePanel">
           <h2>নতুন Sub Manager Login তৈরি করুন</h2>
-          <div class="notice">Company Manager নিজের Company-তে এবং Super Admin নির্বাচিত Company-তে NB অথবা Dhaka Sub Manager ID তৈরি করতে পারবেন। Sub Manager নিজের Region-এর মধ্যেই কাজ করতে পারবেন।</div>
+          <div class="notice">Company Manager নিজের Company-তে এবং Super Admin নির্বাচিত Company-তে Sub Manager Type ও Assigned Region নির্বাচন করে ID তৈরি করতে পারবেন। Type অনুযায়ী আগের Permission থাকবে; Assigned Region অনুযায়ী Schedule ও Counter সীমাবদ্ধ থাকবে।</div>
           <form id="createSubManagerForm" class="form-row section">
             <div class="field"><label for="newSubManagerType">Sub Manager Type *</label><select id="newSubManagerType" required><option value="NB">NB Sub Manager</option><option value="DHAKA">Dhaka Sub Manager</option></select></div><div class="field"><label for="newSubManagerRegion">Assigned Region *</label><select id="newSubManagerRegion" required><option value="NB">North Bengal (NB)</option><option value="DHAKA">Dhaka</option><option value="SB">South Bengal (SB)</option></select></div>
             <div class="field"><label for="newSubManagerName">Sub Manager-এর নাম *</label><input id="newSubManagerName" maxlength="120" required placeholder="পূর্ণ নাম"></div>
