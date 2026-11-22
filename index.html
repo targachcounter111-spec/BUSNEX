@@ -477,6 +477,8 @@ input[type="date"],input[type="month"],input[type="time"]{color-scheme:light}
   #appScreen .nav-btn,#page-dashboard .dashboard-stat-card{transition:none}
 }
 
+
+#companyNoticeBannerArea{display:grid;gap:10px}.bnx-company-notice{position:relative;padding:15px 18px;border:1px solid #c9dfd2;border-left:5px solid #198754;border-radius:12px;background:linear-gradient(110deg,#f1fbf5,#fff);box-shadow:0 5px 18px #153d2b0d;margin:8px 0}.bnx-company-notice.important{border-color:#e8d39b;border-left-color:#d28a18;background:linear-gradient(110deg,#fff9e9,#fff)}.bnx-company-notice.urgent{border-color:#efc1bc;border-left-color:#c0392b;background:linear-gradient(110deg,#fff1ef,#fff)}.bnx-company-notice-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}.bnx-company-notice h3{margin:0;font-size:15px;color:#183b2d}.bnx-company-notice p{margin:0;white-space:pre-wrap;line-height:1.65;font-size:13px;color:#34445a}.bnx-company-notice small{color:#718096;font-size:11px}.bnx-notice-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.bnx-notice-actions button{padding:7px 10px;font-size:11px}.bnx-notice-tag{font-size:10px;font-weight:800;border-radius:20px;padding:4px 8px;background:#e3f3e9;color:#17643c;white-space:nowrap}
 </style>
 <style id="busnex-reference-dashboard">
 #page-booking{max-width:none;padding-top:0}.counter-reference-heading h1{font-size:18px;margin:0 0 10px;color:#172b3b}
@@ -1391,6 +1393,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
       </div>
       <div id="billReminderAdminMessage" class="message" aria-live="polite">প্রথমে Company নির্বাচন করুন।</div>
     </div>
+
+    <div id="companyNoticeAdminPanel" class="company-add-panel section">
+      <h2>📢 Company Notice Management</h2><p class="muted">Super Admin নির্দিষ্ট Company নির্বাচন করে সেই Company-এর Manager ও Counter Dashboard-এ Notice পাঠাতে পারবেন।</p>
+      <div class="field"><label for="noticeAdminCompanySelect">Company নির্বাচন করুন</label><select id="noticeAdminCompanySelect"><option value="">Company নির্বাচন করুন</option></select></div>
+      <div class="form-row"><div class="field"><label for="noticeAdminTitle">Notice Title</label><input id="noticeAdminTitle" maxlength="140" placeholder="Notice-এর শিরোনাম"></div><div class="field"><label for="noticeAdminPriority">Priority</label><select id="noticeAdminPriority"><option value="normal">সাধারণ</option><option value="important">গুরুত্বপূর্ণ</option><option value="urgent">জরুরি</option></select></div></div>
+      <div class="field"><label for="noticeAdminMessage">Notice Message</label><textarea id="noticeAdminMessage" maxlength="1200" rows="3" placeholder="Notice-এর বিস্তারিত লিখুন"></textarea></div>
+      <div class="form-row"><div class="field"><label for="noticeAdminStart">শুরুর সময়</label><input id="noticeAdminStart" type="datetime-local"></div><div class="field"><label for="noticeAdminExpiry">শেষ হওয়ার সময় (ঐচ্ছিক)</label><input id="noticeAdminExpiry" type="datetime-local"></div><div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:8px"><input id="noticeAdminActive" type="checkbox" checked style="width:18px"> Notice Active</label></div></div>
+      <div class="form-row"><button id="saveNoticeAdminButton" class="primary" type="button">Notice Save করুন</button><button id="cancelNoticeAdminEdit" class="secondary hidden" type="button">Edit বাতিল</button></div>
+      <div id="noticeAdminMessageStatus" class="message" aria-live="polite">Company নির্বাচন করে Notice তৈরি করুন।</div><div id="noticeAdminList" class="section"><div class="empty">Company নির্বাচন করলে Notice তালিকা দেখাবে।</div></div>
+    </div>
     <div id="footerSettingsPanel" class="company-add-panel section">
       <h2>Website Footer পরিচালনা</h2>
       <p class="muted">এই লেখা Login Screen-সহ পুরো BUSNEX Website-এর Footer-এ দেখাবে।</p>
@@ -1457,6 +1469,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
       <section id="page-booking" class="page hidden busnex-counter-page">
         <div id="counterCompanyBrand" class="company-brand-strip hidden"><span class="company-logo-mark">S</span><span><strong id="counterCompanyBrandName">SHAMOL TRAVELS</strong><small id="counterCompanyBrandMeta">Company Workspace</small><span id="counterCompanyBrandId" class="company-id-line"></span></span></div>
         <div class="counter-reference-heading"><h1>Dashboard</h1><span id="counterRoleTag"></span></div>
+
+        <div id="companyNoticeBannerArea" class="section"></div>
+        <div id="companyNoticeManagerPanel" class="company-add-panel section hidden">
+          <h2>📢 Company Notice পরিচালনা</h2><p class="muted">আপনার Company-এর Counter Panel-এ Notice তৈরি, Edit, ON/OFF করতে পারবেন।</p>
+          <div class="form-row"><div class="field"><label for="noticeManagerTitle">Notice Title</label><input id="noticeManagerTitle" maxlength="140" placeholder="Notice-এর শিরোনাম"></div><div class="field"><label for="noticeManagerPriority">Priority</label><select id="noticeManagerPriority"><option value="normal">সাধারণ</option><option value="important">গুরুত্বপূর্ণ</option><option value="urgent">জরুরি</option></select></div></div>
+          <div class="field"><label for="noticeManagerMessage">Notice Message</label><textarea id="noticeManagerMessage" maxlength="1200" rows="3" placeholder="Notice-এর বিস্তারিত লিখুন"></textarea></div>
+          <div class="form-row"><div class="field"><label for="noticeManagerStart">শুরুর সময়</label><input id="noticeManagerStart" type="datetime-local"></div><div class="field"><label for="noticeManagerExpiry">শেষ হওয়ার সময় (ঐচ্ছিক)</label><input id="noticeManagerExpiry" type="datetime-local"></div><div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:8px"><input id="noticeManagerActive" type="checkbox" checked style="width:18px"> Notice Active</label></div></div>
+          <div class="form-row"><button id="saveNoticeManagerButton" class="primary" type="button">Notice Save করুন</button><button id="cancelNoticeManagerEdit" class="secondary hidden" type="button">Edit বাতিল</button></div>
+          <div id="noticeManagerMessageStatus" class="message" aria-live="polite">আপনার Company-এর Notice তৈরি করুন।</div><div id="noticeManagerList" class="section"></div>
+        </div>
         <div class="counter-search-panel">
           <div class="counter-filter-grid">
             <div class="field"><label>From city</label><select id="fromStop"><option value="">All boarding locations</option></select></div>
@@ -2100,6 +2122,18 @@ function showCompanyBillReminder(reminder) {
   billReminderTimer=setTimeout(()=>{overlay.hidden=true;},10000);
 }
 
+
+let editingCompanyNoticeId=null, editingManagerNoticeId=null;
+function toLocalDateTimeValue(value){if(!value)return "";const d=new Date(value);if(Number.isNaN(d.getTime()))return "";return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+function resetNoticeForm(kind){const p=kind==="admin"?"noticeAdmin":"noticeManager";$(p+"Title").value="";$(p+"Message").value="";$(p+"Priority").value="normal";$(p+"Start").value=toLocalDateTimeValue(new Date().toISOString());$(p+"Expiry").value="";$(p+"Active").checked=true;if(kind==="admin"){editingCompanyNoticeId=null;$("cancelNoticeAdminEdit").classList.add("hidden");$("saveNoticeAdminButton").textContent="Notice Save করুন";}else{editingManagerNoticeId=null;$("cancelNoticeManagerEdit").classList.add("hidden");$("saveNoticeManagerButton").textContent="Notice Save করুন";}}
+function renderCompanyNoticeCards(rows,containerId){const wrap=$(containerId);if(!rows?.length){wrap.innerHTML='<div class="empty">এখনো কোনো Notice নেই।</div>';return;}wrap.innerHTML="";rows.forEach(row=>{const card=document.createElement("article");card.className="bnx-company-notice "+row.priority;const head=document.createElement("div");head.className="bnx-company-notice-head";const title=document.createElement("h3");title.textContent=row.title;const tag=document.createElement("span");tag.className="bnx-notice-tag";tag.textContent=(row.is_active?"ACTIVE":"INACTIVE")+" • "+({normal:"সাধারণ",important:"গুরুত্বপূর্ণ",urgent:"জরুরি"}[row.priority]||"সাধারণ");head.append(title,tag);const body=document.createElement("p");body.textContent=row.message;const meta=document.createElement("small");meta.textContent="শুরু: "+new Date(row.starts_at).toLocaleString("bn-BD")+(row.expires_at?" • শেষ: "+new Date(row.expires_at).toLocaleString("bn-BD"):"");card.append(head,body,meta);const actions=document.createElement("div");actions.className="bnx-notice-actions";for(const [action,label] of [["edit","Edit"],["toggle",row.is_active?"OFF করুন":"ON করুন"]]){const b=document.createElement("button");b.type="button";b.className=action==="toggle"&&!row.is_active?"primary":"secondary";b.textContent=label;b.dataset.noticeAction=action;b.dataset.noticeId=row.id;actions.append(b);}card.append(actions);wrap.append(card);});}
+function fillNoticeAdminCompanyOptions(){const select=$("noticeAdminCompanySelect");if(!select)return;const previous=select.value;select.innerHTML='<option value="">Company নির্বাচন করুন</option>';(companies||[]).forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.name;select.append(o);});if(companies.some(c=>c.id===previous))select.value=previous;}
+async function loadCompanyNotices(companyId,kind){const list=$(kind==="admin"?"noticeAdminList":"noticeManagerList");if(!companyId){list.innerHTML='<div class="empty">প্রথমে Company নির্বাচন করুন।</div>';return;}try{const {data,error}=await supabase.from("company_notices").select("id,company_id,title,message,priority,starts_at,expires_at,is_active,created_at").eq("company_id",companyId).order("created_at",{ascending:false});if(error)throw error;renderCompanyNoticeCards(data||[],kind==="admin"?"noticeAdminList":"noticeManagerList");}catch(e){list.textContent="Notice লোড হয়নি: "+e.message;}}
+async function saveCompanyNotice(kind){const admin=kind==="admin";if(admin&&currentProfile?.role!=="super_admin")return;if(!admin&&currentProfile?.role!=="company_manager")return;const p=admin?"noticeAdmin":"noticeManager",companyId=admin?$("noticeAdminCompanySelect").value:currentProfile.company_id,title=$(p+"Title").value.trim(),message=$(p+"Message").value.trim(),status=$(admin?"noticeAdminMessageStatus":"noticeManagerMessageStatus");if(!companyId||!title||!message){status.textContent="Company, Title এবং Message পূরণ করুন।";status.className="message error";return;}const startVal=$(p+"Start").value,startsAt=startVal?new Date(startVal).toISOString():new Date().toISOString(),expiryVal=$(p+"Expiry").value,expiresAt=expiryVal?new Date(expiryVal).toISOString():null;if(expiresAt&&new Date(expiresAt)<=new Date(startsAt)){status.textContent="শেষ হওয়ার সময় শুরুর সময়ের পরে হতে হবে।";status.className="message error";return;}try{const {data:userData,error:userError}=await supabase.auth.getUser();if(userError)throw userError;const payload={company_id:companyId,title,message,priority:$(p+"Priority").value,starts_at:startsAt,expires_at:expiresAt,is_active:$(p+"Active").checked,updated_by:userData.user.id};const editId=admin?editingCompanyNoticeId:editingManagerNoticeId;if(!editId)payload.created_by=userData.user.id;const result=editId?await supabase.from("company_notices").update(payload).eq("id",editId).eq("company_id",companyId):await supabase.from("company_notices").insert(payload);if(result.error)throw result.error;status.textContent="Notice সফলভাবে সংরক্ষণ হয়েছে।";status.className="message ok";resetNoticeForm(kind);await loadCompanyNotices(companyId,kind);if(!admin)await loadCompanyNoticeBanners();}catch(e){status.textContent="Notice সংরক্ষণ হয়নি: "+e.message;status.className="message error";}}
+async function handleCompanyNoticeAction(event,kind){const b=event.target.closest("[data-notice-action]");if(!b)return;const admin=kind==="admin",companyId=admin?$("noticeAdminCompanySelect").value:currentProfile?.company_id,status=$(admin?"noticeAdminMessageStatus":"noticeManagerMessageStatus");try{const {data,error}=await supabase.from("company_notices").select("*").eq("id",b.dataset.noticeId).eq("company_id",companyId).maybeSingle();if(error)throw error;if(!data)throw new Error("Notice পাওয়া যায়নি।");if(b.dataset.noticeAction==="edit"){const p=admin?"noticeAdmin":"noticeManager";$(p+"Title").value=data.title;$(p+"Message").value=data.message;$(p+"Priority").value=data.priority;$(p+"Start").value=toLocalDateTimeValue(data.starts_at);$(p+"Expiry").value=toLocalDateTimeValue(data.expires_at);$(p+"Active").checked=data.is_active;if(admin){editingCompanyNoticeId=data.id;$("cancelNoticeAdminEdit").classList.remove("hidden");$("saveNoticeAdminButton").textContent="পরিবর্তন Save করুন";}else{editingManagerNoticeId=data.id;$("cancelNoticeManagerEdit").classList.remove("hidden");$("saveNoticeManagerButton").textContent="পরিবর্তন Save করুন";}$(p+"Title").focus();}else{const {data:u}=await supabase.auth.getUser();const {error:updateError}=await supabase.from("company_notices").update({is_active:!data.is_active,updated_by:u.user.id}).eq("id",data.id).eq("company_id",companyId);if(updateError)throw updateError;await loadCompanyNotices(companyId,kind);if(!admin)await loadCompanyNoticeBanners();}}catch(e){status.textContent="কাজটি সম্পন্ন হয়নি: "+e.message;status.className="message error";}}
+async function loadCompanyNoticeBanners(){const area=$("companyNoticeBannerArea");if(!area)return;area.innerHTML="";if(!["company_manager","counter_operator"].includes(currentProfile?.role)||!currentProfile.company_id)return;try{const now=new Date().toISOString();const {data,error}=await supabase.from("company_notices").select("id,title,message,priority").eq("company_id",currentProfile.company_id).eq("is_active",true).lte("starts_at",now).or("expires_at.is.null,expires_at.gt."+now).order("created_at",{ascending:false}).limit(8);if(error)throw error;(data||[]).forEach(row=>{const card=document.createElement("article");card.className="bnx-company-notice "+row.priority;const head=document.createElement("div");head.className="bnx-company-notice-head";const title=document.createElement("h3");title.textContent="📢 "+row.title;const tag=document.createElement("span");tag.className="bnx-notice-tag";tag.textContent=({normal:"NOTICE",important:"IMPORTANT",urgent:"URGENT"}[row.priority]||"NOTICE");head.append(title,tag);const body=document.createElement("p");body.textContent=row.message;card.append(head,body);area.append(card);});}catch(e){console.warn("COMPANY NOTICE LOAD:",e.message);}}
+function setupCompanyNoticeUI(){$("noticeAdminCompanySelect")?.addEventListener("change",()=>{resetNoticeForm("admin");loadCompanyNotices($("noticeAdminCompanySelect").value,"admin");});$("saveNoticeAdminButton")?.addEventListener("click",()=>saveCompanyNotice("admin"));$("cancelNoticeAdminEdit")?.addEventListener("click",()=>resetNoticeForm("admin"));$("noticeAdminList")?.addEventListener("click",e=>handleCompanyNoticeAction(e,"admin"));$("saveNoticeManagerButton")?.addEventListener("click",()=>saveCompanyNotice("manager"));$("cancelNoticeManagerEdit")?.addEventListener("click",()=>resetNoticeForm("manager"));$("noticeManagerList")?.addEventListener("click",e=>handleCompanyNoticeAction(e,"manager"));}
+
 async function loadCompanyBillReminderForUser() {
   if(!["company_manager","counter_operator"].includes(currentProfile?.role)||billReminderShownForSession)return;
   try{
@@ -2263,6 +2297,8 @@ async function toggleMaintenanceMode() {
 
 async function showDashboard(profile) {
   currentProfile = profile || {};
+  const noticeManagerPanel=$("companyNoticeManagerPanel");
+  if(noticeManagerPanel)noticeManagerPanel.classList.toggle("hidden",currentProfile.role!=="company_manager");
   activeCompanyId = null;
   activeCompanyName = "";
 
@@ -2351,6 +2387,7 @@ async function showDashboard(profile) {
   loadDashboardStats();
   loadBillingDashboardNotice();
   loadCompanyBillReminderForUser();
+  loadCompanyNoticeBanners();
   loadBookingStopsForSelectedDate();
 }
 
@@ -2362,6 +2399,7 @@ async function loadGlobalCompanyHub() {
     if (error) throw error;
     companies = data || [];
     fillBillReminderCompanyOptions();
+    fillNoticeAdminCompanyOptions();
     const managerCompanySelect = $("managerCompanySelect");
     if (managerCompanySelect) {
       const previousCompany = managerCompanySelect.value;
@@ -2755,6 +2793,7 @@ $("logoutButton").addEventListener("click",async() => {
 });
 
 $("maintenanceToggleButton").addEventListener("click",toggleMaintenanceMode);
+setupCompanyNoticeUI();
 $("loadBillReminderButton").addEventListener("click",loadBillReminderAdminSettings);
 $("saveBillReminderButton").addEventListener("click",saveBillReminderAdminSettings);
 $("billReminderCompanySelect").addEventListener("change",loadBillReminderAdminSettings);
