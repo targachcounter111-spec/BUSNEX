@@ -373,14 +373,21 @@ Deno.serve(async (req: Request) => {
     }, origin);
   }
 
+  const successMessage = role === "company_manager"
+    ? "Manager Login ID তৈরি হয়েছে।"
+    : role === "nb_sub_manager" || role === "dhaka_sub_manager"
+      ? "Sub Manager Login ID তৈরি হয়েছে।"
+      : "Counter Operator Login ID তৈরি হয়েছে।";
+
   return json(200, {
     success: true,
-    message: role === "company_manager" ? "Manager Login ID তৈরি হয়েছে।" : "Counter Operator Login ID তৈরি হয়েছে।",
+    message: successMessage,
     profile: {
       id: createdAuth.user.id,
       login_id: loginId,
       full_name: fullName,
       role,
+      sub_manager_type: action === "create_sub_manager" ? (role === "nb_sub_manager" ? "NB" : "DHAKA") : null,
       company_id: companyId,
       counter_id: counterId,
       region,
