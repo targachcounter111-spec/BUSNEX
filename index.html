@@ -2361,6 +2361,7 @@ async function loadGlobalCompanyHub() {
     const {data,error} = await supabase.from("companies").select("id,name").order("name");
     if (error) throw error;
     companies = data || [];
+    fillBillReminderCompanyOptions();
     const managerCompanySelect = $("managerCompanySelect");
     if (managerCompanySelect) {
       const previousCompany = managerCompanySelect.value;
