@@ -273,11 +273,15 @@ Deno.serve(async (req: Request) => {
     role = "company_manager";
   } else if (action === "create_sub_manager") {
     const requestedRegion = typeof body.region === "string" ? body.region.toUpperCase() : "";
-    if (!["NB", "DHAKA"].includes(requestedRegion)) {
-      return json(400, { success: false, message: "Sub Manager-এর Region NB অথবা DHAKA হতে হবে।" }, origin);
+    const requestedType = typeof body.sub_manager_type === "string" ? body.sub_manager_type.toUpperCase() : "";
+    if (!["NB", "DHAKA", "SB"].includes(requestedRegion)) {
+      return json(400, { success: false, message: "Assigned Region NB, DHAKA অথবা SB হতে হবে।" }, origin);
+    }
+    if (!["NB", "DHAKA"].includes(requestedType)) {
+      return json(400, { success: false, message: "Sub Manager Type NB অথবা DHAKA হতে হবে।" }, origin);
     }
     region = requestedRegion;
-    role = requestedRegion === "NB" ? "nb_sub_manager" : "dhaka_sub_manager";
+    role = requestedType === "NB" ? "nb_sub_manager" : "dhaka_sub_manager";
   } else {
     role = "counter_operator";
     counterId = typeof body.counter_id === "string" ? body.counter_id : null;
