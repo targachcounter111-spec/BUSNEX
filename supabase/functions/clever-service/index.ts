@@ -6,11 +6,26 @@ const allowedOrigins = [
   "https://busnex-git-busnex-redesign-busnex.vercel.app",
 ];
 
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (allowedOrigins.includes(origin)) return true;
+
+  // Allow only this project's own Vercel preview deployments.
+  try {
+    const url = new URL(origin);
+    return (
+      url.protocol === "https:" &&
+      /^busnex-[a-z0-9-]+-busnex\.vercel\.app$/.test(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getCorsHeaders(origin: string | null) {
-  const allowedOrigin =
-    origin && allowedOrigins.includes(origin)
-      ? origin
-      : "https://busnex.vercel.app";
+  const allowedOrigin = isAllowedOrigin(origin)
+    ? origin!
+    : "https://busnex.vercel.app";
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
@@ -76,7 +91,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // Reject browser requests from origins other than the two BUSNEX sites.
-  if (origin && !allowedOrigins.includes(origin)) {
+  if (origin && !isAllowedOrigin(origin)) {
     return send({ error: "Origin not allowed" }, 403);
   }
 
