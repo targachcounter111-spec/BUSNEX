@@ -1769,7 +1769,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
           <h2>নতুন Sub Manager Login তৈরি করুন</h2>
           <div class="notice">Company Manager নিজের Company-তে এবং Super Admin নির্বাচিত Company-তে NB অথবা Dhaka Sub Manager ID তৈরি করতে পারবেন। Sub Manager নিজের Region-এর মধ্যেই কাজ করতে পারবেন।</div>
           <form id="createSubManagerForm" class="form-row section">
-            <div class="field"><label for="newSubManagerRegion">Sub Manager Region *</label><select id="newSubManagerRegion" required><option value="NB">North Bengal (NB)</option><option value="DHAKA">Dhaka</option></select></div>
+            <div class="field"><label for="newSubManagerType">Sub Manager Type *</label><select id="newSubManagerType" required><option value="NB">NB Sub Manager</option><option value="DHAKA">Dhaka Sub Manager</option></select></div><div class="field"><label for="newSubManagerRegion">Assigned Region *</label><select id="newSubManagerRegion" required><option value="NB">North Bengal (NB)</option><option value="DHAKA">Dhaka</option><option value="SB">South Bengal (SB)</option></select></div>
             <div class="field"><label for="newSubManagerName">Sub Manager-এর নাম *</label><input id="newSubManagerName" maxlength="120" required placeholder="পূর্ণ নাম"></div>
             <div class="field"><label for="newSubManagerLogin">Login ID *</label><input id="newSubManagerLogin" maxlength="40" required autocomplete="off" placeholder="যেমন: NBSUBMANAGER01"></div>
             <div class="field"><label for="newSubManagerPassword">Password * (কমপক্ষে ৮ অক্ষর)</label><input id="newSubManagerPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></div>
@@ -3264,8 +3264,9 @@ function parseRouteStopsInput() {
 }
 
 function allowedTripRegions() {
-  if (currentProfile?.role === "nb_sub_manager") return ["NB"];
-  if (currentProfile?.role === "dhaka_sub_manager") return ["DHAKA"];
+  if (["nb_sub_manager","dhaka_sub_manager"].includes(currentProfile?.role)) {
+    return ["NB","DHAKA","SB"].includes(currentProfile?.region) ? [currentProfile.region] : [];
+  }
   if (currentProfile?.role === "counter_operator") {
     const assigned = Array.isArray(currentProfile.schedule_regions)
       ? currentProfile.schedule_regions
@@ -4669,7 +4670,7 @@ async function createCounter() {
   message.className = "message";
   try {
     const {data,error} = await supabase.from("counters")
-      .insert({company_id:companyId,name,address:address || null,...(["nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role)?{region:currentProfile.role==="nb_sub_manager"?"NB":"DHAKA"}:{})})
+      .insert({company_id:companyId,name,address:address || null,...(["nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role)?{region:currentProfile.region}:{})})
       .select("id,name")
       .single();
     if (error) throw error;
@@ -4763,8 +4764,7 @@ async function loadCounterDirectory() {
       if(!currentProfile.company_id) throw new Error("আপনার Company Assignment পাওয়া যায়নি।");
       query=query.eq("company_id",currentProfile.company_id);
     }
-    if(currentProfile.role==="nb_sub_manager") query=query.eq("region","NB");
-    if(currentProfile.role==="dhaka_sub_manager") query=query.eq("region","DHAKA");
+    if(["nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role)) query=query.eq("region",currentProfile.region);
     const {data,error}=await query;
     if(error) throw error;
     const counters = data || [];
@@ -5085,12 +5085,13 @@ $("createSubManagerForm").addEventListener("submit", async event => {
   if (!isAdmin() || !["super_admin","company_manager"].includes(currentProfile?.role)) return;
   const company_id = currentProfile.role === "super_admin" ? activeCompanyId : currentProfile.company_id;
   const region = $("newSubManagerRegion").value;
+  const sub_manager_type = $("newSubManagerType").value;
   const full_name = $("newSubManagerName").value.trim();
   const login_id = $("newSubManagerLogin").value.trim().toUpperCase();
   const password = $("newSubManagerPassword").value;
   const button = $("createSubManagerButton");
   const message = $("subManagerCreateMessage");
-  if (!company_id || !["NB","DHAKA"].includes(region) || !full_name || !login_id || password.length < 8) {
+  if (!company_id || !["NB","DHAKA","SB"].includes(region) || !["NB","DHAKA"].includes(sub_manager_type) || !full_name || !login_id || password.length < 8) {
     message.textContent = "Company নির্বাচন/নির্ধারণ, Region, নাম, Login ID এবং কমপক্ষে ৮ অক্ষরের Password নিশ্চিত করুন।";
     message.className = "message error";
     return;
@@ -5100,7 +5101,7 @@ $("createSubManagerForm").addEventListener("submit", async event => {
   message.className = "message";
   try {
     const {data,error} = await supabase.functions.invoke("manage-company-users", {
-      body: {action:"create_sub_manager",company_id,region,full_name,login_id,password}
+      body: {action:"create_sub_manager",company_id,sub_manager_type,region,full_name,login_id,password}
     });
     if (error) throw new Error(data?.message || error.message || "Backend request failed");
     if (!data?.success) throw new Error(data?.message || "Sub Manager ID তৈরি হয়নি।");
