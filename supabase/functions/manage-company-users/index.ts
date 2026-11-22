@@ -273,7 +273,9 @@ Deno.serve(async (req: Request) => {
     role = "company_manager";
   } else if (action === "create_sub_manager") {
     const requestedRegion = typeof body.region === "string" ? body.region.toUpperCase() : "";
-    const requestedType = typeof body.sub_manager_type === "string" ? body.sub_manager_type.toUpperCase() : "";
+    const requestedType = typeof body.sub_manager_type === "string"
+      ? body.sub_manager_type.toUpperCase()
+      : (requestedRegion === "NB" || requestedRegion === "DHAKA" ? requestedRegion : "");
     if (!["NB", "DHAKA", "SB"].includes(requestedRegion)) {
       return json(400, { success: false, message: "Assigned Region NB, DHAKA অথবা SB হতে হবে।" }, origin);
     }
