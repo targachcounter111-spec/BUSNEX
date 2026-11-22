@@ -1226,6 +1226,22 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 #globalCompanyHub .busnex-site-footer{margin-top:22px}
 @media(max-width:650px){.busnex-site-footer{font-size:11px;padding:12px 8px}}
 </style>
+<style id="busnex-bill-reminder-style">
+#busnexBillReminderOverlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(15,20,18,.88);backdrop-filter:blur(8px);animation:bnxBillFade .22s ease}
+#busnexBillReminderOverlay[hidden]{display:none}
+#busnexBillReminderOverlay .bnx-bill-card{width:min(680px,100%);padding:clamp(25px,5vw,48px);border-radius:24px;background:linear-gradient(145deg,#fffdf7,#fff);border:2px solid #e5bd67;box-shadow:0 30px 100px #0007;text-align:center;color:#26352b}
+#busnexBillReminderOverlay .bnx-bill-icon{width:76px;height:76px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:#fff1ce;color:#9a5c00;font-size:38px;font-weight:900}
+#busnexBillReminderOverlay h2{font-size:clamp(23px,4vw,34px);line-height:1.3;margin:0 0 16px;color:#8b3d16}
+#busnexBillReminderOverlay .bnx-bill-company{font-weight:850;color:#164e36;font-size:16px;margin-bottom:12px}
+#busnexBillReminderOverlay .bnx-bill-message{font-size:clamp(16px,2.3vw,20px);line-height:1.8;white-space:pre-wrap;margin:0 auto 18px;max-width:560px}
+#busnexBillReminderOverlay .bnx-bill-deadline{display:inline-block;padding:12px 20px;border-radius:12px;background:#fff0e7;color:#a33416;font-size:17px;font-weight:900;border:1px solid #f3c6ad}
+#busnexBillReminderOverlay .bnx-bill-foot{margin-top:20px;color:#6b756e;font-size:12px}
+#busnexBillReminderOverlay .bnx-bill-progress{height:6px;margin-top:22px;background:#eee;border-radius:20px;overflow:hidden}
+#busnexBillReminderOverlay .bnx-bill-progress span{display:block;height:100%;width:100%;background:#d99a31;transform-origin:left;animation:bnxBillCountdown 10s linear forwards}
+@keyframes bnxBillFade{from{opacity:0}to{opacity:1}}
+@keyframes bnxBillCountdown{to{transform:scaleX(0)}}
+@media(max-width:600px){#busnexBillReminderOverlay{padding:13px}#busnexBillReminderOverlay .bnx-bill-card{border-radius:18px}}
+</style>
 </head>
 
 <body>
@@ -1359,6 +1375,21 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
         </div>
       </div>
       <div id="maintenanceSettingsMessage" class="message" aria-live="polite">Maintenance Mode ডিফল্টভাবে OFF থাকে।</div>
+    </div>
+    <div id="companyBillReminderPanel" class="company-add-panel section">
+      <h2>৳ Company-wise Bill Payment Reminder</h2>
+      <p class="muted">নির্দিষ্ট Company-এর Manager ও Counter Dashboard-এ ১০ সেকেন্ডের বিল পরিশোধ Reminder দেখান। Super Admin চাইলে OFF করে আবার ON করতে পারবেন।</p>
+      <div class="form-row">
+        <div class="field"><label for="billReminderCompanySelect">Company নির্বাচন করুন</label><select id="billReminderCompanySelect"><option value="">Company নির্বাচন করুন</option></select></div>
+        <div class="field"><label for="billReminderDeadline">বিল পরিশোধের শেষ তারিখ</label><input id="billReminderDeadline" type="date"></div>
+      </div>
+      <div class="field"><label for="billReminderMessage">Reminder Message</label><textarea id="billReminderMessage" maxlength="600" rows="3" placeholder="আপনার কোম্পানির বকেয়া বিল নির্ধারিত তারিখের মধ্যে পরিশোধ করুন।"></textarea></div>
+      <div class="form-row" style="align-items:center">
+        <label style="display:flex;align-items:center;gap:9px"><input id="billReminderEnabled" type="checkbox" style="width:18px;height:18px"> Reminder চালু (ON)</label>
+        <button id="loadBillReminderButton" class="secondary" type="button">নির্বাচিত Company-এর সেটিং দেখুন</button>
+        <button id="saveBillReminderButton" class="primary" type="button">Reminder Save করুন</button>
+      </div>
+      <div id="billReminderAdminMessage" class="message" aria-live="polite">প্রথমে Company নির্বাচন করুন।</div>
     </div>
     <div id="footerSettingsPanel" class="company-add-panel section">
       <h2>Website Footer পরিচালনা</h2>
@@ -1985,6 +2016,100 @@ async function loadBillingDashboardNotice() {
   }
 }
 
+
+let billReminderShownForSession = false;
+let billReminderTimer = null;
+
+function fillBillReminderCompanyOptions() {
+  const select=$("billReminderCompanySelect");
+  if(!select)return;
+  const previous=select.value;
+  select.innerHTML='<option value="">Company নির্বাচন করুন</option>';
+  (companies||[]).forEach(company=>{
+    const option=document.createElement("option");
+    option.value=company.id; option.textContent=company.name;
+    select.appendChild(option);
+  });
+  if(companies.some(company=>company.id===previous))select.value=previous;
+}
+
+async function loadBillReminderAdminSettings() {
+  if(currentProfile?.role!=="super_admin")return;
+  const companyId=$("billReminderCompanySelect").value;
+  const message=$("billReminderAdminMessage");
+  if(!companyId){message.textContent="প্রথমে Company নির্বাচন করুন।";message.className="message error";return;}
+  message.textContent="সেটিং লোড হচ্ছে...";message.className="message";
+  try{
+    const {data,error}=await supabase.from("company_bill_reminders")
+      .select("message,payment_deadline,is_active").eq("company_id",companyId).maybeSingle();
+    if(error)throw error;
+    $("billReminderMessage").value=data?.message||"আপনার কোম্পানির বকেয়া বিল দ্রুত পরিশোধ করুন।";
+    $("billReminderDeadline").value=data?.payment_deadline||"";
+    $("billReminderEnabled").checked=data?.is_active===true;
+    message.textContent=data?"বর্তমান Reminder সেটিং লোড হয়েছে।":"এই Company-এর Reminder এখনো তৈরি হয়নি।";
+    message.className="message ok";
+  }catch(error){message.textContent="লোড করা যায়নি: "+error.message;message.className="message error";}
+}
+
+async function saveBillReminderAdminSettings() {
+  if(currentProfile?.role!=="super_admin")return;
+  const companyId=$("billReminderCompanySelect").value;
+  const message=$("billReminderMessage").value.trim();
+  const deadline=$("billReminderDeadline").value;
+  const enabled=$("billReminderEnabled").checked;
+  const status=$("billReminderAdminMessage");
+  if(!companyId||!deadline||!message){status.textContent="Company, Message এবং শেষ তারিখ পূরণ করুন।";status.className="message error";return;}
+  const button=$("saveBillReminderButton");button.disabled=true;
+  status.textContent="সংরক্ষণ হচ্ছে...";status.className="message";
+  try{
+    const {data:userData,error:userError}=await supabase.auth.getUser();
+    if(userError)throw userError;
+    const payload={company_id:companyId,message,payment_deadline:deadline,is_active:enabled,updated_by:userData.user.id};
+    const {error}=await supabase.from("company_bill_reminders").upsert(payload,{onConflict:"company_id"});
+    if(error)throw error;
+    status.textContent=enabled?"Reminder ON করা হয়েছে। নির্বাচিত Company-এর Manager ও Counter Dashboard-এ দেখাবে।":"Reminder OFF করা হয়েছে। আর দেখাবে না।";
+    status.className="message ok";
+  }catch(error){status.textContent="সংরক্ষণ হয়নি: "+error.message;status.className="message error";}
+  finally{button.disabled=false;}
+}
+
+function showCompanyBillReminder(reminder) {
+  if(billReminderShownForSession||!reminder||reminder.is_active!==true)return;
+  billReminderShownForSession=true;
+  let overlay=document.getElementById("busnexBillReminderOverlay");
+  if(!overlay){
+    overlay=document.createElement("div");overlay.id="busnexBillReminderOverlay";overlay.hidden=true;
+    const card=document.createElement("div");card.className="bnx-bill-card";
+    const icon=document.createElement("div");icon.className="bnx-bill-icon";icon.textContent="৳";
+    const heading=document.createElement("h2");heading.textContent="জরুরি বিল পরিশোধের নোটিশ";
+    const company=document.createElement("div");company.className="bnx-bill-company";
+    const body=document.createElement("p");body.className="bnx-bill-message";
+    const deadline=document.createElement("div");deadline.className="bnx-bill-deadline";
+    const foot=document.createElement("div");foot.className="bnx-bill-foot";foot.textContent="অনুগ্রহ করে নির্ধারিত সময়ের মধ্যে বকেয়া বিল পরিশোধ করুন।";
+    const progress=document.createElement("div");progress.className="bnx-bill-progress";
+    const bar=document.createElement("span");progress.appendChild(bar);
+    card.append(icon,heading,company,body,deadline,foot,progress);overlay.appendChild(card);document.body.appendChild(overlay);
+  }
+  const children=overlay.querySelector(".bnx-bill-card").children;
+  children[2].textContent=activeCompanyName||currentProfile?.company_name||"আপনার Company";
+  children[3].textContent=reminder.message||"আপনার কোম্পানির বকেয়া বিল দ্রুত পরিশোধ করুন।";
+  const d=new Date(reminder.payment_deadline+"T00:00:00");
+  children[4].textContent="বিল পরিশোধের শেষ তারিখ: "+(Number.isNaN(d.getTime())?reminder.payment_deadline:d.toLocaleDateString("bn-BD",{year:"numeric",month:"long",day:"numeric",timeZone:"Asia/Dhaka"}));
+  overlay.hidden=false;
+  if(billReminderTimer)clearTimeout(billReminderTimer);
+  billReminderTimer=setTimeout(()=>{overlay.hidden=true;},10000);
+}
+
+async function loadCompanyBillReminderForUser() {
+  if(!["company_manager","counter_operator"].includes(currentProfile?.role)||billReminderShownForSession)return;
+  try{
+    const {data,error}=await supabase.from("company_bill_reminders")
+      .select("message,payment_deadline,is_active").eq("company_id",currentProfile.company_id).eq("is_active",true).maybeSingle();
+    if(error)throw error;
+    if(data)showCompanyBillReminder(data);
+  }catch(error){console.warn("COMPANY BILL REMINDER:",error.message);}
+}
+
 async function loadDashboardStats() {
   const message = $("dashboardMessage");
   const fields = ["dashboardTrips","dashboardTickets","dashboardSeats","dashboardCounters"];
@@ -2225,6 +2350,7 @@ async function showDashboard(profile) {
   document.title = "BUSNEX | Active Trips";
   loadDashboardStats();
   loadBillingDashboardNotice();
+  loadCompanyBillReminderForUser();
   loadBookingStopsForSelectedDate();
 }
 
@@ -2628,6 +2754,9 @@ $("logoutButton").addEventListener("click",async() => {
 });
 
 $("maintenanceToggleButton").addEventListener("click",toggleMaintenanceMode);
+$("loadBillReminderButton").addEventListener("click",loadBillReminderAdminSettings);
+$("saveBillReminderButton").addEventListener("click",saveBillReminderAdminSettings);
+$("billReminderCompanySelect").addEventListener("change",loadBillReminderAdminSettings);
 $("maintenanceRetryButton").addEventListener("click",() => {
   if (currentProfile) showDashboard(currentProfile);
   else showLogin();
