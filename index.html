@@ -6799,6 +6799,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         }).forEach(stop => {
           const option = document.createElement("option");
           option.value = stop.id;
+          option.dataset.stopName = stop.stop_name || "";
           const stopTime = stop.scheduled_time ? formatClock12(String(stop.scheduled_time).slice(0,5)) : "";
           option.textContent = stop.stop_name + (stopTime ? " · " + stopTime : "");
           select.appendChild(option);
@@ -6807,7 +6808,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         if (field === "boarding" && !groupPassenger.boarding && currentProfile?.default_boarding_point) {
           const preferredName = String(currentProfile.default_boarding_point).trim().toLocaleLowerCase();
           const preferredOption = [...select.options].find(option =>
-            option.value && option.textContent.trim().toLocaleLowerCase() === preferredName
+            option.value && String(option.dataset.stopName || option.textContent).trim().toLocaleLowerCase() === preferredName
           );
           if (preferredOption) groupPassenger.boarding = preferredOption.value;
         }
