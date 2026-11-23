@@ -6799,7 +6799,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         }).forEach(stop => {
           const option = document.createElement("option");
           option.value = stop.id;
-          option.textContent = stop.stop_name;
+          const stopTime = stop.scheduled_time ? formatClock12(String(stop.scheduled_time).slice(0,5)) : "";
+          option.textContent = stop.stop_name + (stopTime ? " · " + stopTime : "");
           select.appendChild(option);
         });
 
