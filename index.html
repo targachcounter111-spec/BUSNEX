@@ -7145,6 +7145,33 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         state === "blocked" ? "blocked" : "unknown"
       );
       div.textContent = seat.seat_number;
+      // Restore a visible hover card for every seat state. Sold seats retain
+      // their detailed ticket/seller popup below; other states get a status popup.
+      if (state !== "sold") {
+        let statusTip = null;
+        div.addEventListener("mouseenter",() => {
+          statusTip = document.createElement("div");
+          statusTip.className = "busnex-seat-status-tooltip";
+          const statusText = isReservation ? "Reserved / সংরক্ষিত" :
+            activeTemporaryHold ? "Temporary Hold / সাময়িকভাবে Hold" :
+            isAvailable ? "Available / খালি" :
+            state === "blocked" ? "Blocked / বন্ধ" : "Seat status / সিটের অবস্থা";
+          statusTip.textContent = "Seat " + seat.seat_number + " · " + statusText;
+          statusTip.style.cssText = "position:fixed;z-index:2147483000;max-width:280px;padding:10px 13px;border:1px solid #cbd5e1;border-radius:10px;background:#142b22;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.24);font:700 13px/1.5 Arial,sans-serif;pointer-events:none;white-space:normal;";
+          document.body.appendChild(statusTip);
+          const rect = div.getBoundingClientRect();
+          const width = Math.min(280,window.innerWidth-16);
+          let left = rect.right + 9;
+          if (left + width > window.innerWidth - 8) left = rect.left - width - 9;
+          statusTip.style.width = width + "px";
+          statusTip.style.left = Math.max(8,Math.min(window.innerWidth-width-8,left)) + "px";
+          statusTip.style.top = Math.max(8,Math.min(window.innerHeight-70,rect.top + rect.height/2 - 22)) + "px";
+        });
+        div.addEventListener("mouseleave",() => {
+          if (statusTip) statusTip.remove();
+          statusTip = null;
+        });
+      }
       div.title = state === "sold"
         ? "বিক্রিত Ticket-এর বিস্তারিত দেখতে ক্লিক করুন"
         : isAvailable
@@ -7940,6 +7967,38 @@ a:hover{color:var(--busnex-green-900)}
 @media(max-width:900px){#appScreen #page-booking .booking-workspace{grid-template-columns:minmax(0,1fr)!important}#appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:650px){#appScreen #page-booking .counter-search-panel{padding:12px!important}#appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#appScreen #page-booking .counter-control-row{grid-template-columns:1fr!important}#appScreen #page-booking .counter-day-controls{grid-template-columns:repeat(3,minmax(0,1fr))!important}#appScreen #page-booking .booking-seat-panel,#appScreen #page-booking .booking-passenger-panel{padding:12px!important}}
 
+</style>
+
+<style id="busnex-seat-status-colors-and-hover-fix">
+/* Seat state colours must win over the generic white seat styling. */
+#appScreen #page-booking .booking-seat-panel .seat.available{
+  background:#dcfce7!important;color:#166534!important;border:2px solid #22c55e!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.selected{
+  background:#15803d!important;color:#fff!important;border:2px solid #166534!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.sold,
+#appScreen #page-booking .booking-seat-panel .seat.sold-male{
+  background:#fee2e2!important;color:#991b1b!important;border:2px solid #ef4444!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.sold-female{
+  background:#fce7f3!important;color:#9d174d!important;border:2px solid #ec4899!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.reserved{
+  background:#fef3c7!important;color:#92400e!important;border:2px solid #f59e0b!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.held{
+  background:#dbeafe!important;color:#1e40af!important;border:2px solid #3b82f6!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.blocked{
+  background:#e5e7eb!important;color:#374151!important;border:2px solid #6b7280!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.unknown{
+  background:#f3f4f6!important;color:#6b7280!important;border:2px dashed #9ca3af!important;
+}
+#appScreen #page-booking .booking-seat-panel .seat.available:hover{
+  background:#bbf7d0!important;filter:brightness(.98);
+}
 </style>
 
 <style id="busnex-restore-original-header-wordmark">
