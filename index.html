@@ -1468,6 +1468,137 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
   #appScreen>.topbar .profile-avatar{flex-basis:34px!important;width:34px!important;height:34px!important}
 }
 </style>
+
+<style id="busnex-counter-dashboard-refresh-2026">
+/* Refreshed counter dashboard — visual-only; preserve all existing IDs, controls and behavior. */
+#appScreen>.topbar{
+  height:78px!important;display:grid!important;
+  grid-template-columns:minmax(280px,1fr) minmax(230px,300px) minmax(330px,1fr)!important;
+  gap:20px!important;padding:0 clamp(16px,2.2vw,34px)!important;
+  background:rgba(255,255,255,.97)!important;color:#173b2b!important;
+  border-bottom:1px solid #dce9df!important;box-shadow:0 3px 16px rgba(24,75,48,.07)!important;
+}
+#appScreen>.topbar:after{display:none!important}
+#appScreen>.topbar .topbar-left{display:flex!important;align-items:center!important;gap:18px!important;min-width:0!important}
+#appScreen>.topbar .menu-toggle{
+  width:42px!important;height:42px!important;padding:0!important;flex:0 0 42px!important;
+  display:grid!important;place-items:center!important;background:#f0f7f1!important;
+  color:#145c39!important;border:1px solid #d8e9dc!important;border-radius:13px!important;
+  font-size:23px!important;box-shadow:0 2px 7px rgba(20,80,48,.08)!important
+}
+#appScreen>.topbar .brand{font-size:27px!important;letter-spacing:1px!important;color:#145c39!important}
+#appScreen>.topbar .brand span{color:#62a94f!important}
+#appScreen>.topbar .topbar-company{color:#52735e!important;font-size:12px!important;font-weight:800!important}
+#appScreen>.topbar .topbar-search{height:44px!important;border:1px solid #dce8df!important;border-radius:24px!important;padding:4px 7px 4px 14px!important;background:#fff!important;box-shadow:0 2px 8px rgba(22,73,44,.04)!important}
+#appScreen>.topbar .topbar-search input{font-size:13px!important;color:#244b35!important}
+#appScreen>.topbar .topbar-search button{width:34px!important;height:34px!important;border-radius:50%!important;background:#176b4b!important;color:#fff!important}
+#appScreen>.topbar .top-actions{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
+#appScreen>.topbar .topbar-profile{color:#17452f!important;gap:9px!important}
+#appScreen>.topbar .topbar-profile b{color:#17452f!important;font-weight:850!important}
+#appScreen>.topbar .topbar-profile small{color:#66806e!important}
+#appScreen>.topbar .profile-avatar{background:#eaf5ec!important;color:#176b4b!important;border:1px solid #d5e8d8!important}
+#appScreen>.topbar .top-actions .secondary{background:#fff!important;color:#175b3a!important;border:1px solid #d5e6d8!important}
+#appScreen>.topbar #logoutButton{background:#fff!important;color:#175b3a!important;border:1px solid #d5e6d8!important}
+#appScreen .layout{background:linear-gradient(180deg,#f1f8f2 0%,#f7faf7 100%)!important}
+#appScreen .main{padding:20px clamp(16px,2vw,32px) 34px!important}
+#appScreen #page-booking{max-width:none!important}
+#appScreen #page-booking .company-brand-strip{
+  display:flex!important;align-items:center!important;gap:15px!important;
+  min-height:76px!important;padding:14px 20px!important;margin:0 0 14px!important;
+  background:linear-gradient(105deg,#fff 0%,#fbfefb 66%,#edf8ef 100%)!important;
+  border:1px solid #dcebe0!important;border-radius:18px!important;
+  box-shadow:0 7px 22px rgba(31,87,51,.06)!important
+}
+#appScreen #page-booking .company-logo-mark{
+  width:48px!important;height:48px!important;display:grid!important;place-items:center!important;
+  border-radius:14px!important;background:linear-gradient(145deg,#1c8b52,#12633d)!important;
+  color:#fff!important;font-size:21px!important;font-weight:900!important;
+  box-shadow:0 5px 12px rgba(21,112,62,.18)!important
+}
+#appScreen #page-booking .company-brand-strip strong{color:#193d2c!important;font-size:14px!important;font-weight:900!important}
+#appScreen #page-booking .company-brand-strip small,#appScreen #page-booking .company-id-line{color:#718276!important}
+#appScreen #page-booking .counter-reference-heading{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  padding:0 2px 12px!important;margin:0 0 15px!important;border-bottom:2px solid #dce9df!important
+}
+#appScreen #page-booking .counter-reference-heading h1{font-size:20px!important;color:#174b36!important;font-weight:900!important}
+#appScreen #page-booking .counter-search-panel{
+  position:relative!important;overflow:hidden!important;padding:20px 18px 16px!important;
+  background:#fff!important;border:1px solid #dce9df!important;border-radius:19px!important;
+  box-shadow:0 9px 25px rgba(31,78,53,.065)!important
+}
+#appScreen #page-booking .counter-search-panel:before{
+  content:"⌕  SEARCH SCHEDULE";display:flex;align-items:center;min-height:42px;
+  margin:-20px -18px 17px;padding:0 20px;
+  background:linear-gradient(100deg,#145b3b,#1d8050);color:#fff;
+  font-size:16px;font-weight:900;letter-spacing:.02em
+}
+#appScreen #page-booking .counter-filter-grid{
+  display:grid!important;grid-template-columns:repeat(5,minmax(110px,1fr)) auto!important;
+  gap:11px!important;align-items:end!important
+}
+#appScreen #page-booking .counter-filter-grid>.field{min-width:0!important;margin:0!important;gap:7px!important}
+#appScreen #page-booking .counter-filter-grid>.field label{
+  color:#536d5b!important;font-size:11px!important;font-weight:850!important
+}
+#appScreen #page-booking .counter-filter-grid>.field input,
+#appScreen #page-booking .counter-filter-grid>.field select{
+  min-height:44px!important;width:100%!important;padding:10px 12px!important;
+  background:#fff!important;border:1px solid #d8e5da!important;border-radius:11px!important;
+  color:#294735!important
+}
+#appScreen #page-booking .counter-search-button{
+  min-height:44px!important;padding:0 22px!important;border-radius:24px!important;
+  background:linear-gradient(110deg,#176b4b,#238958)!important;color:#fff!important;
+  border:1px solid #176b4b!important;box-shadow:0 5px 12px rgba(23,107,75,.17)!important;
+  white-space:nowrap!important
+}
+#appScreen #page-booking .counter-control-row{
+  display:grid!important;grid-template-columns:minmax(390px,1.4fr) minmax(150px,.9fr) minmax(170px,.8fr)!important;
+  align-items:center!important;gap:16px!important;margin-top:16px!important;padding-top:15px!important;
+  border-top:1px solid #e5ece5!important
+}
+#appScreen #page-booking .counter-day-controls{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+#appScreen #page-booking .counter-day-button{min-height:44px!important;border-radius:12px!important;font-weight:850!important}
+#appScreen #page-booking .counter-day-controls small{grid-column:1/-1!important;padding-top:1px!important}
+#appScreen #page-booking .counter-type-controls{
+  min-height:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  gap:12px!important;border-left:1px solid #e1e9df!important;border-right:1px solid #e1e9df!important
+}
+#appScreen #page-booking .counter-type-controls>span{font-size:10px!important;font-weight:900!important;letter-spacing:.06em!important}
+#appScreen #page-booking .counter-type-controls label{display:flex!important;align-items:center!important;gap:5px!important;font-size:12px!important}
+#appScreen #page-booking .counter-order-control{display:flex!important;flex-direction:column!important;gap:6px!important}
+#appScreen #page-booking .counter-order-control label{color:#52685b!important;font-size:11px!important;font-weight:800!important}
+#appScreen #page-booking .counter-order-control select{min-height:42px!important;border-radius:11px!important}
+#appScreen #page-booking .counter-results-heading{margin:19px 0 10px!important}
+#appScreen #page-booking .counter-results-heading h2{color:#174b36!important;font-weight:900!important}
+#appScreen #page-booking .counter-trip-results{display:grid!important;gap:12px!important}
+@media(max-width:1050px){
+ #appScreen>.topbar{grid-template-columns:minmax(200px,1fr) minmax(220px,1fr)!important}
+ #appScreen>.topbar .topbar-search{display:none!important}
+ #appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr)) auto!important}
+ #appScreen #page-booking .counter-control-row{grid-template-columns:1fr 1fr!important}
+ #appScreen #page-booking .counter-order-control{grid-column:1/-1}
+}
+@media(max-width:700px){
+ #appScreen>.topbar{height:64px!important;grid-template-columns:1fr auto!important;padding:0 10px!important;gap:8px!important}
+ #appScreen>.topbar .topbar-company,#appScreen>.topbar .topbar-profile small{display:none!important}
+ #appScreen>.topbar .topbar-profile b{max-width:90px!important}
+ #appScreen>.topbar .top-actions{gap:5px!important}
+ #appScreen>.topbar #myAccountButton,#appScreen>.topbar #returnGlobalButton{display:none!important}
+ #appScreen .main{padding:12px 9px 24px!important}
+ #appScreen #page-booking .company-brand-strip{padding:12px!important}
+ #appScreen #page-booking .counter-search-panel{padding:14px 11px!important}
+ #appScreen #page-booking .counter-search-panel:before{margin:-14px -11px 14px;padding:0 13px}
+ #appScreen #page-booking .counter-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #appScreen #page-booking .counter-filter-grid>.field{min-width:0!important}
+ #appScreen #page-booking .counter-search-button{grid-column:1/-1!important}
+ #appScreen #page-booking .counter-control-row{grid-template-columns:1fr!important}
+ #appScreen #page-booking .counter-type-controls{border:0;border-top:1px solid #e1e9df;border-bottom:1px solid #e1e9df;padding:10px 0}
+ #appScreen #page-booking .counter-order-control{grid-column:auto}
+}
+</style>
+
 </head>
 
 <body>
