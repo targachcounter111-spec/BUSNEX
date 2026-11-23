@@ -1930,6 +1930,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
         <button class="nav-btn" data-page="reservations"><span class="bnx-nav-icon">▣</span><span>Reservations</span><span class="bnx-nav-arrow">›</span></button></div>
       <div class="bnx-nav-group"><span class="bnx-nav-caption">MANAGEMENT</span>
         <button class="nav-btn manager-only nb-counter-manager-only" data-page="counters"><span class="bnx-nav-icon">♙</span><span>Counters & Access</span><span class="bnx-nav-arrow">›</span></button>
+        <button class="nav-btn company-manager-notice-nav hidden" data-page="notices"><span class="bnx-nav-icon">📢</span><span>Notice</span><span class="bnx-nav-arrow">›</span></button>
         <button class="nav-btn admin-only" data-page="billing"><span class="bnx-nav-icon">৳</span><span>Billing</span><span class="bnx-nav-arrow">›</span></button></div>
       <div class="bnx-sidebar-footer"><span class="bnx-footer-mark">✦</span><span><strong>BUSNEX</strong><small>Smart Bus Operations</small></span></div>
     </aside>
@@ -1974,19 +1975,23 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
         </div>
       </section>
 
+      <section id="page-notices" class="page hidden">
+        <div class="page-head"><div><h1>📢 Notice Management</h1><div class="muted small">আপনার Company-এর Counter Operator-দের জন্য Notice তৈরি ও পরিচালনা করুন</div></div></div>
+        <div class="card">
+          <div id="companyNoticeManagerPanel" class="company-add-panel section hidden">
+            <h2>📢 Company Notice পরিচালনা</h2><p class="muted">আপনার Company-এর Counter Panel-এ Notice তৈরি, Edit, ON/OFF করতে পারবেন।</p>
+            <div class="form-row"><div class="field"><label for="noticeManagerTitle">Notice Title</label><input id="noticeManagerTitle" maxlength="140" placeholder="Notice-এর শিরোনাম"></div><div class="field"><label for="noticeManagerPriority">Priority</label><select id="noticeManagerPriority"><option value="normal">সাধারণ</option><option value="important">গুরুত্বপূর্ণ</option><option value="urgent">জরুরি</option></select></div></div>
+            <div class="field"><label for="noticeManagerMessage">Notice Message</label><textarea id="noticeManagerMessage" maxlength="1200" rows="3" placeholder="Notice-এর বিস্তারিত লিখুন"></textarea></div>
+            <div class="form-row"><div class="field"><label for="noticeManagerStart">শুরুর সময়</label><input id="noticeManagerStart" type="datetime-local"></div><div class="field"><label for="noticeManagerExpiry">শেষ হওয়ার সময় (ঐচ্ছিক)</label><input id="noticeManagerExpiry" type="datetime-local"></div><div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:8px"><input id="noticeManagerActive" type="checkbox" checked style="width:18px"> Notice Active</label></div></div>
+            <div class="form-row"><button id="saveNoticeManagerButton" class="primary" type="button">Notice Save করুন</button><button id="disableAllManagerNoticesButton" class="danger" type="button">আমার Company-এর সব Notice বন্ধ করুন</button><button id="cancelNoticeManagerEdit" class="secondary hidden" type="button">Edit বাতিল</button></div>
+            <div id="noticeManagerMessageStatus" class="message" aria-live="polite">আপনার Company-এর Notice তৈরি করুন।</div><div id="noticeManagerList" class="section"></div>
+          </div>
+        </div>
+      </section>
+
       <section id="page-booking" class="page hidden busnex-counter-page">
         <div id="counterCompanyBrand" class="company-brand-strip hidden"><span id="companyLogoMark" class="company-logo-mark" aria-hidden="true">▣</span><span class="company-brand-copy"><strong id="counterCompanyBrandName">SHAMOL TRAVELS</strong><small id="counterCompanyBrandMeta">Company Workspace</small><span id="counterCompanyBrandId" class="company-id-line"></span></span><span class="company-brand-role" id="counterRoleTag"></span></div>
-        <section id="companyBrandingManager" class="company-branding-manager hidden" aria-label="Company logo settings"><div class="company-branding-manager-copy"><strong>কোম্পানির Logo / ছবি</strong><span>PNG, JPG অথবা WebP · সর্বোচ্চ 3 MB</span></div><div class="company-branding-controls"><label class="company-logo-file-label" for="companyLogoFile">ছবি নির্বাচন করুন</label><input id="companyLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="saveCompanyLogoButton" type="button" class="primary" disabled>Logo Save করুন</button><button id="removeCompanyLogoButton" type="button" class="secondary hidden">Logo সরান</button></div><div id="companyLogoMessage" class="message" aria-live="polite">আপনার কোম্পানির Logo বা ছবি নির্বাচন করুন।</div></section>
-        <div class="counter-reference-heading"><h1>Dashboard</h1></div>
-
-        <div id="companyNoticeBannerArea" class="section"></div>
-        <div id="companyNoticeManagerPanel" class="company-add-panel section hidden">
-          <h2>📢 Company Notice পরিচালনা</h2><p class="muted">আপনার Company-এর Counter Panel-এ Notice তৈরি, Edit, ON/OFF করতে পারবেন।</p>
-          <div class="form-row"><div class="field"><label for="noticeManagerTitle">Notice Title</label><input id="noticeManagerTitle" maxlength="140" placeholder="Notice-এর শিরোনাম"></div><div class="field"><label for="noticeManagerPriority">Priority</label><select id="noticeManagerPriority"><option value="normal">সাধারণ</option><option value="important">গুরুত্বপূর্ণ</option><option value="urgent">জরুরি</option></select></div></div>
-          <div class="field"><label for="noticeManagerMessage">Notice Message</label><textarea id="noticeManagerMessage" maxlength="1200" rows="3" placeholder="Notice-এর বিস্তারিত লিখুন"></textarea></div>
-          <div class="form-row"><div class="field"><label for="noticeManagerStart">শুরুর সময়</label><input id="noticeManagerStart" type="datetime-local"></div><div class="field"><label for="noticeManagerExpiry">শেষ হওয়ার সময় (ঐচ্ছিক)</label><input id="noticeManagerExpiry" type="datetime-local"></div><div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:8px"><input id="noticeManagerActive" type="checkbox" checked style="width:18px"> Notice Active</label></div></div>
-          <div class="form-row"><button id="saveNoticeManagerButton" class="primary" type="button">Notice Save করুন</button><button id="disableAllManagerNoticesButton" class="danger" type="button">আমার Company-এর সব Notice বন্ধ করুন</button><button id="cancelNoticeManagerEdit" class="secondary hidden" type="button">Edit বাতিল</button></div>
-          <div id="noticeManagerMessageStatus" class="message" aria-live="polite">আপনার Company-এর Notice তৈরি করুন।</div><div id="noticeManagerList" class="section"></div>
+        <section id="companyBrandingManager" class="company-branding-manager hidden" aria-label="Company logo settings"><div class="company-branding-manager-copy"><strong>কোম্পানির Logo / ছবি</strong><span>PNG, JPG অথবা WebP · সর্বোচ্চ 3 MB</span></div><div class="company-branding-controls"><label class="company-logo-file-label" for="companyLogoFile">ছবি নির্বাচন করুন</label><input id="companyLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="saveCompanyLogoButton" type="button" class="primary" disabled>Logo Save করুন</button><button id="removeCompanyLogoButton" type="button" class="secondary hidden">Logo সরান</button></div><div id="companyLogoMessage" class="message" aria-live="polite">আপনার কোম্         <div id="noticeManagerMessageStatus" class="message" aria-live="polite">আপনার Company-এর Notice তৈরি করুন।</div><div id="noticeManagerList" class="section"></div>
         </div>
         <div class="counter-search-panel">
           <div class="counter-filter-grid">
@@ -2943,6 +2948,7 @@ async function showDashboard(profile) {
   $("roleLabel").textContent = roleText(currentProfile.role);
   $("counterRoleTag").textContent = roleText(currentProfile.role);
   document.querySelectorAll(".admin-only").forEach(button => button.classList.toggle("hidden",!isAdmin()));
+  document.querySelectorAll(".company-manager-notice-nav").forEach(button => button.classList.toggle("hidden",currentProfile.role!=="company_manager"));
   document.querySelectorAll(".trip-manager-only").forEach(button => button.classList.toggle("hidden",!isTripManager()));
   document.querySelectorAll(".nb-counter-manager-only").forEach(button => button.classList.toggle("hidden",currentProfile.role!=="nb_sub_manager" && !isAdmin()));
 
@@ -5174,6 +5180,7 @@ $("topbarSearchButton").addEventListener("click",() => {
 document.querySelectorAll(".nav-btn").forEach(button => {
   button.addEventListener("click",async() => {
     if (button.dataset.page === "trips" && !isTripManager()) return;
+    if (button.dataset.page === "notices" && currentProfile?.role !== "company_manager") return;
 
     document.querySelectorAll(".nav-btn").forEach(item => {
       item.classList.remove("active");
@@ -5205,6 +5212,7 @@ document.querySelectorAll(".nav-btn").forEach(button => {
     if (button.dataset.page === "reservations") await loadReservationsPage();
     if (button.dataset.page === "counters") await loadCounterDirectory();
     if (button.dataset.page === "billing") await loadBillingPage();
+    if (button.dataset.page === "notices") await loadCompanyNotices(currentProfile.company_id,"manager");
   });
 });
 
