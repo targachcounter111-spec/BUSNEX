@@ -5061,6 +5061,31 @@ $("menuToggle").addEventListener("click",() => {
   const opened = $("appScreen").classList.toggle("menu-open");
   $("menuToggle").setAttribute("aria-expanded",String(opened));
 });
+
+// Close the slide-out menu when the user clicks anywhere outside it.
+// Selecting a navigation item also closes the menu after its normal handler runs.
+document.addEventListener("click",(event) => {
+  const app = $("appScreen");
+  const sidebar = app?.querySelector(".sidebar");
+  const toggle = $("menuToggle");
+  if (!app?.classList.contains("menu-open") || !sidebar || !toggle) return;
+  const clickedInsideSidebar = sidebar.contains(event.target);
+  const clickedToggle = toggle.contains(event.target);
+  const selectedNavigationItem = event.target.closest?.(".sidebar .nav-btn");
+  if ((!clickedInsideSidebar && !clickedToggle) || selectedNavigationItem) {
+    app.classList.remove("menu-open");
+    toggle.setAttribute("aria-expanded","false");
+  }
+});
+
+document.addEventListener("keydown",(event) => {
+  if (event.key !== "Escape") return;
+  const app = $("appScreen");
+  if (!app?.classList.contains("menu-open")) return;
+  app.classList.remove("menu-open");
+  $("menuToggle").setAttribute("aria-expanded","false");
+});
+
 $("topbarSearchButton").addEventListener("click",() => {
   const value = $("topbarTicketSearch").value.trim();
   if (!value) { $("topbarTicketSearch").focus(); return; }
