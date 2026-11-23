@@ -6900,11 +6900,11 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div class="bpt-copy-label">PASSENGER COPY</div>
               <div class="bpt-copy-top"><span>Name : <b>${safe(ticket.passenger_name)}</b></span><span>PNR : ${safe(String(ticket.id).slice(0,13).toUpperCase())}</span></div>
               <div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div><div><b>Coach :</b> [${safe(coach)}]</div>
-              <div><b>Journey Date :</b> ${safe(journey)}</div><div><b>Departure Time :</b> ◷ ${safe(journey)}</div>
-              <div><b>Reporting Time :</b> ◷ ${safe(journey)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}</div><div><b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div><div><b>Group Original Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div><div><b>Group Discount :</b> BDT. ${safe(groupDiscount.toFixed(2))}</div><div><b>Group Paid Fare :</b> BDT. ${safe(groupPaid.toFixed(2))}</div>
-              <div><b>Total Fare :</b> BDT. ${safe(groupFare.toFixed(2))}</div><div><b>Seats :</b> [${safe(seatLabel)}]</div>
-              <div><b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}</div><div><b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
-              <div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}</div><div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
+              <div><b>Journey Date :</b> ${safe(journey)}　 <b>Departure :</b> ◷ ${safe(journey)}</div>
+              <div class="bpt-priority-route"><b>Seat :</b> [${safe(seatLabel)}]　 <b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}　 <b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
+              <div><b>Reporting Time :</b> ◷ ${safe(journey)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}　 <b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div>
+              <div><b>Total Fare :</b> BDT. ${safe(groupPaid.toFixed(2))}</div>
+              <div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}　 <b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
               <div class="bpt-copy-bottom">Issued On : ${safe(created)}　　Issued By : ${safe(sellerText)}</div>
               <div class="bpt-copy-note">BUSNEX · আপনার যাত্রা শুভ হোক</div>
               <div class="bpt-ticket-footer">${safe(ticketFooterText)}</div>
@@ -6956,9 +6956,13 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   .bpt-three-copy{box-sizing:border-box!important;width:100%!important;height:calc(3in - 43px)!important;min-height:0!important;max-height:calc(3in - 43px)!important;display:grid!important;grid-template-columns:1.75in 3.7in 1.75in!important;justify-content:space-between!important;align-items:stretch!important;gap:0!important;overflow:hidden!important;color:#222;font-family:Arial,sans-serif}
   .bpt-copy{box-sizing:border-box!important;height:100%!important;min-width:0!important;max-width:none!important;overflow:hidden!important;padding:4px 5px!important;font-size:7px!important;line-height:1.2!important;font-weight:500;color:#111!important;overflow-wrap:anywhere!important}
   .bpt-copy-side{font-size:8px!important;line-height:1.25!important;text-align:left!important;padding:4px 5px!important;border-right:1px dashed #777!important}
-  .bpt-copy-center{font-size:11px!important;line-height:1.32!important;padding:4px 9px!important;border-left:1px dashed #777;border-right:1px dashed #777}
-  .bpt-copy-center{position:relative!important;padding-bottom:34px!important;overflow:visible!important}
-  .bpt-ticket-footer{position:absolute!important;display:block!important;left:9px!important;right:9px!important;bottom:5px!important;width:auto!important;min-height:20px!important;margin:0!important;padding:4px 6px!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;font-family:Arial,"Noto Sans Bengali",sans-serif!important;font-size:9px!important;line-height:1.25!important;font-weight:700!important;color:#14532d!important;background:#effaf2!important;border:1px solid #b7dfc2!important;border-radius:3px!important;z-index:5!important;visibility:visible!important;opacity:1!important}
+  .bpt-copy-center{font-size:9px!important;line-height:1.14!important;padding:4px 8px 3px!important;border-left:1px dashed #777;border-right:1px dashed #777;overflow:hidden!important}
+  .bpt-copy-center>div{margin:0 0 2px!important}
+  .bpt-copy-center .bpt-copy-top{font-size:9px!important;line-height:1.15!important;margin:0 0 3px!important}
+  .bpt-copy-center .bpt-priority-route{font-size:9px!important;font-weight:700!important;line-height:1.2!important;padding:3px 4px!important;margin:2px 0 3px!important;background:#effaf2!important;border:1px solid #b7dfc2!important;border-radius:2px!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  .bpt-copy-center .bpt-copy-bottom{font-size:7px!important;line-height:1.1!important;margin:2px 0!important}
+  .bpt-copy-center .bpt-copy-note{font-size:8px!important;line-height:1.1!important;margin:2px 0!important}
+  .bpt-ticket-footer{position:static!important;display:block!important;width:100%!important;min-height:20px!important;margin:4px 0 0!important;padding:4px 5px!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;font-family:Arial,"Noto Sans Bengali",sans-serif!important;font-size:9px!important;line-height:1.2!important;font-weight:700!important;color:#14532d!important;background:#effaf2!important;border:1px solid #b7dfc2!important;border-radius:3px!important;visibility:visible!important;opacity:1!important;break-inside:avoid!important}
   .bpt-copy-top{display:flex;justify-content:space-between;gap:12px;margin-bottom:5px;font-weight:700}
   .bpt-copy-bottom{font-size:10px;text-align:center;margin-top:12px}
   .bpt-copy-note{text-align:center;font-size:12px;font-weight:700;margin-top:14px}
