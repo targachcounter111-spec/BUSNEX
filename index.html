@@ -1740,6 +1740,17 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
       </form>
       <div id="companyHubMessage" class="message" aria-live="polite"></div>
     </div>
+    <div id="globalCompanyTicketFooterPanel" class="company-add-panel section">
+      <h2>🎫 Company Ticket Footer পরিচালনা</h2>
+      <p class="muted">Super Admin ID থেকে Company নির্বাচন করে সেই Company-এর Ticket-এ দেখানোর Footer Text সেট করুন। প্রতিটি Company-এর জন্য আলাদা Footer থাকবে।</p>
+      <div class="form-row">
+        <div class="field"><label for="globalTicketFooterCompanySelect">Company নির্বাচন করুন</label><select id="globalTicketFooterCompanySelect"><option value="">Company নির্বাচন করুন</option></select></div>
+        <div class="field"><label for="globalTicketFooterTextInput">Ticket Footer Text</label><input id="globalTicketFooterTextInput" maxlength="180" placeholder="BUSNEX থেকে টিকিট কাটুন ঘরে বসেই"></div>
+        <div class="field"><label>&nbsp;</label><button id="globalTicketFooterSaveButton" class="primary" type="button">এই Company-এর Footer Save করুন</button></div>
+      </div>
+      <div id="globalTicketFooterMessage" class="message" aria-live="polite">প্রথমে Company নির্বাচন করুন।</div>
+      <div class="notice"><strong>Live Preview:</strong> <span id="globalTicketFooterPreview">BUSNEX থেকে টিকিট কাটুন ঘরে বসেই</span></div>
+    </div>
     <div class="company-add-panel section">
       <h2>＋ Create Company Manager Login</h2>
       <p class="muted">প্রথমে Company তৈরি করুন, তারপর সেই Company নির্বাচন করে Manager ID তৈরি করুন।</p>
@@ -2216,16 +2227,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
           <div class="notice">প্রতিটি Company-এর জন্য Super Admin আলাদা Service Charge নির্ধারণ করতে পারবেন। নতুন Sold Seat-এ তখনকার নির্ধারিত Rate একবারই সংরক্ষিত হবে; পুরোনো Ticket-এর Rate পরিবর্তন হবে না। Reserved, Cancelled বা Expired Seat-এর জন্য Charge হবে না।</div>
           <div id="billingAdminControls" class="section hidden">
             <div class="field"><label for="billingCompanySelect">Company নির্বাচন করুন</label><select id="billingCompanySelect"><option value="">সব Company</option></select></div>
-            <div id="companyTicketFooterAdminPanel" class="section card">
-              <h2>Company Ticket Footer পরিচালনা</h2>
-              <p class="muted small">উপরের Company নির্বাচন করে সেই Company-এর Ticket-এ দেখানোর Footer Text নির্ধারণ করুন। এটি শুধু ওই Company-এর Ticket-এ প্রিন্ট হবে।</p>
-              <div class="form-row">
-                <div class="field"><label for="companyTicketFooterTextInput">Ticket Footer Text</label><input id="companyTicketFooterTextInput" maxlength="180" placeholder="BUSNEX থেকে টিকিট কাটুন ঘরে বসেই"></div>
-                <div class="field"><label>&nbsp;</label><button id="saveCompanyTicketFooterButton" class="primary" type="button">এই Company-এর Footer Save করুন</button></div>
-              </div>
-              <div id="companyTicketFooterMessage" class="message" aria-live="polite">Company নির্বাচন করুন।</div>
-              <div class="ticket-footer-live-preview"><strong>Preview:</strong> <span id="companyTicketFooterPreview">BUSNEX থেকে টিকিট কাটুন ঘরে বসেই</span></div>
-            </div>
+
             <div class="small muted">Invoice Ticket Sold হলেই স্বয়ংক্রিয়ভাবে তৈরি/আপডেট হয়।</div>
             <div id="billingRateSettings" class="section">
               <h2>Company অনুযায়ী Service Charge</h2>
@@ -2853,6 +2855,31 @@ async function showDashboard(profile) {
   loadBookingStopsForSelectedDate();
 }
 
+async function loadGlobalCompanyTicketFooter(){
+  const companyId=$("globalTicketFooterCompanySelect")?.value||"";
+  const input=$("globalTicketFooterTextInput"),message=$("globalTicketFooterMessage"),save=$("globalTicketFooterSaveButton");
+  if(!companyId){input.value="";input.disabled=true;save.disabled=true;$("globalTicketFooterPreview").textContent="BUSNEX থেকে টিকিট কাটুন ঘরে বসেই";message.textContent="প্রথমে Company নির্বাচন করুন।";message.className="message";return;}
+  input.disabled=false;save.disabled=false;message.textContent="Company Footer লোড হচ্ছে...";
+  try{const {data,error}=await supabase.from("company_ticket_settings").select("footer_text").eq("company_id",companyId).maybeSingle();if(error)throw error;
+    input.value=String(data?.footer_text||"BUSNEX থেকে টিকিট কাটুন ঘরে বসেই");$("globalTicketFooterPreview").textContent=input.value;
+    message.textContent="নির্বাচিত Company-এর Footer Text লোড হয়েছে।";message.className="message ok";
+  }catch(error){message.textContent="Footer লোড হয়নি: "+error.message;message.className="message error";}
+}
+$("globalTicketFooterCompanySelect").addEventListener("change",loadGlobalCompanyTicketFooter);
+$("globalTicketFooterTextInput").addEventListener("input",()=>{$("globalTicketFooterPreview").textContent=$("globalTicketFooterTextInput").value||"এখানে Footer Preview দেখাবে";});
+$("globalTicketFooterSaveButton").addEventListener("click",async()=>{
+  if(currentProfile?.role!=="super_admin"){alert("শুধু Super Admin এই Setting পরিবর্তন করতে পারবেন।");return;}
+  const companyId=$("globalTicketFooterCompanySelect").value,value=$("globalTicketFooterTextInput").value.trim();
+  const message=$("globalTicketFooterMessage"),button=$("globalTicketFooterSaveButton");
+  if(!companyId){message.textContent="প্রথমে Company নির্বাচন করুন।";message.className="message error";return;}
+  if(!value||value.length>180){message.textContent="Footer Text খালি রাখা যাবে না; সর্বোচ্চ ১৮০ অক্ষর।";message.className="message error";return;}
+  button.disabled=true;button.textContent="সংরক্ষণ হচ্ছে...";
+  try{const userResult=await supabase.auth.getUser();const {error}=await supabase.from("company_ticket_settings").upsert({company_id:companyId,footer_text:value,updated_at:new Date().toISOString(),updated_by:userResult.data.user?.id||null},{onConflict:"company_id"});if(error)throw error;
+    message.textContent="এই Company-এর Ticket Footer সফলভাবে সংরক্ষণ হয়েছে।";message.className="message ok";$("globalTicketFooterPreview").textContent=value;
+  }catch(error){message.textContent="Footer সংরক্ষণ হয়নি: "+error.message;message.className="message error";}
+  finally{button.disabled=false;button.textContent="এই Company-এর Footer Save করুন";}
+});
+
 async function loadGlobalCompanyHub() {
   const message = $("companyHubMessage");
   message.textContent = "Company তালিকা লোড হচ্ছে...";
@@ -2862,7 +2889,15 @@ async function loadGlobalCompanyHub() {
     companies = data || [];
     fillBillReminderCompanyOptions();
     fillNoticeAdminCompanyOptions();
-    const managerCompanySelect = $("managerCompanySelect");
+    const footerCompanySelect=$("globalTicketFooterCompanySelect");
+      if(footerCompanySelect){
+        const previousFooterCompany=footerCompanySelect.value;
+        footerCompanySelect.innerHTML='<option value="">Company নির্বাচন করুন</option>';
+        companies.forEach(company=>{const option=document.createElement("option");option.value=company.id;option.textContent=company.name;footerCompanySelect.appendChild(option);});
+        if(companies.some(company=>company.id===previousFooterCompany))footerCompanySelect.value=previousFooterCompany;
+        await loadGlobalCompanyTicketFooter();
+      }
+      const managerCompanySelect = $("managerCompanySelect");
     if (managerCompanySelect) {
       const previousCompany = managerCompanySelect.value;
       managerCompanySelect.innerHTML = '<option value="">Company নির্বাচন করুন</option>';
@@ -5290,46 +5325,6 @@ async function loadCounterDirectory() {
     $("permissionList").innerHTML='<div class="empty">Permission তথ্য পাওয়া যায়নি।</div>';
   }
 }
-
-async function loadCompanyTicketFooterSetting() {
-  const panel=$("companyTicketFooterAdminPanel");
-  if(currentProfile?.role!=="super_admin"){panel?.classList.add("hidden");return;}
-  panel?.classList.remove("hidden");
-  const companyId=activeCompanyId;
-  const input=$("companyTicketFooterTextInput");
-  const message=$("companyTicketFooterMessage");
-  const save=$("saveCompanyTicketFooterButton");
-  if(!companyId){input.value="";input.disabled=true;save.disabled=true;$("companyTicketFooterPreview").textContent="Company নির্বাচন করুন";message.textContent="Footer নির্ধারণ করতে উপরের তালিকা থেকে একটি Company নির্বাচন করুন।";message.className="message";return;}
-  input.disabled=false;save.disabled=false;message.textContent="Company Footer লোড হচ্ছে...";
-  try{
-    const {data,error}=await supabase.from("company_ticket_settings").select("footer_text").eq("company_id",companyId).maybeSingle();
-    if(error)throw error;
-    input.value=String(data?.footer_text||"BUSNEX থেকে টিকিট কাটুন ঘরে বসেই");
-    $("companyTicketFooterPreview").textContent=input.value;
-    message.textContent="নির্বাচিত Company-এর Footer Text লোড হয়েছে।";message.className="message ok";
-  }catch(error){message.textContent="Footer লোড হয়নি: "+error.message;message.className="message error";}
-}
-$("companyTicketFooterTextInput").addEventListener("input",()=>{
-  $("companyTicketFooterPreview").textContent=$("companyTicketFooterTextInput").value||"এখানে Footer Preview দেখাবে";
-});
-$("saveCompanyTicketFooterButton").addEventListener("click",async()=>{
-  if(currentProfile?.role!=="super_admin"){alert("শুধু Super Admin এই Setting পরিবর্তন করতে পারবেন।");return;}
-  const companyId=activeCompanyId;
-  const value=$("companyTicketFooterTextInput").value.trim();
-  const message=$("companyTicketFooterMessage"),button=$("saveCompanyTicketFooterButton");
-  if(!companyId){message.textContent="প্রথমে একটি Company নির্বাচন করুন।";message.className="message error";return;}
-  if(!value||value.length>180){message.textContent="Footer Text খালি রাখা যাবে না; সর্বোচ্চ ১৮০ অক্ষর।";message.className="message error";return;}
-  button.disabled=true;button.textContent="সংরক্ষণ হচ্ছে...";
-  try{
-    const {error}=await supabase.from("company_ticket_settings").upsert({
-      company_id:companyId,footer_text:value,updated_at:new Date().toISOString(),updated_by:(await supabase.auth.getUser()).data.user?.id||null
-    },{onConflict:"company_id"});
-    if(error)throw error;
-    message.textContent="এই Company-এর Ticket Footer সফলভাবে সংরক্ষণ হয়েছে।";message.className="message ok";
-    $("companyTicketFooterPreview").textContent=value;
-  }catch(error){message.textContent="Footer সংরক্ষণ হয়নি: "+error.message;message.className="message error";}
-  finally{button.disabled=false;button.textContent="এই Company-এর Footer Save করুন";}
-});
 
 async function loadBillingPage() {
   const adminControls = $("billingAdminControls");
