@@ -7970,34 +7970,36 @@ a:hover{color:var(--busnex-green-900)}
 </style>
 
 <style id="busnex-seat-status-colors-and-hover-fix">
-/* Seat state colours must win over the generic white seat styling. */
-#appScreen #page-booking .booking-seat-panel .seat.available{
-  background:#dcfce7!important;color:#166534!important;border:2px solid #22c55e!important;
+/* High-contrast, fully filled seat states. Available seats are intentionally white. */
+#appScreen #page-booking .booking-seat-panel .seats .seat.available,
+#appScreen #page-booking .booking-seat-panel .seats .seat.available:hover{
+  background:#ffffff!important;background-image:none!important;color:#263b30!important;
+  border:2px solid #9ca3af!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.9)!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.selected{
-  background:#15803d!important;color:#fff!important;border:2px solid #166534!important;
+#appScreen #page-booking .booking-seat-panel .seats .seat.selected{
+  background:#15803d!important;background-image:none!important;color:#ffffff!important;border:2px solid #14532d!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.sold,
-#appScreen #page-booking .booking-seat-panel .seat.sold-male{
-  background:#fee2e2!important;color:#991b1b!important;border:2px solid #ef4444!important;
+#appScreen #page-booking .booking-seat-panel .seats .seat.sold,
+#appScreen #page-booking .booking-seat-panel .seats .seat.sold-male{
+  background:#dc2626!important;background-image:none!important;color:#ffffff!important;border:2px solid #991b1b!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.sold-female{
-  background:#fce7f3!important;color:#9d174d!important;border:2px solid #ec4899!important;
+#appScreen #page-booking .booking-seat-panel .seats .seat.sold-female{
+  background:#db2777!important;background-image:none!important;color:#ffffff!important;border:2px solid #9d174d!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.reserved{
-  background:#fef3c7!important;color:#92400e!important;border:2px solid #f59e0b!important;
+#appScreen #page-booking .booking-seat-panel .seats .seat.reserved{
+  background:#f59e0b!important;background-image:none!important;color:#422006!important;border:2px solid #b45309!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.held{
-  background:#dbeafe!important;color:#1e40af!important;border:2px solid #3b82f6!important;
+#appScreen #page-booking .booking-seat-panel .seats .seat.held{
+  background:#2563eb!important;background-image:none!important;color:#ffffff!important;border:2px solid #1e40af!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.blocked{
-  background:#e5e7eb!important;color:#374151!important;border:2px solid #6b7280!important;
+#appScreen #page-booking .booking-seat-panel .seats .seat.blocked{
+  background:#6b7280!important;background-image:none!important;color:#ffffff!important;border:2px solid #374151!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.unknown{
-  background:#f3f4f6!important;color:#6b7280!important;border:2px dashed #9ca3af!important;
+#appScreen #page-booking .booking-seat-panel .seats .seat.unknown{
+  background:#9ca3af!important;background-image:none!important;color:#ffffff!important;border:2px dashed #4b5563!important;
 }
-#appScreen #page-booking .booking-seat-panel .seat.available:hover{
-  background:#bbf7d0!important;filter:brightness(.98);
+#appScreen #page-booking .booking-seat-panel .seats .seat.available:focus-visible{
+  outline:3px solid #86b7a0!important;outline-offset:2px!important;
 }
 </style>
 
