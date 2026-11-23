@@ -1871,7 +1871,8 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
       </section>
 
       <section id="page-booking" class="page hidden busnex-counter-page">
-        <div id="counterCompanyBrand" class="company-brand-strip hidden"><span class="company-logo-mark" aria-hidden="true">▣</span><span class="company-brand-copy"><strong id="counterCompanyBrandName">SHAMOL TRAVELS</strong><small id="counterCompanyBrandMeta">Company Workspace</small><span id="counterCompanyBrandId" class="company-id-line"></span></span><span class="company-brand-role" id="counterRoleTag"></span><span class="company-banner-art" aria-hidden="true"><svg viewBox="0 0 420 150"><path d="M0 122 Q105 85 210 120 T420 105 V150 H0Z" fill="#d9f1df"/><path d="M0 136 Q120 104 230 133 T420 116" fill="none" stroke="#79c98c" stroke-width="5"/><g transform="translate(175 15)"><path d="M28 25 Q40 8 76 8 H175 Q197 8 210 35 L235 84 Q240 93 230 98 H17 Q5 96 9 82Z" fill="#f8fffa" stroke="#175d3b" stroke-width="5"/><path d="M35 28 Q47 15 77 15 H169 Q186 15 198 35 L215 65 H25Z" fill="#b9ddcb" stroke="#175d3b" stroke-width="3"/><path d="M18 70 H219 L230 88 H12Z" fill="#176b46"/><path d="M52 23 V64 M95 18 V64 M139 18 V64 M181 22 L197 64" stroke="#fff" stroke-width="3"/><circle cx="55" cy="99" r="14" fill="#243b32"/><circle cx="55" cy="99" r="6" fill="#dcebe0"/><circle cx="190" cy="99" r="14" fill="#243b32"/><circle cx="190" cy="99" r="6" fill="#dcebe0"/></g></svg></span></div>
+        <div id="counterCompanyBrand" class="company-brand-strip hidden"><span id="companyLogoMark" class="company-logo-mark" aria-hidden="true">▣</span><span class="company-brand-copy"><strong id="counterCompanyBrandName">SHAMOL TRAVELS</strong><small id="counterCompanyBrandMeta">Company Workspace</small><span id="counterCompanyBrandId" class="company-id-line"></span></span><span class="company-brand-role" id="counterRoleTag"></span></div>
+        <section id="companyBrandingManager" class="company-branding-manager hidden" aria-label="Company logo settings"><div class="company-branding-manager-copy"><strong>কোম্পানির Logo / ছবি</strong><span>PNG, JPG অথবা WebP · সর্বোচ্চ 3 MB</span></div><div class="company-branding-controls"><label class="company-logo-file-label" for="companyLogoFile">ছবি নির্বাচন করুন</label><input id="companyLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="saveCompanyLogoButton" type="button" class="primary" disabled>Logo Save করুন</button><button id="removeCompanyLogoButton" type="button" class="secondary hidden">Logo সরান</button></div><div id="companyLogoMessage" class="message" aria-live="polite">আপনার কোম্পানির Logo বা ছবি নির্বাচন করুন।</div></section>
         <div class="counter-reference-heading"><h1>Dashboard</h1></div>
 
         <div id="companyNoticeBannerArea" class="section"></div>
@@ -2272,6 +2273,20 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
   </div>
 </div>
 
+<style id="busnex-company-logo-manager">
+#appScreen #counterCompanyBrand .company-logo-mark{width:96px!important;height:96px!important;flex:0 0 96px!important;display:grid!important;place-items:center!important;overflow:hidden!important;border-radius:20px!important;background:linear-gradient(145deg,#eaf6ed,#fff)!important;border:1px solid #d8e9dc!important;color:#176b46!important;font-size:38px!important;box-shadow:0 8px 18px rgba(21,112,62,.12)!important}
+#appScreen #counterCompanyBrand .company-logo-mark img{display:block;width:100%!important;height:100%!important;object-fit:contain!important;padding:8px!important;background:#fff!important}
+#appScreen #counterCompanyBrand .company-banner-art{display:none!important}
+.company-branding-manager{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 22px;padding:16px 18px;background:linear-gradient(110deg,#fff,#f5fbf6);border:1px solid #dcebe0;border-radius:16px;box-shadow:0 6px 18px rgba(27,88,52,.05)}
+.company-branding-manager-copy{display:flex;flex-direction:column;gap:4px;min-width:180px;margin-right:auto}
+.company-branding-manager-copy strong{color:#174b36;font-size:14px}
+.company-branding-manager-copy span{color:#718276;font-size:11px}
+.company-branding-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.company-logo-file-label{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:9px 14px;border-radius:10px;background:#edf7ef;border:1px solid #cfe5d4;color:#17623d;font-size:12px;font-weight:800;cursor:pointer}
+.company-branding-manager button{min-height:40px!important;padding:9px 14px!important}
+.company-branding-manager .message{flex-basis:100%;margin:0;font-size:12px}
+@media(max-width:650px){#appScreen #counterCompanyBrand .company-logo-mark{width:58px!important;height:58px!important;flex-basis:58px!important;border-radius:14px!important;font-size:25px!important}#appScreen #counterCompanyBrand .company-logo-mark img{padding:4px!important}.company-branding-manager{align-items:stretch;padding:13px}.company-branding-controls{width:100%}.company-branding-controls>*{flex:1}}
+</style>
 <script>
 (() => {
 "use strict";
@@ -2952,7 +2967,8 @@ function openCompanyWorkspace(company) {
   $("topbarCompany").textContent = activeCompanyName;
   $("counterCompanyBrand").classList.remove("hidden");
   $("counterCompanyBrandName").textContent = activeCompanyName.toUpperCase();
-  $("counterCompanyBrand").querySelector(".company-logo-mark").textContent = /shamol/i.test(activeCompanyName) ? "S" : activeCompanyName.trim().charAt(0).toUpperCase();
+  renderCompanyLogo(null, activeCompanyName);
+  loadCompanyBranding();
   $("counterCompanyBrandMeta").textContent = "Super Admin • Company Workspace";
   $("counterCompanyBrandId").textContent = "Global Management Access";
   document.querySelectorAll(".page").forEach(page => page.classList.add("hidden"));
@@ -2965,28 +2981,123 @@ function openCompanyWorkspace(company) {
   loadBookingStopsForSelectedDate();
 }
 
+function getBrandingCompanyId() {
+  return currentProfile?.role === "super_admin" ? activeCompanyId : currentProfile?.company_id;
+}
+
+function renderCompanyLogo(logoPath, companyName) {
+  const mark = $("companyLogoMark");
+  if (!mark) return;
+  mark.replaceChildren();
+  if (logoPath) {
+    const {data} = supabase.storage.from("company-logos").getPublicUrl(logoPath);
+    const img = document.createElement("img");
+    img.src = data.publicUrl;
+    img.alt = (companyName || "Company") + " logo";
+    img.loading = "lazy";
+    img.onerror = () => { mark.replaceChildren(document.createTextNode((companyName || "C").trim().charAt(0).toUpperCase())); };
+    mark.appendChild(img);
+  } else {
+    mark.textContent = /shamol/i.test(companyName || "") ? "S" : String(companyName || "C").trim().charAt(0).toUpperCase();
+  }
+}
+
 async function loadCompanyBranding() {
-  const companyId = currentProfile?.company_id;
+  const companyId = getBrandingCompanyId();
+  const canManage = ["company_manager","super_admin"].includes(currentProfile?.role) && !!companyId;
+  $("companyBrandingManager")?.classList.toggle("hidden", !canManage);
   if (!companyId) {
     $("topbarCompany").textContent = "BUSNEX Bus Counter";
     $("counterCompanyBrand").classList.add("hidden");
     return;
   }
   try {
-    const {data,error} = await supabase.from("companies").select("id,name").eq("id",companyId).maybeSingle();
+    const {data,error} = await supabase.from("companies").select("id,name,logo_path").eq("id",companyId).maybeSingle();
     if (error) throw error;
-    const name = data?.name || "BUSNEX Bus Counter";
-    $("topbarCompany").textContent = name;
+    const name = data?.name || activeCompanyName || "BUSNEX Bus Counter";
+    if (currentProfile?.role !== "super_admin") $("topbarCompany").textContent = name;
     $("counterCompanyBrandName").textContent = name.toUpperCase();
-    $("counterCompanyBrand").querySelector(".company-logo-mark").textContent = /shamol/i.test(name) ? "S" : name.trim().charAt(0).toUpperCase();
-    $("counterCompanyBrandMeta").textContent = roleText(currentProfile.role);
-    $("counterCompanyBrandId").textContent = (currentProfile.role === "counter_operator" ? "Counter ID: " : "Manager ID: ") + (currentProfile.login_id || "—");
+    renderCompanyLogo(data?.logo_path, name);
+    $("counterCompanyBrandMeta").textContent = currentProfile?.role === "super_admin" ? "Super Admin • Company Workspace" : roleText(currentProfile.role);
+    $("counterCompanyBrandId").textContent = currentProfile?.role === "super_admin" ? "Global Management Access" : (currentProfile.role === "counter_operator" ? "Counter ID: " : "Manager ID: ") + (currentProfile.login_id || "—");
     $("counterCompanyBrand").classList.remove("hidden");
+    $("removeCompanyLogoButton").classList.toggle("hidden", !data?.logo_path);
+    $("companyLogoMessage").textContent = data?.logo_path ? "বর্তমান কোম্পানি Logo সেট করা আছে। নতুন ছবি দিলে সেটি পরিবর্তন হবে।" : "এখনো আলাদা Logo দেওয়া হয়নি।";
   } catch(error) {
     console.warn("Company branding:",error);
     $("topbarCompany").textContent = "BUSNEX Bus Counter";
+    $("companyLogoMessage").textContent = "Logo settings লোড হয়নি: " + error.message;
   }
 }
+
+let selectedCompanyLogoFile = null;
+$("companyLogoFile")?.addEventListener("change", event => {
+  const file = event.target.files?.[0];
+  selectedCompanyLogoFile = null;
+  $("saveCompanyLogoButton").disabled = true;
+  if (!file) return;
+  if (!["image/png","image/jpeg","image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024) {
+    $("companyLogoMessage").textContent = "শুধু PNG, JPG বা WebP ছবি দিন; সর্বোচ্চ সাইজ 3 MB।";
+    $("companyLogoMessage").className = "message error";
+    event.target.value = "";
+    return;
+  }
+  selectedCompanyLogoFile = file;
+  $("saveCompanyLogoButton").disabled = false;
+  $("companyLogoMessage").textContent = file.name + " নির্বাচন করা হয়েছে। Save করলে কোম্পানির Logo পরিবর্তন হবে।";
+  $("companyLogoMessage").className = "message";
+});
+
+$("saveCompanyLogoButton")?.addEventListener("click", async () => {
+  const companyId = getBrandingCompanyId();
+  if (!companyId || !selectedCompanyLogoFile || !["company_manager","super_admin"].includes(currentProfile?.role)) return;
+  const button = $("saveCompanyLogoButton");
+  button.disabled = true;
+  $("companyLogoMessage").textContent = "Logo upload হচ্ছে...";
+  $("companyLogoMessage").className = "message";
+  const file = selectedCompanyLogoFile;
+  const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = companyId + "/logo-" + Date.now() + "." + extension;
+  try {
+    const {error:uploadError} = await supabase.storage.from("company-logos").upload(path,file,{contentType:file.type,upsert:false,cacheControl:"3600"});
+    if (uploadError) throw uploadError;
+    const {error:saveError} = await supabase.rpc("busnex_set_company_logo",{p_company_id:companyId,p_logo_path:path});
+    if (saveError) {
+      await supabase.storage.from("company-logos").remove([path]);
+      throw saveError;
+    }
+    selectedCompanyLogoFile = null;
+    $("companyLogoFile").value = "";
+    await loadCompanyBranding();
+    $("companyLogoMessage").textContent = "কোম্পানির Logo সফলভাবে Save হয়েছে।";
+    $("companyLogoMessage").className = "message ok";
+  } catch(error) {
+    $("companyLogoMessage").textContent = "Logo Save হয়নি: " + error.message;
+    $("companyLogoMessage").className = "message error";
+  } finally {
+    button.disabled = true;
+  }
+});
+
+$("removeCompanyLogoButton")?.addEventListener("click", async () => {
+  const companyId = getBrandingCompanyId();
+  if (!companyId || !["company_manager","super_admin"].includes(currentProfile?.role)) return;
+  const button = $("removeCompanyLogoButton");
+  button.disabled = true;
+  $("companyLogoMessage").textContent = "Logo সরানো হচ্ছে...";
+  try {
+    const {error} = await supabase.rpc("busnex_set_company_logo",{p_company_id:companyId,p_logo_path:null});
+    if (error) throw error;
+    await loadCompanyBranding();
+    $("companyLogoMessage").textContent = "Logo সরানো হয়েছে। এখন কোম্পানির নামের আদ্যক্ষর দেখাবে।";
+    $("companyLogoMessage").className = "message ok";
+  } catch(error) {
+    $("companyLogoMessage").textContent = "Logo সরানো যায়নি: " + error.message;
+    $("companyLogoMessage").className = "message error";
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("addCompanyForm").addEventListener("submit",async event => {
   event.preventDefault();
