@@ -5621,7 +5621,67 @@ async function loadTripSheet(tripId) {
     $("tripSheetMessage").textContent="Trip Sheet প্রস্তুত | Sold Ticket: "+tickets.length+"টি | মোট ভাড়া: ৳"+total.toFixed(2)+(warnings.length?" | কিছু ঐচ্ছিক তথ্য পাওয়া যায়নি: "+warnings.join(" / "):"");
     $("tripSheetMessage").className="message section "+(warnings.length?"error":"ok");
     $("tripSheetPrint").disabled=false;
-    $("tripSheetPrint").dataset.printHtml='<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#183b38;margin:0;font-size:10px}.head{background:#123b3a;color:#fff;padding:18px 20px;border-bottom:4px solid #c18a55}.brand{font-size:23px;font-weight:900;letter-spacing:3px}.sub{color:#e2c49e;font-size:10px;letter-spacing:2px;margin-top:4px}.title{display:flex;justify-content:space-between;align-items:end;margin:18px 0 12px}.title h1{font-size:19px;margin:0}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}.fact{border:1px solid #d8e1dc;background:#f6f8f5;padding:9px}.fact span{display:block;color:#687a73;font-size:8px;margin-bottom:4px}.fact b{font-size:11px}.section-title{font-size:12px;margin:17px 0 7px;padding-bottom:5px;border-bottom:2px solid #c18a55}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #cbd5d0;padding:6px;text-align:left}th{background:#e8efea;color:#183b38}.summary{display:flex;justify-content:space-between;margin-top:12px;padding:12px;background:#f5f1e9;border:1px solid #d8e1dc;font-weight:bold}.foot{margin-top:24px;padding-top:9px;border-top:1px solid #cbd5d0;color:#718078;font-size:8px;display:flex;justify-content:space-between}tr{break-inside:avoid}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="brand">BUSNEX</div><div class="sub">BUS OPERATIONS · OFFICIAL TRIP DOCUMENT</div></header><div class="title"><h1>TRIP SHEET / যাত্রার তালিকা</h1><b>'+esc((trip.status||"—").toUpperCase())+'</b></div><div class="facts"><div class="fact"><span>Route / রুট</span><b>'+esc(route.starting_point)+' → '+esc(route.ending_point)+'</b></div><div class="fact"><span>Bus / বাস</span><b>'+esc(bus.bus_name)+'</b></div><div class="fact"><span>Coach No.</span><b>'+esc(trip.coach_number)+'</b></div><div class="fact"><span>Departure / যাত্রা</span><b>'+esc(journey)+'</b></div><div class="fact"><span>Ticket Fare / ভাড়া</span><b>৳'+esc(trip.ticket_price)+'</b></div><div class="fact"><span>Sold Seats / বিক্রিত সিট</span><b>'+tickets.length+'</b></div><div class="fact"><span>Company / কোম্পানি</span><b>'+esc(companyName)+'</b></div><div class="fact"><span>Supervisor / সুপারভাইজার</span><b>'+esc(supervisorName)+'</b></div></div><div class="section-title">BOARDING SCHEDULE / ওঠার সময়সূচি</div><table><thead><tr><th>#</th><th>Boarding Point</th><th>Time</th></tr></thead><tbody>'+(pointRows||'<tr><td colspan="3">কোনো Boarding Schedule পাওয়া যায়নি</td></tr>')+'</tbody></table><div class="section-title">PASSENGER MANIFEST / যাত্রী তালিকা</div><table><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th><th>Sold By / বিক্রেতা</th></tr></thead><tbody>'+(rows||'<tr><td colspan="9">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table><div class="summary"><span>Total Passengers: '+tickets.length+'</span><span>Total Collected Fare: ৳'+total.toFixed(2)+'</span></div><footer class="foot"><span>BUSNEX · Official Counter Trip Sheet</span><span>Printed: '+esc(formatDhakaDateTime(new Date()))+'</span></footer></body></html>';
+    $("tripSheetPrint").dataset.printHtml='<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#183b38;margin:0;font-size:10px}.head{background:#123b3a;color:#fff;padding:18px 20px;border-bottom:4px solid #c18a55}.brand{font-size:23px;font-weight:900;letter-spacing:3px}.sub{color:#e2c49e;font-size:10px;letter-spacing:2px;margin-top:4px}.title{display:flex;justify-content:space-between;align-items:end;margin:18px 0 12px}.title h1{font-size:19px;margin:0}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}.fact{border:1px solid #d8e1dc;background:#f6f8f5;padding:9px}.fact span{display:block;color:#687a73;font-size:8px;margin-bottom:4px}.fact b{font-size:11px}.section-title{font-size:12px;margin:17px 0 7px;padding-bottom:5px;border-bottom:2px solid #c18a55}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #cbd5d0;padding:6px;text-align:left}th{background:#e8efea;color:#183b38}.summary{display:flex;justify-content:space-between;margin-top:12px;padding:12px;background:#f5f1e9;border:1px solid #d8e1dc;font-weight:bold}.foot{margin-top:24px;padding-top:9px;border-top:1px solid #cbd5d0;color:#718078;font-size:8px;display:flex;justify-content:space-between}tr{break-inside:avoid}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="brand">BUSNEX</div><div class="sub">BUS OPERATIONS · OFFICIAL TRIP DOCUMENT</div></header><div class="title"><h1>TRIP SHEET / যাত্রার তালিকা</h1><b>'+esc((trip.status||"—").toUpperCase())+'</b></div><div class="facts"><div class="fact"><span>Route / রুট</span><b>'+esc(route.starting_point)+' → '+esc(route.ending_point)+'</b></div><div class="fact"><span>Bus / বাস</span><b>'+esc(bus.bus_name)+'</b></div><div class="fact"><span>Coach No.</span><b>'+esc(trip.coach_number)+'</b></div><div class="fact"><span>Departure / যাত্রা</span><b>'+esc(journey)+'</b></div><div class="fact"><span>Ticket Fare / ভাড়া</span><b>৳'+esc(trip.ticket_price)+'</b></div><div class="fact"><span>Sold Seats / বিক্রিত সিট</span><b>'+tickets.length+'</b></div><div class="fact"><span>Company / কোম্পানি</span><b>'+esc(companyName)+'</b></div><div class="fact"><span>Supervisor / সুপারভাইজার</span><b>'+esc(supervisorName)+'</b></div></div><div class="section-title">BOARDING SCHEDULE / ওঠার সময়সূচি</div><table><thead><tr><th>#</th><th>Boarding Point</th><th>Time</th></tr></thead><tbody>'+(pointRows||'<tr><td colspan="3">কোনো Boarding Schedule পাওয়া যায়নি</td></tr>')+'</tbody></table><div class="section-title">PASSENGER MANIFEST / যাত্রী তালিকা</div><table><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th><th>Sold By / বিক্রেতা</th></tr></thead><tbody>'+(rows||'<tr><td colspan="9">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table><div class="summary"><span>Total Passengers: '+tickets.length+'</span><span>Total Collected Fare: ৳'+total.toFixed(2)+'</span></div><footer class="foot"><span>BUSNEX · Official Counter Trip Sheet</span><span>Printed: '+esc(formatDhakaDateTime(new Date()))+'</span></footer>
+<style id="busnex-header-contrast-final-override">
+/* Loaded last so no older page-level stylesheet can wash out the header controls. */
+#appScreen .topbar #menuToggle,
+#appScreen header.topbar #menuToggle,
+#appScreen button#menuToggle{
+  display:flex!important;visibility:visible!important;opacity:1!important;
+  align-items:center!important;justify-content:center!important;
+  width:44px!important;min-width:44px!important;height:44px!important;
+  flex:0 0 44px!important;padding:0!important;
+  background:#ffffff!important;color:#10452f!important;
+  -webkit-text-fill-color:#10452f!important;
+  border:2px solid #d6b36d!important;border-radius:10px!important;
+  font-family:Arial,sans-serif!important;font-size:27px!important;
+  font-weight:900!important;line-height:1!important;
+  text-shadow:none!important;box-shadow:0 2px 8px rgba(0,0,0,.16)!important;
+}
+#appScreen .topbar .topbar-profile,
+#appScreen header.topbar .topbar-profile{
+  display:flex!important;align-items:center!important;visibility:visible!important;opacity:1!important;
+  gap:9px!important;background:#ffffff!important;
+  border:1px solid #dce8de!important;border-radius:11px!important;
+  padding:5px 10px 5px 6px!important;box-shadow:0 2px 8px rgba(0,0,0,.10)!important;
+}
+#appScreen .topbar .topbar-profile #topbarUserName,
+#appScreen header.topbar #topbarUserName,
+#appScreen #topbarUserName{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  color:#123f2d!important;-webkit-text-fill-color:#123f2d!important;
+  font-size:13px!important;font-weight:850!important;line-height:1.35!important;
+  text-shadow:none!important;
+}
+#appScreen .topbar .topbar-profile #topbarUserRole,
+#appScreen header.topbar #topbarUserRole,
+#appScreen #topbarUserRole{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  color:#477257!important;-webkit-text-fill-color:#477257!important;
+  font-size:10px!important;font-weight:750!important;line-height:1.35!important;
+}
+#appScreen .topbar .profile-avatar,
+#appScreen header.topbar .profile-avatar{
+  display:grid!important;place-items:center!important;visibility:visible!important;opacity:1!important;
+  width:38px!important;height:38px!important;flex:0 0 38px!important;
+  color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;
+  background:#145c38!important;border:2px solid #d6b36d!important;border-radius:50%!important;
+}
+#appScreen .topbar #myAccountButton,
+#appScreen .topbar #returnGlobalButton,
+#appScreen .topbar #logoutButton{
+  background:#ffffff!important;color:#10452f!important;
+  -webkit-text-fill-color:#10452f!important;border:1px solid #d6e5d9!important;
+  font-weight:800!important;visibility:visible!important;opacity:1!important;
+}
+@media(max-width:650px){
+ #appScreen .topbar #menuToggle,#appScreen header.topbar #menuToggle{width:40px!important;min-width:40px!important;height:40px!important;flex-basis:40px!important}
+ #appScreen .topbar .topbar-profile{padding:4px 6px!important;gap:6px!important;max-width:48vw!important}
+ #appScreen #topbarUserName{max-width:32vw!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ #appScreen .topbar .profile-avatar{width:32px!important;height:32px!important;flex-basis:32px!important}
+}
+</style>
+</body></html>';
   } catch(error) {
     console.error("TRIP SHEET LOAD ERROR:",error);
     $("tripSheetCount").textContent="—";
