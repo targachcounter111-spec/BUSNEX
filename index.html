@@ -1411,6 +1411,63 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
   #appScreen .nav-btn,#appScreen button{transition:none!important}
 }
 </style>
+
+<style id="busnex-header-contrast-repair">
+/* Header contrast repair: explicit icon and profile text colours. */
+#appScreen>.topbar #menuToggle{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 42px!important;width:42px!important;min-width:42px!important;height:42px!important;
+  padding:0!important;margin:0!important;
+  background:#ffffff!important;color:#14532d!important;
+  border:1px solid #d6e5d9!important;border-radius:10px!important;
+  font-family:Arial,sans-serif!important;font-size:25px!important;font-weight:900!important;
+  line-height:1!important;opacity:1!important;visibility:visible!important;
+  text-shadow:none!important;box-shadow:0 2px 6px #082e1b22!important;
+}
+#appScreen>.topbar #menuToggle:hover{background:#e9f4eb!important;color:#10452f!important}
+#appScreen>.topbar #menuToggle:focus-visible{outline:3px solid #e2c47f!important;outline-offset:3px!important}
+#appScreen>.topbar .topbar-profile{
+  display:flex!important;align-items:center!important;gap:10px!important;
+  color:#ffffff!important;opacity:1!important;visibility:visible!important;
+}
+#appScreen>.topbar .topbar-profile>span:not(.profile-avatar){
+  display:block!important;color:#ffffff!important;opacity:1!important;
+}
+#appScreen>.topbar #topbarUserName{
+  display:block!important;color:#ffffff!important;
+  font-size:13px!important;font-weight:800!important;line-height:1.35!important;
+  opacity:1!important;visibility:visible!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.22)!important;
+}
+#appScreen>.topbar #topbarUserRole{
+  display:block!important;color:#e3f1e7!important;
+  font-size:10px!important;font-weight:650!important;line-height:1.35!important;
+  opacity:1!important;visibility:visible!important;
+}
+#appScreen>.topbar .profile-avatar{
+  display:grid!important;place-items:center!important;flex:0 0 40px!important;
+  width:40px!important;height:40px!important;
+  background:#f0f7f1!important;color:#145c38!important;
+  border:2px solid #d6b36d!important;border-radius:50%!important;
+  opacity:1!important;visibility:visible!important;
+}
+#appScreen>.topbar #myAccountButton,
+#appScreen>.topbar #returnGlobalButton,
+#appScreen>.topbar #logoutButton{
+  background:#ffffff!important;color:#14532d!important;
+  border:1px solid #d7e6da!important;font-weight:800!important;
+  opacity:1!important;visibility:visible!important;
+}
+#appScreen>.topbar #myAccountButton:hover,
+#appScreen>.topbar #returnGlobalButton:hover,
+#appScreen>.topbar #logoutButton:hover{background:#eaf4ec!important;color:#10452f!important}
+@media(max-width:650px){
+  #appScreen>.topbar #menuToggle{flex-basis:38px!important;width:38px!important;min-width:38px!important;height:38px!important;font-size:23px!important}
+  #appScreen>.topbar .topbar-profile{gap:7px!important;max-width:42vw!important}
+  #appScreen>.topbar #topbarUserName{max-width:30vw!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  #appScreen>.topbar .profile-avatar{flex-basis:34px!important;width:34px!important;height:34px!important}
+}
+</style>
 </head>
 
 <body>
