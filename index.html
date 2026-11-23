@@ -1683,6 +1683,13 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
     <p id="loginFooter" class="small muted" style="text-align:center;margin:18px 0 0">
       BUSNEX • Secure Counter Access
     </p>
+    <div id="ticketFooterSettingsPanel" class="company-add-panel section">
+      <h2>Ticket Footer পরিচালনা</h2>
+      <p class="muted">বিক্রিত Ticket-এর নিচে এই লেখা দেখাবে। শুধু Super Admin এটি পরিবর্তন করতে পারবেন।</p>
+      <div class="form-row"><div class="field"><label for="ticketFooterTextInput">Ticket Footer Text</label><input id="ticketFooterTextInput" maxlength="180" value="BUSNEX থেকে টিকিট কাটুন ঘরে বসেই" placeholder="BUSNEX থেকে টিকিট কাটুন ঘরে বসেই"></div><div class="field"><label>&nbsp;</label><button id="saveTicketFooterSettingsButton" class="primary" type="button">Ticket Footer Save করুন</button></div></div>
+      <div id="ticketFooterSettingsMessage" class="message" aria-live="polite">Ticket Footer-এর লেখা লোড হচ্ছে...</div>
+      <div class="ticket-footer-live-preview"><span id="ticketFooterLivePreview">BUSNEX থেকে টিকিট কাটুন ঘরে বসেই</span></div>
+    </div>
     <div class="busnex-site-footer" data-busnex-footer>BUSNEX BD CONCERN OF TAFSIR</div>
   </div>
 </div>
@@ -2310,6 +2317,7 @@ function tripMessage(message,type) {
 }
 
 const DEFAULT_SITE_FOOTER = "BUSNEX BD CONCERN OF TAFSIR";
+let ticketFooterText = "BUSNEX থেকে টিকিট কাটুন ঘরে বসেই";
 
 function setSiteFooterText(value) {
   const footerText = String(value || DEFAULT_SITE_FOOTER).trim() || DEFAULT_SITE_FOOTER;
@@ -2322,13 +2330,39 @@ async function loadPublicFooter() {
   setSiteFooterText(DEFAULT_SITE_FOOTER);
   try {
     const {data,error} = await supabase.from("busnex_site_settings")
-      .select("footer_text").eq("id",1).maybeSingle();
+      .select("footer_text,ticket_footer_text").eq("id",1).maybeSingle();
     if (error) throw error;
     if (data?.footer_text) setSiteFooterText(data.footer_text);
+    if (data?.ticket_footer_text) ticketFooterText = String(data.ticket_footer_text);
   } catch(error) {
     console.warn("SITE FOOTER LOAD:",error.message);
   }
 }
+
+async function loadTicketFooterSettingsAdmin() {
+  if (currentProfile?.role !== "super_admin") return;
+  const message=$("ticketFooterSettingsMessage");
+  try {
+    const {data,error}=await supabase.from("busnex_site_settings").select("ticket_footer_text").eq("id",1).maybeSingle();
+    if(error)throw error;
+    ticketFooterText=String(data?.ticket_footer_text||"BUSNEX থেকে টিকিট কাটুন ঘরে বসেই");
+    $("ticketFooterTextInput").value=ticketFooterText;
+    $("ticketFooterLivePreview").textContent=ticketFooterText;
+    message.textContent="বর্তমান Ticket Footer লোড হয়েছে।";message.className="message ok";
+  }catch(error){message.textContent="Ticket Footer লোড হয়নি: "+error.message;message.className="message error";}
+}
+$("ticketFooterTextInput").addEventListener("input",()=>{$("ticketFooterLivePreview").textContent=$("ticketFooterTextInput").value||"এখানে Ticket Footer Preview দেখাবে";});
+$("saveTicketFooterSettingsButton").addEventListener("click",async()=>{
+  const button=$("saveTicketFooterSettingsButton"),message=$("ticketFooterSettingsMessage");
+  if(currentProfile?.role!=="super_admin"){message.textContent="শুধু Super Admin Ticket Footer পরিবর্তন করতে পারবেন।";message.className="message error";return;}
+  const value=$("ticketFooterTextInput").value.trim();
+  if(!value||value.length>180){message.textContent="লেখা খালি রাখা যাবে না এবং সর্বোচ্চ ১৮০ অক্ষর হতে পারবে।";message.className="message error";return;}
+  button.disabled=true;button.textContent="সংরক্ষণ হচ্ছে...";
+  try{const {error}=await supabase.from("busnex_site_settings").update({ticket_footer_text:value,updated_at:new Date().toISOString()}).eq("id",1);if(error)throw error;
+    ticketFooterText=value;$("ticketFooterLivePreview").textContent=value;message.textContent="Ticket Footer সফলভাবে সংরক্ষণ হয়েছে। নতুন Ticket Print-এ এই লেখা দেখাবে।";message.className="message ok";
+  }catch(error){message.textContent="সংরক্ষণ হয়নি: "+error.message;message.className="message error";}
+  finally{button.disabled=false;button.textContent="Ticket Footer Save করুন";}
+});
 
 async function loadFooterSettingsAdmin() {
   if (currentProfile?.role !== "super_admin") return;
@@ -6713,10 +6747,11 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           .bpt-copy-top{display:flex;justify-content:space-between;gap:12px;margin-bottom:5px;font-weight:700}
           .bpt-copy-bottom{font-size:10px;text-align:center;margin-top:12px}
           .bpt-copy-note{text-align:center;font-size:12px;font-weight:700;margin-top:14px}
+          .bpt-ticket-footer{position:absolute!important;left:8px!important;right:8px!important;bottom:3px!important;height:17px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-top:1px solid #9ca3af!important;color:#176b46!important;font-size:9px!important;font-weight:800!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;background:#fff!important}
           .busnex-ticket-modal{width:min(900px,96vw);max-width:900px;padding:70px 16px 58px;overflow:auto}
           .busnex-premium-ticket{box-sizing:border-box!important;width:8in!important;height:3in!important;min-width:8in!important;max-width:8in!important;min-height:3in!important;max-height:3in!important;padding:5px 0!important;margin:0 auto!important;overflow:hidden!important;border:1px solid #333!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;color:#111!important}
           .bpt-status-line{height:13px;line-height:13px;margin:0 0 3px!important;font-size:8px!important}
-          .bpt-three-copy{box-sizing:border-box!important;width:100%!important;height:calc(3in - 28px)!important;min-height:0!important;max-height:calc(3in - 28px)!important;display:grid!important;grid-template-columns:1.75in 3.7in 1.75in!important;justify-content:space-between!important;align-items:stretch!important;gap:0!important;overflow:hidden!important}
+          .bpt-three-copy{box-sizing:border-box!important;width:100%!important;height:calc(3in - 43px)!important;min-height:0!important;max-height:calc(3in - 43px)!important;display:grid!important;grid-template-columns:1.75in 3.7in 1.75in!important;justify-content:space-between!important;align-items:stretch!important;gap:0!important;overflow:hidden!important}
           .bpt-copy{box-sizing:border-box!important;height:100%!important;min-width:0!important;max-width:none!important;overflow:hidden!important;padding:4px 5px!important;font-size:7px!important;line-height:1.2!important;color:#111!important;overflow-wrap:anywhere!important}
           .bpt-copy-side{font-size:8px!important;line-height:1.25!important;text-align:left!important;padding:4px 5px!important;border-right:1px dashed #777!important}
           .bpt-copy-center{font-size:11px!important;line-height:1.32!important;padding:4px 9px!important;border-left:1px dashed #777!important;border-right:1px dashed #777!important}
@@ -6724,6 +6759,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           .bpt-copy-top{font-size:10px!important;gap:4px!important;margin-bottom:4px!important}
           .bpt-copy-bottom{font-size:8px!important;margin-top:4px!important}
           .bpt-copy-note{font-size:9px!important;margin-top:4px!important}
+   .bpt-ticket-footer{position:absolute!important;left:8px!important;right:8px!important;bottom:3px!important;height:17px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-top:1px solid #9ca3af!important;color:#176b46!important;font-size:9px!important;font-weight:800!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;background:#fff!important}
           @media(max-width:760px){.busnex-ticket-modal{padding:70px 8px 55px!important}.busnex-premium-ticket{transform-origin:top left;transform:scale(.82);margin:0!important}.busnex-ticket-modal{overflow:auto!important}}
           .busnex-ticket-actions{position:fixed;left:20px;bottom:18px;right:20px;justify-content:flex-start;margin:0}
           .busnex-ticket-actions button{min-width:60px;min-height:30px;border-radius:0}
@@ -6865,6 +6901,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div><b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div><div><b>Issued On :</b> ${safe(created)}</div><div><b>Issued By :</b> ${safe(sellerText)}</div>
             </section>
           </div>
+          <div class="bpt-ticket-footer">${safe(ticketFooterText)}</div>
         `;
         body.innerHTML = "";
         if (!overlay.isConnected) return;
@@ -6898,7 +6935,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   body>.busnex-premium-ticket{position:absolute!important;top:0.3in!important;left:0.3in!important;margin:0!important}
   .busnex-premium-ticket{position:relative!important;display:block!important;box-sizing:border-box!important;width:8in!important;height:3in!important;min-width:8in!important;max-width:8in!important;min-height:3in!important;max-height:3in!important;overflow:hidden!important;margin:0!important;padding:5px 0!important;background:#fff!important;color:#111!important;border:1px solid #333!important;border-radius:0!important;box-shadow:none!important;font-family:Arial,sans-serif!important}
   .bpt-status-line{text-align:center;height:13px;line-height:13px;font-size:8px;font-weight:700;color:#333;margin:0 0 3px!important}
-  .bpt-three-copy{box-sizing:border-box!important;width:100%!important;height:calc(3in - 28px)!important;min-height:0!important;max-height:calc(3in - 28px)!important;display:grid!important;grid-template-columns:1.75in 3.7in 1.75in!important;justify-content:space-between!important;align-items:stretch!important;gap:0!important;overflow:hidden!important;color:#222;font-family:Arial,sans-serif}
+  .bpt-three-copy{box-sizing:border-box!important;width:100%!important;height:calc(3in - 43px)!important;min-height:0!important;max-height:calc(3in - 43px)!important;display:grid!important;grid-template-columns:1.75in 3.7in 1.75in!important;justify-content:space-between!important;align-items:stretch!important;gap:0!important;overflow:hidden!important;color:#222;font-family:Arial,sans-serif}
   .bpt-copy{box-sizing:border-box!important;height:100%!important;min-width:0!important;max-width:none!important;overflow:hidden!important;padding:4px 5px!important;font-size:7px!important;line-height:1.2!important;font-weight:500;color:#111!important;overflow-wrap:anywhere!important}
   .bpt-copy-side{font-size:8px!important;line-height:1.25!important;text-align:left!important;padding:4px 5px!important;border-right:1px dashed #777!important}
   .bpt-copy-center{font-size:11px!important;line-height:1.32!important;padding:4px 9px!important;border-left:1px dashed #777;border-right:1px dashed #777}
