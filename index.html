@@ -3850,6 +3850,16 @@ function parseCustomTripLayout() {
 }
 
 const BUSNEX_SEAT_FORMATS = {
+  economy41: (() => {
+    const rows = [];
+    ["A","B","C","D","E","F","G","H","I"].forEach((row,r) =>
+      [1,2,3,4].forEach(n => rows.push({seat_number:row+"-"+n,row_label:row,seat_position:n,seat_order:r*4+n}))
+    );
+    ["J-1","J-2","J-5","J-3","J-4"].forEach((seat,index) =>
+      rows.push({seat_number:seat,row_label:"J",seat_position:index+1,seat_order:36+index+1})
+    );
+    return rows;
+  })(),
   economy: Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((row,r)=>[1,2,3,4].map((n)=>({seat_number:row+"-"+n,row_label:row,seat_position:n,seat_order:r*4+n}))),
   nonac: Array.from({length:9},(_,r)=>["A","B","C","D","E","F","G","H","I"][r]).flatMap((row,r)=>[1,2,3,4].map(n=>({seat_number:row+n,row_label:row,seat_position:n,seat_order:r*4+n}))),
   r1: [{seat_number:"R-1",row_label:"@",seat_position:1,seat_order:1},...Array.from({length:10},(_,r)=>["A","B","C","D","E","F","G","H","I","J"][r]).flatMap((seatRow,r)=>[1,2,3,4].map(n=>({seat_number:seatRow+"-"+n,row_label:"BCDEFGHIJKL"[r],seat_position:n,seat_order:2+r*4+n}))),...[1,2,3,4,5].map(n=>({seat_number:"K-"+n,row_label:"L",seat_position:n,seat_order:42+n}))],
@@ -3883,6 +3893,7 @@ function initSeatFormatLibrary() {
   const renderOptions=()=>{
     const keep=select.value;
     select.innerHTML='<option value="">Seat Format নির্বাচন করুন</option>'+
+      '<option value="economy41">Economy 41 Seat — শেষ Row J-1, J-2, J-5, J-3, J-4</option>'+
       '<option value="economy">Economy Class — ৪০ Seat</option>'+
       '<option value="nonac">Non AC — ৩৬ Seat</option>'+
       '<option value="r1">R-1 সহ A–K — ৪৬ Seat</option>'+
