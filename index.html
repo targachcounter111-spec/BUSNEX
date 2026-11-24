@@ -3,6 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<script>
+/* On phones, use a real desktop layout viewport instead of shrinking a mobile layout.
+   Native browser pinch zoom remains enabled by the viewport meta settings. */
+(function(){
+ const meta=document.querySelector('meta[name="viewport"]');
+ if(!meta)return;
+ const coarse=window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+ const phoneOrTablet=coarse && Math.min(screen.width,screen.height)<=1024;
+ function setViewport(){
+  if(phoneOrTablet){
+   const width=Math.max(screen.width,screen.height);
+   const scale=Math.min(Math.max(width/1200,0.25),1);
+   meta.setAttribute('content','width=1200, initial-scale='+scale.toFixed(4)+', minimum-scale=0.25, maximum-scale=5, user-scalable=yes, viewport-fit=cover');
+  }else{
+   meta.setAttribute('content','width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover');
+  }
+ }
+ setViewport();
+ window.addEventListener('orientationchange',function(){setTimeout(setViewport,100);},{passive:true});
+})();
+</script>
 <title>BUSNEX | Bus Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -9112,114 +9133,13 @@ body{
   #appScreen .card,#appScreen .trip-card,#appScreen>.topbar,#appScreen>.layout>.sidebar{background:#fff!important}
 }
 
-/* BUSNEX mobile PC-layout mode with native pinch zoom */
-@media(max-width:650px){
- body.bnx-desktop-mode{overflow-x:hidden}
- #appScreen.bnx-desktop-view{
-  width:1200px;min-width:1200px;max-width:none;
-  transform-origin:top left;
- }
- #appScreen.bnx-desktop-view .topbar{width:1200px;min-width:1200px}
- #appScreen.bnx-desktop-view .layout{
-  display:grid;grid-template-columns:230px minmax(0,1fr);
-  min-height:calc(100vh - 66px)
- }
- #appScreen.bnx-desktop-view .sidebar{
-  display:block;overflow:visible;padding:18px 12px;
-  border-right:1px solid var(--line);border-bottom:0
- }
- #appScreen.bnx-desktop-view .nav-btn{width:100%;white-space:normal;margin:3px 0;padding:12px}
- #appScreen.bnx-desktop-view .main{padding:25px;max-width:1500px;width:100%;margin:auto}
- #appScreen.bnx-desktop-view .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
- #appScreen.bnx-desktop-view .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}
- #appScreen.bnx-desktop-view .page-head{align-items:center;flex-direction:row}
-}
 </style>
 
 
 
-<style id="busnex-mobile-desktop-compat">
-/* Keep the complete PC workspace structure when the mobile desktop-fit mode is active.
-   These overrides neutralize viewport-based mobile breakpoints without changing desktop. */
-@media(max-width:650px){
-  #appScreen.bnx-desktop-view .main{min-width:0!important;width:100%!important;padding:25px!important}
-  #appScreen.bnx-desktop-view .page-head{align-items:center!important;flex-direction:row!important}
-  #appScreen.bnx-desktop-view .grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:15px!important}
-  #appScreen.bnx-desktop-view .form-row,
-  #appScreen.bnx-desktop-view #page-trips .form-row,
-  #appScreen.bnx-desktop-view #page-trips .trip-points-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important
-  }
-  #appScreen.bnx-desktop-view .trip-builder-hero{align-items:center!important;flex-direction:row!important;padding:22px 24px!important}
-  #appScreen.bnx-desktop-view .trip-builder-mark{width:58px!important;height:58px!important}
-  #appScreen.bnx-desktop-view .trip-builder-card{padding:21px!important}
-  #appScreen.bnx-desktop-view #page-trips .actions{flex-direction:row!important;flex-wrap:wrap!important}
-  #appScreen.bnx-desktop-view #page-trips .field{min-width:0!important}
-  #appScreen.bnx-desktop-view #page-trips textarea{min-height:100px}
-  #appScreen.bnx-desktop-view #page-booking .counter-search-panel{padding:18px!important}
-  #appScreen.bnx-desktop-view #page-booking .counter-filter-grid{
-    display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:12px!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .counter-extra-grid{
-    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .counter-control-row{
-    display:grid!important;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto!important;gap:14px!important;align-items:center!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .counter-day-controls{
-    display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .counter-day-controls>*{flex:0 0 auto!important}
-  #appScreen.bnx-desktop-view #page-booking .counter-trip-results,
-  #appScreen.bnx-desktop-view #page-booking .counter-reference-table-wrap,
-  #appScreen.bnx-desktop-view #page-booking .table-wrap{width:100%!important;max-width:none!important}
-  #appScreen.bnx-desktop-view #page-booking .counter-reference-table{width:100%!important;min-width:0!important}
-  #appScreen.bnx-desktop-view #page-booking .booking-trip-summarybar{
-    display:grid!important;grid-template-columns:minmax(130px,.8fr) minmax(180px,1.2fr) minmax(170px,1fr)!important;gap:12px!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .booking-workspace{
-    display:grid!important;grid-template-columns:minmax(310px,.82fr) minmax(390px,1.18fr)!important;
-    gap:14px!important;align-items:start!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .booking-seat-panel,
-  #appScreen.bnx-desktop-view #page-booking .booking-passenger-panel{min-width:0!important;padding:14px!important}
-  #appScreen.bnx-desktop-view #page-booking .booking-passenger-panel .form-row{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px 10px!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .booking-seat-panel .seats{
-    width:100%!important;max-width:100%!important;grid-template-columns:repeat(5,minmax(38px,1fr))!important
-  }
-  #appScreen.bnx-desktop-view #page-booking .booking-trip-toolbar{flex-direction:row!important;align-items:center!important}
-  #appScreen.bnx-desktop-view #page-booking .booking-trip-toolbar button{flex:0 0 auto!important}
-  #appScreen.bnx-desktop-view .table-wrap{width:100%!important;max-width:none!important}
-  #appScreen.bnx-desktop-view table{width:100%!important}
-}
-@media(min-width:651px) and (max-width:900px){
-  #appScreen.bnx-desktop-view .booking-workspace{grid-template-columns:minmax(310px,.82fr) minmax(390px,1.18fr)!important}
-}
-</style>
 
-<script>
-(function(){
- const app=document.getElementById('appScreen');
- if(!app)return;
- const mobile=window.matchMedia('(max-width: 650px)');
- function applyMobileDesktopLayout(){
-  const enabled=mobile.matches;
-  app.classList.toggle('bnx-desktop-view',enabled);
-  document.body.classList.toggle('bnx-desktop-mode',enabled);
-  if(enabled){
-   const fit=Math.min(window.innerWidth/1200,1);
-   app.style.zoom=String(fit);
-  }else{
-   app.style.removeProperty('zoom');
-  }
- }
- applyMobileDesktopLayout();
- window.addEventListener('resize',applyMobileDesktopLayout,{passive:true});
- if(mobile.addEventListener) mobile.addEventListener('change',applyMobileDesktopLayout);
-})();
-</script>
+
+
 
 </body>
 </html>
