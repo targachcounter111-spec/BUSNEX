@@ -7194,7 +7194,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div><b>Journey Date :</b> ${safe(journey)}　 <b>Departure :</b> ◷ ${safe(journey)}</div>
               <div class="bpt-priority-route"><b>Seat :</b> [${safe(seatLabel)}]　 <b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}　 <b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
               <div><b>Reporting Time :</b> ◷ ${safe(journey)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}　 <b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div>
-              <div><b>Total Fare :</b> BDT. ${safe(groupPaid.toFixed(2))}</div>
+              <div><b>Total Paid (All Seats) :</b> BDT. ${safe(groupPaid.toFixed(2))}</div>
               <div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}　 <b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
               <div class="bpt-copy-bottom">Issued On : ${safe(created)}　　Issued By : ${safe(sellerText)}</div>
               <div class="bpt-copy-note">BUSNEX · আপনার যাত্রা শুভ হোক</div>
