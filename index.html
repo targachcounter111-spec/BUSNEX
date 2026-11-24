@@ -3716,10 +3716,12 @@ async function ensureSupervisorSaved(companyId,name,phone){
 }
 $("tripSupervisorSelect").addEventListener("change",()=>{const x=supervisorLibraryCache.find(item=>item.id===$("tripSupervisorSelect").value);if(x){$("tripSupervisor").value=x.supervisor_name;$("tripSupervisorPhone").value=x.supervisor_phone;}});
 $("tripBuilderTabButton").addEventListener("click",()=>showSupervisorLibraryTab(false));
-$("supervisorLibraryTabButton").addEventListener("click",()=>showSupervisorLibraryTab(true));
+$("supervisorLibraryTabButton").addEventListener("click",async()=>{showSupervisorLibraryTab(true);try{await loadCompanySupervisors();}catch(error){supervisorLibraryMessage("Supervisor List লোড হয়নি: "+error.message,"error");}});
 $("saveSupervisorButton").addEventListener("click",async()=>{
  const button=$("saveSupervisorButton"),companyId=selectedCompanyId(),name=$("savedSupervisorName").value.trim(),phone=$("savedSupervisorPhone").value.trim();
  if(!companyId)return supervisorLibraryMessage("আগে Company নির্বাচন করুন।","error");if(!name||!phone)return supervisorLibraryMessage("Supervisor Name ও Phone দুটোই লিখুন।","error");if(phone.length<3||phone.length>20)return supervisorLibraryMessage("সঠিক Phone Number লিখুন।","error");
+ const duplicate=supervisorLibraryCache.find(x=>x.id!==supervisorEditingId&&x.supervisor_name.trim().toLowerCase()===name.toLowerCase()&&x.supervisor_phone.trim()===phone);
+ if(duplicate)return supervisorLibraryMessage("এই Supervisor-এর একই নাম ও নম্বর আগে থেকেই তালিকায় আছে।","error");
  button.disabled=true;try{
   const payload={supervisor_name:name,supervisor_phone:phone,updated_at:new Date().toISOString()};let query;
   if(supervisorEditingId)query=supabase.from("company_supervisors").update(payload).eq("id",supervisorEditingId).eq("company_id",companyId);
