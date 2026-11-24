@@ -1761,6 +1761,24 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
 }
 </style>
 
+<style id="busnex-hanif-seat-gender-hover-fix">
+#appScreen .booking-seat-panel .seats .seat.sold.sold-male,
+#appScreen #page-booking .booking-seat-panel .seats .seat.sold.sold-male {
+  background:#dc2626!important;background-color:#dc2626!important;
+  color:#fff!important;border:2px solid #991b1b!important;
+  cursor:pointer!important;
+}
+#appScreen .booking-seat-panel .seats .seat.sold.sold-female,
+#appScreen #page-booking .booking-seat-panel .seats .seat.sold.sold-female {
+  background:#db2777!important;background-color:#db2777!important;
+  color:#fff!important;border:2px solid #9d174d!important;
+  cursor:pointer!important;
+}
+.busnex-sold-tooltip {
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:fixed!important;pointer-events:none!important;
+}
+</style>
 
 <style id="busnex-seat-gender-colors-hover-visibility-fix">
 /* Ensure gender-specific sold seats remain visually distinct after later cascade overrides. */
@@ -7059,8 +7077,15 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
     const layout = (tripLayoutResult.data && tripLayoutResult.data.length)
       ? tripLayoutResult.data : (layoutResult.data || []);
     const inventory = inventoryResult.data || [];
+    const normalizeSeatKey = value => String(value || "").trim().toUpperCase();
+    const normalizePassengerGender = value => {
+      const gender = String(value || "").trim().toLowerCase();
+      if (["male","m","man","পুরুষ","ছেলে","ছাত্র"].includes(gender)) return "male";
+      if (["female","f","woman","নারী","মহিলা","মেয়ে","মেয়ে","ছাত্রী"].includes(gender)) return "female";
+      return "";
+    };
     const genderBySeat = new Map((ticketGenderResult.data || []).map(ticket => [
-      ticket.seat_number,String(ticket.passenger_gender || "").toLowerCase()
+      normalizeSeatKey(ticket.seat_number),normalizePassengerGender(ticket.passenger_gender)
     ]));
     if (!layout.length) {
       summary.textContent = "এই Bus-এর Seat Layout পাওয়া যায়নি।";
@@ -8065,9 +8090,18 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
       else if (state === "sold") soldCount++;
       else unavailableCount++;
 
-      const passengerGender = genderBySeat.get(seat.seat_number) || "";
+      const passengerGender = genderBySeat.get(normalizeSeatKey(seat.seat_number)) || "";
       const genderClass = passengerGender === "male" ? " sold-male" :
         passengerGender === "female" ? " sold-female" : "";
+      if (state === "sold") {
+        div.dataset.passengerGender = passengerGender || "unknown";
+        div.style.setProperty("cursor","pointer","important");
+        div.title = passengerGender === "male"
+          ? "Male Passenger · Ticket details দেখতে Hover করুন / ক্লিক করুন"
+          : passengerGender === "female"
+            ? "Female Passenger · Ticket details দেখতে Hover করুন / ক্লিক করুন"
+            : "Sold Ticket · বিস্তারিত দেখতে Hover করুন / ক্লিক করুন";
+      }
       div.className = "seat " + (
         isAvailable ? "available" :
         state === "sold" ? "sold" + genderClass :
@@ -8149,6 +8183,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
         let hoverTimer = null;
         let hoverTooltip = null;
         div.addEventListener("mouseenter",() => {
+          if (hoverTimer) clearTimeout(hoverTimer);
+          if (hoverTooltip) hoverTooltip.remove();
           hoverTimer = setTimeout(async() => {
             const tip = document.createElement("div");
             tip.className = "busnex-sold-tooltip";
@@ -8197,7 +8233,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             } catch(error) {
               if (hoverTooltip === tip && tip.isConnected) tip.textContent = "Ticket তথ্য লোড হয়নি";
             }
-          },180);
+          },60);
         });
         div.addEventListener("mouseleave",() => {
           if (hoverTimer) clearTimeout(hoverTimer);
