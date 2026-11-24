@@ -2980,6 +2980,18 @@ async function showDashboard(profile) {
   loadCompanyBillReminderForUser();
   loadCompanyNoticeBanners();
   if(currentProfile.role==="company_manager") loadCompanyNotices(currentProfile.company_id,"manager");
+  // A Counter ID starts with a clean schedule view so stale date/route filters
+  // from another login cannot hide this counter's available trips.
+  if(currentProfile.role==="counter_operator") {
+    $("journeyDate").value = dhakaDateISO();
+    $("fromStop").value = "";
+    $("toStop").value = "";
+    ["bookingCoach","bookingReg"].forEach(id => { if($(id)) $(id).value = ""; });
+    ["bookingAcFilter","bookingNonAcFilter"].forEach(id => { if($(id)) $(id).checked = false; });
+    if($("bookingSeatType")) $("bookingSeatType").value = "any";
+    if($("bookingTimeFilter")) $("bookingTimeFilter").value = "any";
+    syncBookingDayButtons();
+  }
   loadBookingStopsForSelectedDate();
 }
 
