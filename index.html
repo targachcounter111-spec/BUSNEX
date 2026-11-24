@@ -2,7 +2,7 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <title>BUSNEX | Bus Management System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -9112,58 +9112,50 @@ body{
   #appScreen .card,#appScreen .trip-card,#appScreen>.topbar,#appScreen>.layout>.sidebar{background:#fff!important}
 }
 
-/* BUSNEX responsive zoom + mobile desktop workspace */
-#bnxViewControls{position:fixed;right:14px;bottom:14px;z-index:2147483600;display:none;align-items:center;gap:5px;flex-wrap:wrap;padding:7px;background:rgba(255,255,255,.96);border:1px solid #d5e4d9;border-radius:14px;box-shadow:0 8px 28px rgba(15,60,35,.18);backdrop-filter:blur(12px);max-width:calc(100vw - 24px)}
-#bnxViewControls button{min-width:36px;padding:8px 10px;border:1px solid #dce8df;background:#f4faf6;color:#14532d;font-weight:700;border-radius:9px}
-#bnxViewControls #bnxZoomValue{min-width:46px;text-align:center;font-size:12px;font-weight:800;color:#174b2d}
-#bnxViewControls #bnxDesktopToggle{font-size:11px;white-space:nowrap}
-#appScreen:not(.hidden)~#bnxViewControls{display:flex}
-#appScreen{zoom:var(--bnx-ui-zoom,1)}
-body.bnx-desktop-mode{overflow-x:auto}
-#appScreen.bnx-desktop-view{width:1200px;max-width:none;min-width:1200px;zoom:var(--bnx-ui-zoom,.5)}
-#appScreen.bnx-desktop-view .topbar{min-width:1200px}
-#appScreen.bnx-desktop-view .layout{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:calc(100vh - 66px)}
-#appScreen.bnx-desktop-view .sidebar{display:block;overflow:visible;padding:18px 12px;border-right:1px solid var(--line);border-bottom:0}
-#appScreen.bnx-desktop-view .nav-btn{width:100%;white-space:normal;margin:3px 0;padding:12px}
-#appScreen.bnx-desktop-view .main{padding:25px;max-width:1500px;width:100%;margin:auto}
-#appScreen.bnx-desktop-view .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
-#appScreen.bnx-desktop-view .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-#appScreen.bnx-desktop-view .page-head{align-items:center;flex-direction:row}
-@media(max-width:650px){#bnxViewControls{right:8px;bottom:8px;gap:4px;padding:6px}#bnxViewControls button{min-width:34px;padding:8px}}
-
+/* BUSNEX mobile PC-layout mode with native pinch zoom */
+@media(max-width:650px){
+ body.bnx-desktop-mode{overflow-x:hidden}
+ #appScreen.bnx-desktop-view{
+  width:1200px;min-width:1200px;max-width:none;
+  transform-origin:top left;
+ }
+ #appScreen.bnx-desktop-view .topbar{width:1200px;min-width:1200px}
+ #appScreen.bnx-desktop-view .layout{
+  display:grid;grid-template-columns:230px minmax(0,1fr);
+  min-height:calc(100vh - 66px)
+ }
+ #appScreen.bnx-desktop-view .sidebar{
+  display:block;overflow:visible;padding:18px 12px;
+  border-right:1px solid var(--line);border-bottom:0
+ }
+ #appScreen.bnx-desktop-view .nav-btn{width:100%;white-space:normal;margin:3px 0;padding:12px}
+ #appScreen.bnx-desktop-view .main{padding:25px;max-width:1500px;width:100%;margin:auto}
+ #appScreen.bnx-desktop-view .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+ #appScreen.bnx-desktop-view .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #appScreen.bnx-desktop-view .page-head{align-items:center;flex-direction:row}
+}
 </style>
 
-<div id="bnxViewControls" aria-label="Screen view controls">
- <button id="bnxZoomOut" type="button" aria-label="Zoom out" title="Zoom Out">−</button>
- <span id="bnxZoomValue">100%</span>
- <button id="bnxZoomIn" type="button" aria-label="Zoom in" title="Zoom In">+</button>
- <button id="bnxZoomReset" type="button" title="Reset zoom">↺</button>
- <button id="bnxDesktopToggle" type="button" aria-pressed="false">Desktop View</button>
-</div>
+
 <script>
 (function(){
  const app=document.getElementById('appScreen');
- const controls=document.getElementById('bnxViewControls');
- if(!app||!controls)return;
- const out=document.getElementById('bnxZoomOut'),into=document.getElementById('bnxZoomIn');
- const reset=document.getElementById('bnxZoomReset'),value=document.getElementById('bnxZoomValue');
- const desktop=document.getElementById('bnxDesktopToggle');
- let zoom=100,desktopMode=false;
- function apply(){
-  const fit=desktopMode?Math.min(window.innerWidth/1200,1):1;
-  app.style.setProperty('--bnx-ui-zoom',String(fit*zoom/100));
-  app.classList.toggle('bnx-desktop-view',desktopMode);
-  document.body.classList.toggle('bnx-desktop-mode',desktopMode);
-  value.textContent=zoom+'%';
-  desktop.textContent=desktopMode?'Mobile View':'Desktop View';
-  desktop.setAttribute('aria-pressed',String(desktopMode));
+ if(!app)return;
+ const mobile=window.matchMedia('(max-width: 650px)');
+ function applyMobileDesktopLayout(){
+  const enabled=mobile.matches;
+  app.classList.toggle('bnx-desktop-view',enabled);
+  document.body.classList.toggle('bnx-desktop-mode',enabled);
+  if(enabled){
+   const fit=Math.min(window.innerWidth/1200,1);
+   app.style.zoom=String(fit);
+  }else{
+   app.style.removeProperty('zoom');
+  }
  }
- out.addEventListener('click',()=>{zoom=Math.max(70,zoom-10);apply()});
- into.addEventListener('click',()=>{zoom=Math.min(150,zoom+10);apply()});
- reset.addEventListener('click',()=>{zoom=100;apply()});
- desktop.addEventListener('click',()=>{desktopMode=!desktopMode;apply()});
- window.addEventListener('resize',apply,{passive:true});
- apply();
+ applyMobileDesktopLayout();
+ window.addEventListener('resize',applyMobileDesktopLayout,{passive:true});
+ if(mobile.addEventListener) mobile.addEventListener('change',applyMobileDesktopLayout);
 })();
 </script>
 
