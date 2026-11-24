@@ -3698,7 +3698,7 @@ async function loadBuses() {
 let supervisorLibraryCache=[];
 let supervisorEditingId=null;
 function supervisorLibraryMessage(message,type=""){const el=$("supervisorLibraryMessage");el.textContent=message;el.className="message section"+(type?" "+type:"");}
-function showSupervisorLibraryTab(show){$("supervisorLibraryPanel").classList.toggle("hidden",!show);$("tripBuilderPanel").classList.toggle("hidden",show);$("supervisorLibraryTabButton").className=show?"primary":"secondary";$("tripBuilderTabButton").className=show?"secondary":"primary";if(show)loadCompanySupervisors();}
+function showSupervisorLibraryTab(show){$("supervisorLibraryPanel").classList.toggle("hidden",!show);$("tripBuilderPanel").classList.toggle("hidden",show);$("supervisorLibraryTabButton").className=show?"primary":"secondary";$("tripBuilderTabButton").className=show?"secondary":"primary";}
 async function loadCompanySupervisors(){
  const companyId=selectedCompanyId(),select=$("tripSupervisorSelect"),list=$("supervisorLibraryList");
  if(!select||!list)return;select.innerHTML='<option value="">Supervisor List থেকে নির্বাচন করুন</option>';
@@ -3706,7 +3706,7 @@ async function loadCompanySupervisors(){
  const {data,error}=await supabase.from("company_supervisors").select("id,company_id,supervisor_name,supervisor_phone,is_active").eq("company_id",companyId).eq("is_active",true).order("supervisor_name",{ascending:true});
  if(error)throw error;supervisorLibraryCache=data||[];
  supervisorLibraryCache.forEach(item=>{const option=document.createElement("option");option.value=item.id;option.textContent=item.supervisor_name+" • "+item.supervisor_phone;select.appendChild(option);});
- list.innerHTML=supervisorLibraryCache.length?'<div class="table-wrap"><table><thead><tr><th>Supervisor Name</th><th>Phone</th><th>Action</th></tr></thead><tbody>'+supervisorLibraryCache.map(item=>'<tr><td>'+escapeHtml(item.supervisor_name)+'</td><td>'+escapeHtml(item.supervisor_phone)+'</td><td><button type="button" class="secondary supervisor-edit-button" data-id="'+escapeHtml(item.id)+'">Edit</button> <button type="button" class="danger supervisor-disable-button" data-id="'+escapeHtml(item.id)+'">Remove</button></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">এখনো কোনো Supervisor Save করা হয়নি। উপরে নাম ও নম্বর লিখে Save করুন।';
+ list.innerHTML=supervisorLibraryCache.length?'<div class="table-wrap"><table><thead><tr><th>Supervisor Name</th><th>Phone</th><th>Action</th></tr></thead><tbody>'+supervisorLibraryCache.map(item=>'<tr><td>'+escapeHtml(item.supervisor_name)+'</td><td>'+escapeHtml(item.supervisor_phone)+'</td><td><button type="button" class="secondary supervisor-edit-button" data-id="'+escapeHtml(item.id)+'">Edit</button> <button type="button" class="danger supervisor-disable-button" data-id="'+escapeHtml(item.id)+'">Remove</button></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">এখনো কোনো Supervisor Save করা হয়নি। উপরে নাম ও নম্বর লিখে Save করুন।</div>';
 }
 async function ensureSupervisorSaved(companyId,name,phone){
  const cleanName=String(name||"").trim(),cleanPhone=String(phone||"").trim();if(!companyId||!cleanName||!cleanPhone)return;
