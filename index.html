@@ -46,6 +46,10 @@ button{
 }
 button:disabled{opacity:.55;cursor:not-allowed}
 .hidden{display:none!important}
+#sessionRestoreScreen{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(145deg,#f0fdf4,#fff 55%,#dcfce7);color:#14532d;text-align:center}
+.session-restore-card{width:min(360px,100%);padding:30px 24px;background:#fff;border:1px solid #dce9df;border-radius:20px;box-shadow:0 16px 48px rgba(20,83,45,.10)}
+.session-restore-spinner{width:38px;height:38px;margin:0 auto 16px;border:4px solid #dcfce7;border-top-color:#16a34a;border-radius:50%;animation:busnexSessionSpin .8s linear infinite}
+@keyframes busnexSessionSpin{to{transform:rotate(360deg)}}
 .muted{color:var(--muted)}
 .small{font-size:12px}
 .brand{font-weight:900;letter-spacing:1px;color:#fff;font-size:24px}
@@ -1819,7 +1823,16 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
 
 <body>
 
-<div id="loginScreen" class="login-wrap">
+<div id="sessionRestoreScreen">
+  <div class="session-restore-card">
+    <div class="session-restore-spinner" aria-hidden="true"></div>
+    <div style="font-size:19px;font-weight:900;letter-spacing:.5px">BUSNEX</div>
+    <div style="margin-top:9px;font-size:14px;font-weight:700">আপনার নিরাপদ Session যাচাই হচ্ছে...</div>
+    <div style="margin-top:6px;font-size:12px;color:#647568">অনুগ্রহ করে অপেক্ষা করুন</div>
+  </div>
+</div>
+
+<div id="loginScreen" class="login-wrap hidden">
   <div class="login-card">
     <div class="login-logo">
       <div class="brand">BUS<span>NEX</span></div>
@@ -2906,6 +2919,7 @@ async function loadDashboardStats() {
 let maintenanceWatchTimer = null;
 
 function showMaintenanceScreen(message) {
+  $("sessionRestoreScreen").classList.add("hidden");
   $("loginScreen").classList.add("hidden");
   $("appScreen").classList.add("hidden");
   $("maintenanceNoticeMessage").textContent = message ||
@@ -3032,6 +3046,7 @@ async function showDashboard(profile) {
   }
 
   $("maintenanceScreen").classList.add("hidden");
+  $("sessionRestoreScreen").classList.add("hidden");
   $("loginScreen").classList.add("hidden");
   $("appScreen").classList.remove("hidden");
 
@@ -3402,6 +3417,7 @@ $("returnGlobalButton").addEventListener("click",() => {
 
 function showLogin() {
   $("appScreen").classList.add("hidden");
+  $("sessionRestoreScreen").classList.add("hidden");
   $("loginScreen").classList.remove("hidden");
   currentProfile = null;
   editingTripId = null;
@@ -3416,6 +3432,7 @@ function showLogin() {
 }
 
 function showPasswordSetup(message = "") {
+  $("sessionRestoreScreen").classList.add("hidden");
   $("appScreen").classList.add("hidden");
   $("loginScreen").classList.remove("hidden");
   $("loginForm").classList.add("hidden");
@@ -8630,24 +8647,37 @@ $("searchTripButton").addEventListener("click",async() => {
 if (!isPasswordSetupLink) {
   (async() => {
     try {
-      const {data:{session}} = await supabase.auth.getSession();
+      const {data:{session},error:sessionError} = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
 
-      if (session) {
-        const {data:userData} = await supabase.auth.getUser();
-
-        if (userData?.user) {
-          const {data:profile,error} = await supabase
-            .from("profiles")
-            .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active")
-            .eq("id",userData.user.id)
-            .maybeSingle();
-
-          if (error) throw error;
-          if (profile) showDashboard(profile);
-        }
+      if (!session) {
+        showLogin();
+        return;
       }
+
+      const {data:userData,error:userError} = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!userData?.user) {
+        showLogin();
+        return;
+      }
+
+      const {data:profile,error:profileError} = await supabase
+        .from("profiles")
+        .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active")
+        .eq("id",userData.user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      if (!profile) {
+        showLogin();
+        return;
+      }
+
+      await showDashboard(profile);
     } catch(error) {
       console.warn("Session restore:",error);
+      showLogin();
     }
   })();
 }
