@@ -5065,7 +5065,7 @@ async function editTrip(id,copyMode=false) {
     setPointSetupRows("dropping",droppingStops.map(stop=>({
       name:stop.stop_name,time:String(stop.scheduled_time||"").slice(0,5)
     })));
-    $("tripSeatLayoutInput").value = copyMode ? serializeSeatLayoutLines(copiedSeatLayout) : "";
+    $("tripSeatLayoutInput").value = copyMode ? seatFormatLines(copiedSeatLayout) : "";
 
     editingTripId = copyMode ? null : trip.id;
 
