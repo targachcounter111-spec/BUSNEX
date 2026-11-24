@@ -2064,7 +2064,15 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
           <button id="refreshTripsButton" class="secondary">↻ Trip Refresh</button>
         </div>
 
-        <div class="card trip-builder-card">
+        <div class="actions" style="margin:0 0 16px"><button id="tripBuilderTabButton" class="primary" type="button">＋ Schedule তৈরি / Edit</button><button id="supervisorLibraryTabButton" class="secondary" type="button">♙ Supervisor List</button></div>
+        <div id="supervisorLibraryPanel" class="card hidden" style="margin-bottom:18px">
+          <h2>Supervisor List</h2><p class="muted small">এই Company-এর Supervisor-এর নাম ও মোবাইল নম্বর সংরক্ষণ করুন। পরে Schedule-এ নির্বাচন করলেই তথ্য বসে যাবে।</p>
+          <div class="form-row"><div class="field"><label for="savedSupervisorName">Supervisor Name</label><input id="savedSupervisorName" maxlength="120" placeholder="সুপারভাইজারের নাম"></div><div class="field"><label for="savedSupervisorPhone">Supervisor Phone</label><input id="savedSupervisorPhone" type="tel" maxlength="20" placeholder="01XXXXXXXXX"></div></div>
+          <div class="actions"><button id="saveSupervisorButton" class="primary" type="button">Supervisor Save করুন</button><button id="cancelSupervisorEditButton" class="secondary hidden" type="button">Edit বাতিল</button></div>
+          <div id="supervisorLibraryMessage" class="message section" aria-live="polite">Supervisor-এর নাম ও নম্বর লিখে Save করুন।</div>
+          <div id="supervisorLibraryList" class="section"><div class="empty">Supervisor List লোড হচ্ছে...</div></div>
+        </div>
+        <div id="tripBuilderPanel" class="card trip-builder-card">
           <div class="trip-builder-hero">
             <div><span class="trip-builder-kicker">BUSNEX • PREMIUM TRIP BUILDER</span><h2 id="tripFormTitle">নতুন Trip তৈরি করুন</h2><p>এক জায়গা থেকেই রুট, সময়, স্টপেজ ও একাধিক দিনের Trip সাজান।</p></div>
             <div class="trip-builder-mark">✦</div>
@@ -2179,6 +2187,11 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
             <div class="field">
               <label>Ticket Price (৳)</label>
               <input id="tripPrice" type="number" min="0" step="1" placeholder="ভাড়া">
+            </div>
+            <div class="field">
+              <label>Saved Supervisor নির্বাচন</label>
+              <select id="tripSupervisorSelect"><option value="">Supervisor List থেকে নির্বাচন করুন</option></select>
+              <div class="small muted">তালিকা থেকে নির্বাচন করলে Name ও Phone অটোমেটিক পূরণ হবে। নতুন নাম Schedule Save করলে তালিকায় যোগ হবে।</div>
             </div>
             <div class="field">
               <label>Supervisor Name</label>
@@ -3681,6 +3694,47 @@ async function loadBuses() {
   }
 }
 
+
+let supervisorLibraryCache=[];
+let supervisorEditingId=null;
+function supervisorLibraryMessage(message,type=""){const el=$("supervisorLibraryMessage");el.textContent=message;el.className="message section"+(type?" "+type:"");}
+function showSupervisorLibraryTab(show){$("supervisorLibraryPanel").classList.toggle("hidden",!show);$("tripBuilderPanel").classList.toggle("hidden",show);$("supervisorLibraryTabButton").className=show?"primary":"secondary";$("tripBuilderTabButton").className=show?"secondary":"primary";if(show)loadCompanySupervisors();}
+async function loadCompanySupervisors(){
+ const companyId=selectedCompanyId(),select=$("tripSupervisorSelect"),list=$("supervisorLibraryList");
+ if(!select||!list)return;select.innerHTML='<option value="">Supervisor List থেকে নির্বাচন করুন</option>';
+ if(!companyId){supervisorLibraryCache=[];list.innerHTML='<div class="empty">আগে Company নির্বাচন করুন।</div>';return;}
+ const {data,error}=await supabase.from("company_supervisors").select("id,company_id,supervisor_name,supervisor_phone,is_active").eq("company_id",companyId).eq("is_active",true).order("supervisor_name",{ascending:true});
+ if(error)throw error;supervisorLibraryCache=data||[];
+ supervisorLibraryCache.forEach(item=>{const option=document.createElement("option");option.value=item.id;option.textContent=item.supervisor_name+" • "+item.supervisor_phone;select.appendChild(option);});
+ list.innerHTML=supervisorLibraryCache.length?'<div class="table-wrap"><table><thead><tr><th>Supervisor Name</th><th>Phone</th><th>Action</th></tr></thead><tbody>'+supervisorLibraryCache.map(item=>'<tr><td>'+escapeHtml(item.supervisor_name)+'</td><td>'+escapeHtml(item.supervisor_phone)+'</td><td><button type="button" class="secondary supervisor-edit-button" data-id="'+escapeHtml(item.id)+'">Edit</button> <button type="button" class="danger supervisor-disable-button" data-id="'+escapeHtml(item.id)+'">Remove</button></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">এখনো কোনো Supervisor Save করা হয়নি। উপরে নাম ও নম্বর লিখে Save করুন।';
+}
+async function ensureSupervisorSaved(companyId,name,phone){
+ const cleanName=String(name||"").trim(),cleanPhone=String(phone||"").trim();if(!companyId||!cleanName||!cleanPhone)return;
+ if(supervisorLibraryCache.some(x=>x.supervisor_name.trim().toLowerCase()===cleanName.toLowerCase()&&x.supervisor_phone.trim()===cleanPhone))return;
+ const {data:userData,error:userError}=await supabase.auth.getUser();if(userError)throw userError;
+ const {error}=await supabase.from("company_supervisors").insert({company_id:companyId,supervisor_name:cleanName,supervisor_phone:cleanPhone,created_by:userData.user?.id||null});if(error)throw error;await loadCompanySupervisors();
+}
+$("tripSupervisorSelect").addEventListener("change",()=>{const x=supervisorLibraryCache.find(item=>item.id===$("tripSupervisorSelect").value);if(x){$("tripSupervisor").value=x.supervisor_name;$("tripSupervisorPhone").value=x.supervisor_phone;}});
+$("tripBuilderTabButton").addEventListener("click",()=>showSupervisorLibraryTab(false));
+$("supervisorLibraryTabButton").addEventListener("click",()=>showSupervisorLibraryTab(true));
+$("saveSupervisorButton").addEventListener("click",async()=>{
+ const button=$("saveSupervisorButton"),companyId=selectedCompanyId(),name=$("savedSupervisorName").value.trim(),phone=$("savedSupervisorPhone").value.trim();
+ if(!companyId)return supervisorLibraryMessage("আগে Company নির্বাচন করুন।","error");if(!name||!phone)return supervisorLibraryMessage("Supervisor Name ও Phone দুটোই লিখুন।","error");if(phone.length<3||phone.length>20)return supervisorLibraryMessage("সঠিক Phone Number লিখুন।","error");
+ button.disabled=true;try{
+  const payload={supervisor_name:name,supervisor_phone:phone,updated_at:new Date().toISOString()};let query;
+  if(supervisorEditingId)query=supabase.from("company_supervisors").update(payload).eq("id",supervisorEditingId).eq("company_id",companyId);
+  else{const {data:userData,error:userError}=await supabase.auth.getUser();if(userError)throw userError;query=supabase.from("company_supervisors").insert({...payload,company_id:companyId,created_by:userData.user?.id||null});}
+  const {error}=await query;if(error)throw error;supervisorEditingId=null;$("savedSupervisorName").value="";$("savedSupervisorPhone").value="";$("saveSupervisorButton").textContent="Supervisor Save করুন";$("cancelSupervisorEditButton").classList.add("hidden");await loadCompanySupervisors();supervisorLibraryMessage("Supervisor সফলভাবে সংরক্ষণ হয়েছে।","ok");
+ }catch(error){supervisorLibraryMessage("Supervisor Save হয়নি: "+error.message,"error");}finally{button.disabled=false;}
+});
+$("cancelSupervisorEditButton").addEventListener("click",()=>{supervisorEditingId=null;$("savedSupervisorName").value="";$("savedSupervisorPhone").value="";$("saveSupervisorButton").textContent="Supervisor Save করুন";$("cancelSupervisorEditButton").classList.add("hidden");supervisorLibraryMessage("Edit বাতিল করা হয়েছে।");});
+$("supervisorLibraryList").addEventListener("click",async event=>{
+ const edit=event.target.closest(".supervisor-edit-button"),remove=event.target.closest(".supervisor-disable-button"),item=supervisorLibraryCache.find(x=>x.id===(edit||remove)?.dataset.id);if(!item)return;
+ if(edit){supervisorEditingId=item.id;$("savedSupervisorName").value=item.supervisor_name;$("savedSupervisorPhone").value=item.supervisor_phone;$("saveSupervisorButton").textContent="পরিবর্তন সংরক্ষণ";$("cancelSupervisorEditButton").classList.remove("hidden");$("savedSupervisorName").focus();return;}
+ if(!confirm(item.supervisor_name+" — এই Supervisor-কে তালিকা থেকে Remove করবেন? আগের Schedule-এ থাকা তথ্য অপরিবর্তিত থাকবে।"))return;
+ try{const {error}=await supabase.from("company_supervisors").update({is_active:false,updated_at:new Date().toISOString()}).eq("id",item.id).eq("company_id",selectedCompanyId());if(error)throw error;await loadCompanySupervisors();supervisorLibraryMessage("Supervisor তালিকা থেকে Remove করা হয়েছে। আগের Schedule-এর তথ্য অক্ষত আছে।","ok");}catch(error){supervisorLibraryMessage("Remove করা যায়নি: "+error.message,"error");}
+});
+
 async function prepareTripManagement() {
   if (!isTripManager()) {
     tripMessage("এই বিভাগ ব্যবহারের অনুমতি নেই।","error");
@@ -3721,6 +3775,7 @@ async function prepareTripManagement() {
 
     await loadBuses();
     await loadSavedRoutes();
+    await loadCompanySupervisors();
     await loadTrips();
 
   } catch(error) {
@@ -3733,8 +3788,9 @@ $("tripCompany").addEventListener("change",async() => {
   try {
     await loadBuses();
     await loadSavedRoutes();
+    await loadCompanySupervisors();
   } catch(error) {
-    tripMessage("Bus/Route লোড হয়নি: " + error.message,"error");
+    tripMessage("Bus/Route/Supervisor লোড হয়নি: " + error.message,"error");
   }
 });
 
@@ -4680,6 +4736,11 @@ $("tripSaveButton").addEventListener("click",async() => {
       if (layoutSaveError) { boardingWarning = "Trip Seat Layout সংরক্ষণ হয়নি: "+layoutSaveError.message; break; }
     }
 
+    if(supervisor&&supervisorPhone){
+      try{await ensureSupervisorSaved(companyId,supervisor,supervisorPhone);}
+      catch(supervisorSaveError){console.warn("SUPERVISOR LIBRARY SAVE:",supervisorSaveError.message);}
+    }
+
     tripMessage(
       boardingWarning
         ? "Trip তৈরি/পরিবর্তন হয়েছে। "+boardingWarning
@@ -5047,6 +5108,8 @@ async function editTrip(id,copyMode=false) {
     $("tripPrice").value = trip.ticket_price ?? "";
     $("tripSupervisor").value = trip.supervisor_name || trip.supervisor || "";
     $("tripSupervisorPhone").value = trip.supervisor_phone || "";
+    const matchedSupervisor=supervisorLibraryCache.find(item=>item.supervisor_name.trim().toLowerCase()===$("tripSupervisor").value.trim().toLowerCase()&&item.supervisor_phone.trim()===$("tripSupervisorPhone").value.trim());
+    $("tripSupervisorSelect").value=matchedSupervisor?.id||"";
 
     const activeTripStops=(trip.trip_stops||[]).filter(stop=>stop.is_active!==false)
       .sort((a,b)=>a.stop_order-b.stop_order);
