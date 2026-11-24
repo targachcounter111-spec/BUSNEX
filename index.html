@@ -1761,6 +1761,21 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
 }
 </style>
 
+
+<style id="busnex-seat-gender-colors-hover-visibility-fix">
+/* Ensure gender-specific sold seats remain visually distinct after later cascade overrides. */
+#appScreen #page-booking .booking-seat-panel .seats .seat.sold-male{
+ background:#dc2626!important;color:#fff!important;border:2px solid #991b1b!important;background-image:none!important;
+}
+#appScreen #page-booking .booking-seat-panel .seats .seat.sold-female{
+ background:#db2777!important;color:#fff!important;border:2px solid #9d174d!important;background-image:none!important;
+}
+#appScreen #page-booking .booking-seat-panel .busnex-sold-tooltip,
+.busnex-sold-tooltip,
+.busnex-seat-status-tooltip{
+ display:block!important;visibility:visible!important;opacity:1!important;z-index:2147483000!important;
+}
+</style>
 </head>
 
 <body>
