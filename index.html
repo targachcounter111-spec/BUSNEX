@@ -2897,7 +2897,7 @@ async function toggleMaintenanceMode() {
   }
 }
 
-async function showDashboard(profile) {
+async async function showDashboard(profile) {
   // A fresh successful login/session restore must trigger the reminder again.
   billReminderShownForSession = false;
   if (billReminderTimer) {
@@ -4636,7 +4636,7 @@ $("tripSaveButton").addEventListener("click",async() => {
   }
 });
 
-async function loadTrips(view) {
+async async function loadTrips(view) {
   if (!isTripManager()) return;
   if (view === "upcoming" || view === "history") tripListView = view;
   $("tripUpcomingButton").className = tripListView === "upcoming" ? "primary" : "secondary";
@@ -8244,7 +8244,7 @@ $("tripDate").value = new Date().toLocaleDateString("en-CA");
 $("fromStop").disabled = true;
 $("toStop").disabled = true;
 
-async function loadBookingStopsForSelectedDate() {
+async async function loadBookingStopsForSelectedDate() {
   const date = $("journeyDate").value;
   try { if(date) localStorage.setItem("busnex_booking_journey_date",date); } catch(e) {}
   const requestId = ++bookingDateLoadRequest;
