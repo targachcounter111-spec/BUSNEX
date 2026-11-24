@@ -2980,7 +2980,7 @@ async function showDashboard(profile) {
   document.querySelectorAll(".company-manager-notice-nav").forEach(button => button.classList.toggle("hidden",currentProfile.role!=="company_manager"));
   document.querySelectorAll(".trip-manager-only").forEach(button => button.classList.toggle("hidden",!isTripManager()));
   document.querySelectorAll(".manager-only").forEach(button => button.classList.toggle("hidden",!canCreateCounter()));
-  document.querySelectorAll(".nb-counter-manager-only").forEach(button => button.classList.toggle("hidden",currentProfile.role!=="nb_sub_manager" && !isAdmin()));
+  document.querySelectorAll(".nb-counter-manager-only").forEach(button => button.classList.toggle("hidden",!["nb_sub_manager","dhaka_sub_manager"].includes(currentProfile.role) && !isAdmin()));
 
   if (currentProfile.role === "super_admin") {
     $("globalCompanyHub").classList.remove("hidden");
