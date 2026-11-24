@@ -2970,8 +2970,11 @@ async function showDashboard(profile) {
   $("returnGlobalButton").style.display = "none";
   loadCompanyBranding();
   document.querySelectorAll(".page").forEach(page => page.classList.add("hidden"));
-  $("page-dashboard").classList.remove("hidden");
-  document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active",button.dataset.page === "dashboard"));
+  // Counter operators should land directly on the ticket schedule/search screen.
+  // Managers retain the Dashboard as their landing page.
+  const initialPage = currentProfile.role === "counter_operator" ? "booking" : "dashboard";
+  $("page-" + initialPage).classList.remove("hidden");
+  document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active",button.dataset.page === initialPage));
   $("appScreen").classList.remove("menu-open");
   $("menuToggle").setAttribute("aria-expanded","false");
   document.title = "BUSNEX | Dashboard";
