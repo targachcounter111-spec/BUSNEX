@@ -4823,6 +4823,7 @@ async function loadTrips(view) {
         </div>
         <div class="actions" style="margin-top:12px">
           <button class="secondary edit-trip" data-id="${escapeHtml(trip.id)}">Edit Trip</button>
+          <button class="secondary copy-trip" data-id="${escapeHtml(trip.id)}">Copy Schedule</button>
           ${status === "scheduled" ? `<button class="${busIsOff ? 'secondary' : 'danger'} toggle-bus-off" data-id="${escapeHtml(trip.id)}" data-active="${busIsOff ? 'false' : 'true'}">${busIsOff ? 'BUS ON — চালু করুন' : 'BUS OFF — Ticket বন্ধ করুন'}</button>` : ''}
           ${status !== "cancelled" ? `<button class="danger cancel-trip" data-id="${escapeHtml(trip.id)}">Trip বাতিল</button>` : ""}
         </div>
@@ -4831,6 +4832,7 @@ async function loadTrips(view) {
     });
 
     document.querySelectorAll(".edit-trip").forEach(button => button.addEventListener("click",() => editTrip(button.dataset.id)));
+    document.querySelectorAll(".copy-trip").forEach(button => button.addEventListener("click",() => copyTrip(button.dataset.id)));
     document.querySelectorAll(".cancel-trip").forEach(button => button.addEventListener("click",() => cancelTrip(button.dataset.id,button)));
     document.querySelectorAll(".toggle-bus-off").forEach(button => button.addEventListener("click",() => toggleBusOff(button.dataset.id,button)));
     document.querySelectorAll(".trip-archive-check").forEach(input => input.addEventListener("change",updateTripArchiveSelection));
@@ -4985,7 +4987,13 @@ $("managedAccountsList").addEventListener("click", async event => {
   }
 });
 
-async function editTrip(id) {
+function copyTrip(id) {
+  if (!isTripManager()) return;
+  if (!confirm("এই Schedule-এর তথ্য কপি করে নতুন Schedule তৈরি করবেন? পুরোনো Schedule পরিবর্তন হবে না।")) return;
+  editTrip(id,true);
+}
+
+async function editTrip(id,copyMode=false) {
   if (!isTripManager()) return;
 
   try {
@@ -5003,6 +5011,17 @@ async function editTrip(id) {
 
     if (error) throw error;
 
+    let copiedSeatLayout = [];
+    if (copyMode) {
+      const {data:layoutRows,error:layoutError} = await supabase
+        .from("trip_seat_layouts")
+        .select("seat_number,row_label,seat_position,seat_order")
+        .eq("trip_id",id)
+        .order("seat_order",{ascending:true});
+      if (layoutError) throw new Error("পুরোনো Schedule-এর Seat Layout পড়া যায়নি: "+layoutError.message);
+      copiedSeatLayout = layoutRows || [];
+    }
+
     if (currentProfile.role === "super_admin") {
       $("tripCompany").value = trip.company_id;
       await loadBuses();
@@ -5014,7 +5033,7 @@ async function editTrip(id) {
     $("newRouteFields").classList.remove("hidden");
     $("savedRouteEditor").classList.add("hidden");
     $("tripRouteRegion").value = trip.routes?.region || allowedTripRegions()[0];
-    $("tripRouteRegion").disabled = true;
+    $("tripRouteRegion").disabled = !copyMode;
     $("tripFrom").readOnly = false;
     $("tripTo").readOnly = false;
     $("tripFrom").value = trip.routes?.starting_point || "";
@@ -5046,16 +5065,18 @@ async function editTrip(id) {
     setPointSetupRows("dropping",droppingStops.map(stop=>({
       name:stop.stop_name,time:String(stop.scheduled_time||"").slice(0,5)
     })));
-    $("tripSeatLayoutInput").value = "";
+    $("tripSeatLayoutInput").value = copyMode ? serializeSeatLayoutLines(copiedSeatLayout) : "";
 
-    editingTripId = trip.id;
+    editingTripId = copyMode ? null : trip.id;
 
-    $("tripFormTitle").textContent = "Trip পরিবর্তন করুন";
-    $("tripSaveButton").textContent = "পরিবর্তন সংরক্ষণ";
-    $("editingBanner").classList.remove("hidden");
-    $("tripEditCancelButton").classList.remove("hidden");
+    $("tripFormTitle").textContent = copyMode ? "পুরোনো Schedule Copy করে নতুন Schedule তৈরি করুন" : "Trip পরিবর্তন করুন";
+    $("tripSaveButton").textContent = copyMode ? "নতুন Schedule সংরক্ষণ" : "পরিবর্তন সংরক্ষণ";
+    $("editingBanner").classList.toggle("hidden",copyMode);
+    $("tripEditCancelButton").classList.toggle("hidden",copyMode);
 
-    tripMessage("Trip Edit করার জন্য প্রস্তুত। পরিবর্তন করে Save করুন।","ok");
+    tripMessage(copyMode
+      ? "পুরোনো Schedule-এর তথ্য কপি হয়েছে। Date, Time ও প্রয়োজনীয় তথ্য Edit করে নতুন Schedule Save করুন। পুরোনো Schedule অপরিবর্তিত থাকবে।"
+      : "Trip Edit করার জন্য প্রস্তুত। পরিবর্তন করে Save করুন।","ok");
 
     $("page-trips").scrollIntoView({
       behavior:"smooth",
