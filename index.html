@@ -1738,6 +1738,9 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
 
 <style id="busnex-role-visibility-and-page-display-fix">
 /* Keep role-hidden navigation and pages hidden even when component styles set display. */
+/* Match the high-specificity glass-sidebar rule so role-hidden items stay hidden. */
+#appScreen>.layout>.sidebar.bnx-glass-sidebar .nav-btn.hidden,
+#appScreen>.layout>.sidebar.bnx-glass-sidebar .nav-btn[hidden],
 #appScreen .nav-btn.hidden,
 #appScreen .sidebar .nav-btn.hidden,
 #appScreen .nav-btn[hidden],
