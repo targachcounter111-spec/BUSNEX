@@ -5828,7 +5828,6 @@ async function loadBillingPage() {
         });
       }
       companySelect.value = activeCompanyId || "";
-      await loadCompanyTicketFooterSetting();
 
       const {data:rateRows,error:rateError} = await supabase
         .from("company_billing_rates")
