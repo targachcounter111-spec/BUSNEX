@@ -2195,11 +2195,13 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
             <div class="field">
               <label>Boarding Points / যাত্রী ওঠার স্থান</label>
               <div id="boardingPointSetup" class="point-setup-list"></div>
+              <datalist id="boardingPointSuggestions"></datalist>
               <div class="small muted">প্রতিটি জায়গার নাম ও Boarding Time লিখুন। “+ নতুন জায়গা যোগ করুন” দিয়ে আরও Point যোগ করুন।</div>
             </div>
             <div class="field">
               <label>Dropping Points / যাত্রী নামার স্থান</label>
               <div id="droppingPointSetup" class="point-setup-list"></div>
+              <datalist id="droppingPointSuggestions"></datalist>
               <div class="small muted">প্রতিটি জায়গার নাম ও Dropping Time লিখুন। “+ নতুন জায়গা যোগ করুন” দিয়ে আরও Point যোগ করুন।</div>
             </div>
           </div>
@@ -3800,7 +3802,7 @@ function addPointSetupRow(kind,name="",time="") {
   row.className = "form-row";
   row.style.cssText = "display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.7fr) auto;gap:8px;margin:8px 0;align-items:center";
   const place = document.createElement("input");
-  place.type = "text"; place.placeholder = "জায়গার নাম"; place.value = name;
+  place.type = "text"; place.placeholder = "জায়গার নাম"; place.value = name; place.setAttribute("list",kind+"PointSuggestions");
   const clock = document.createElement("input");
   clock.type = "time"; clock.value = time;
   const remove = document.createElement("button");
@@ -3835,6 +3837,47 @@ function parseTripPointLines(kind,label) {
 }
 function initPointSetupModes() {
   ["boarding","dropping"].forEach(renderPointSetup);
+}
+
+// আগের Schedule-এ ব্যবহৃত Point-গুলো থেকেই Company অনুযায়ী Suggestion Library তৈরি হয়।
+async function loadTripPointLibrary(companyId) {
+  const boardingList = $("boardingPointSuggestions");
+  const droppingList = $("droppingPointSuggestions");
+  if (!boardingList || !droppingList) return;
+  boardingList.innerHTML = "";
+  droppingList.innerHTML = "";
+  if (!companyId) return;
+
+  const {data:tripRows,error:tripError} = await supabase
+    .from("trips").select("id").eq("company_id",companyId).limit(1500);
+  if (tripError) {
+    console.warn("TRIP POINT LIBRARY:",tripError.message);
+    return;
+  }
+  const tripIds = (tripRows || []).map(trip=>trip.id).filter(Boolean);
+  if (!tripIds.length) return;
+
+  const [boardingResult,stopResult] = await Promise.all([
+    supabase.from("trip_boarding_points")
+      .select("point_name").in("trip_id",tripIds),
+    supabase.from("trip_stops")
+      .select("stop_name,stop_type").in("trip_id",tripIds).eq("is_active",true)
+  ]);
+  if (boardingResult.error) console.warn("BOARDING POINT LIBRARY:",boardingResult.error.message);
+  if (stopResult.error) console.warn("DROPPING POINT LIBRARY:",stopResult.error.message);
+
+  const uniqueNames = values => [...new Set(values
+    .map(value=>String(value || "").trim())
+    .filter(Boolean))].sort((a,b)=>a.localeCompare(b,"bn"));
+  const boardingNames = uniqueNames([
+    ...(boardingResult.data || []).map(point=>point.point_name),
+    ...(stopResult.data || []).filter(stop=>stop.stop_type==="boarding").map(stop=>stop.stop_name)
+  ]);
+  const droppingNames = uniqueNames(
+    (stopResult.data || []).filter(stop=>stop.stop_type==="dropping").map(stop=>stop.stop_name)
+  );
+  boardingList.innerHTML = boardingNames.map(name=>'<option value="'+escapeHtml(name)+'"></option>').join("");
+  droppingList.innerHTML = droppingNames.map(name=>'<option value="'+escapeHtml(name)+'"></option>').join("");
 }
 function parseCustomTripLayout() {
   const raw = $("tripSeatLayoutInput").value.trim();
@@ -4120,6 +4163,7 @@ async function loadSavedRoutes() {
     .order("created_at",{ascending:false});
   if (error) throw error;
   savedRouteCache = data || [];
+  await loadTripPointLibrary(companyId);
   renderSavedRouteOptions();
   $("newRouteFields").classList.remove("hidden");
   $("savedRouteEditor").classList.add("hidden");
