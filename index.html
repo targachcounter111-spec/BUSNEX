@@ -2456,6 +2456,12 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
               <div id="billingRateMessage" class="message" aria-live="polite"></div>
               <div id="billingRateList" class="table-wrap"><div class="empty">Company Rate লোড হচ্ছে...</div></div>
             </div>
+            <div class="section" style="border:1px solid #f0c9a8;border-radius:12px;padding:14px;background:#fffaf5">
+              <h2>নির্বাচিত Company-এর Test Billing Reset</h2>
+              <p class="small muted">শুধু উপরে নির্বাচিত Company-এর পুরোনো Billing Ledger, Invoice ও Payment হিসাব Reset হবে। Ticket, Passenger, Seat, Schedule বা Trip মুছবে না। পুরোনো Billing ও Payment-এর পূর্ণ Snapshot Audit-এ সংরক্ষিত থাকবে।</p>
+              <button id="billingResetCompany" type="button" class="secondary" disabled>নির্বাচিত Company-এর Billing Reset</button>
+              <div id="billingResetMessage" class="message" aria-live="polite"></div>
+            </div>
           </div>
           <div id="billingMessage" class="message">Invoice হিসাব লোড হচ্ছে...</div>
           <div class="grid">
@@ -5866,6 +5872,10 @@ async function loadBillingPage() {
         });
       }
       companySelect.value = activeCompanyId || "";
+      const resetButton = $("billingResetCompany");
+      const resetCompany = (companyRows || []).find(company => company.id === companySelect.value);
+      resetButton.disabled = !resetCompany;
+      resetButton.textContent = resetCompany ? resetCompany.name + " — Billing Reset" : "প্রথমে একটি Company নির্বাচন করুন";
 
       const {data:rateRows,error:rateError} = await supabase
         .from("company_billing_rates")
@@ -6016,6 +6026,44 @@ async function loadBillingPage() {
 $("billingCompanySelect").addEventListener("change",()=>{
   activeCompanyId = $("billingCompanySelect").value || null;
   loadBillingPage();
+});
+
+$("billingResetCompany").addEventListener("click", async () => {
+  const companyId = $("billingCompanySelect").value;
+  const companyName = $("billingCompanySelect").selectedOptions[0]?.textContent || "";
+  const message = $("billingResetMessage");
+  if (currentProfile?.role !== "super_admin" || !companyId) {
+    message.textContent = "প্রথমে একটি Company নির্বাচন করুন।";
+    message.className = "message error";
+    return;
+  }
+  const confirmed = confirm(companyName + " Company-এর পুরোনো Billing Reset করবেন?\n\nএই কাজ শুধু নির্বাচিত Company-তে হবে। পুরোনো Billing ও Payment Snapshot Audit-এ সংরক্ষিত থাকবে। Ticket, Passenger, Seat, Schedule বা Trip মুছবে না।");
+  if (!confirmed) return;
+  const finalConfirm = prompt("নিশ্চিত করতে Company-এর নামটি হুবহু লিখুন:\n" + companyName);
+  if (finalConfirm !== companyName) {
+    message.textContent = "Company-এর নাম মেলেনি। Reset করা হয়নি।";
+    message.className = "message";
+    return;
+  }
+  const button = $("billingResetCompany");
+  button.disabled = true;
+  message.textContent = "নির্বাচিত Company-এর Billing Reset হচ্ছে...";
+  message.className = "message";
+  try {
+    const {data,error} = await supabase.rpc("busnex_reset_company_billing",{p_company_id:companyId});
+    if (error) throw error;
+    message.textContent = (data?.company_name || companyName) + " — Billing Reset সম্পন্ন। " +
+      "পুরোনো Ledger: " + Number(data?.ledger_rows_deleted || 0) + ", Invoice: " +
+      Number(data?.invoice_rows_deleted || 0) + ", Payment: " + Number(data?.payment_rows_deleted || 0) +
+      "টি। পুরোনো হিসাব Audit Snapshot-এ সংরক্ষিত আছে।";
+    message.className = "message ok";
+    await loadBillingPage();
+  } catch(error) {
+    message.textContent = "Billing Reset হয়নি: " + error.message;
+    message.className = "message error";
+  } finally {
+    button.disabled = !$("billingCompanySelect").value;
+  }
 });
 
 $("grantTicketCancelPermission").addEventListener("click",async()=>{
