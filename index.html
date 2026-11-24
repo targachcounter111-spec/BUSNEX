@@ -6145,123 +6145,7 @@ async function loadTripSheet(tripId) {
     $("tripSheetMessage").className="message section "+(warnings.length?"error":"ok");
     $("tripSheetPrint").disabled=false;
     $("tripSheetPrint").dataset.printHtml='<!doctype html><html lang="bn"><head><meta charset="utf-8"><title>BUSNEX Trip Sheet</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Bengali",sans-serif;color:#183b38;margin:0;font-size:10px}.head{background:#123b3a;color:#fff;padding:18px 20px;border-bottom:4px solid #c18a55}.brand{font-size:23px;font-weight:900;letter-spacing:3px}.sub{color:#e2c49e;font-size:10px;letter-spacing:2px;margin-top:4px}.title{display:flex;justify-content:space-between;align-items:end;margin:18px 0 12px}.title h1{font-size:19px;margin:0}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px}.fact{border:1px solid #d8e1dc;background:#f6f8f5;padding:9px}.fact span{display:block;color:#687a73;font-size:8px;margin-bottom:4px}.fact b{font-size:11px}.section-title{font-size:12px;margin:17px 0 7px;padding-bottom:5px;border-bottom:2px solid #c18a55}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #cbd5d0;padding:6px;text-align:left}th{background:#e8efea;color:#183b38}.summary{display:flex;justify-content:space-between;margin-top:12px;padding:12px;background:#f5f1e9;border:1px solid #d8e1dc;font-weight:bold}.foot{margin-top:24px;padding-top:9px;border-top:1px solid #cbd5d0;color:#718078;font-size:8px;display:flex;justify-content:space-between}tr{break-inside:avoid}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="brand">BUSNEX</div><div class="sub">BUS OPERATIONS · OFFICIAL TRIP DOCUMENT</div></header><div class="title"><h1>TRIP SHEET / যাত্রার তালিকা</h1><b>'+esc((trip.status||"—").toUpperCase())+'</b></div><div class="facts"><div class="fact"><span>Route / রুট</span><b>'+esc(route.starting_point)+' → '+esc(route.ending_point)+'</b></div><div class="fact"><span>Bus / বাস</span><b>'+esc(bus.bus_name)+'</b></div><div class="fact"><span>Coach No.</span><b>'+esc(trip.coach_number)+'</b></div><div class="fact"><span>Departure / যাত্রা</span><b>'+esc(journey)+'</b></div><div class="fact"><span>Ticket Fare / ভাড়া</span><b>৳'+esc(trip.ticket_price)+'</b></div><div class="fact"><span>Sold Seats / বিক্রিত সিট</span><b>'+tickets.length+'</b></div><div class="fact"><span>Company / কোম্পানি</span><b>'+esc(companyName)+'</b></div><div class="fact"><span>Supervisor / সুপারভাইজার</span><b>'+esc(supervisorName)+'</b></div></div><div class="section-title">BOARDING SCHEDULE / ওঠার সময়সূচি</div><table><thead><tr><th>#</th><th>Boarding Point</th><th>Time</th></tr></thead><tbody>'+(pointRows||'<tr><td colspan="3">কোনো Boarding Schedule পাওয়া যায়নি</td></tr>')+'</tbody></table><div class="section-title">PASSENGER MANIFEST / যাত্রী তালিকা</div><table><thead><tr><th>#</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Gender</th><th>Boarding</th><th>Dropping</th><th>Fare</th><th>Sold By / বিক্রেতা</th></tr></thead><tbody>'+(rows||'<tr><td colspan="9">এখনো কোনো Sold Ticket নেই।</td></tr>')+'</tbody></table><div class="summary"><span>Total Passengers: '+tickets.length+'</span><span>Total Collected Fare: ৳'+total.toFixed(2)+'</span></div><footer class="foot"><span>BUSNEX · Official Counter Trip Sheet</span><span>Printed: '+esc(formatDhakaDateTime(new Date()))+'</span></footer>\n
-<style id="busnex-glassmorphism-green-white">
-/* BUSNEX glassmorphism refresh — visual-only overrides; preserve page structure and behavior. */
-:root{
-  --bg:#f2f8f4;--card:rgba(255,255,255,.76);--text:#18352a;
-  --muted:#65796d;--line:rgba(44,110,75,.15);
-  --green:#16834b;--blue:#16734b;--navy:#123b2b;
-}
-html{scroll-behavior:smooth}
-body{
-  background:
-    radial-gradient(ellipse at 8% 4%,rgba(91,190,132,.16),transparent 34rem),
-    radial-gradient(ellipse at 96% 20%,rgba(124,205,165,.15),transparent 32rem),
-    linear-gradient(145deg,#f7fbf8 0%,#edf6f0 55%,#f8fbf9 100%)!important;
-  color:#18352a;
-}
-#appScreen{background:transparent!important}
-#appScreen>.topbar{
-  background:rgba(255,255,255,.76)!important;
-  color:#17432e!important;
-  border:1px solid rgba(255,255,255,.85)!important;
-  border-bottom:1px solid rgba(35,112,69,.13)!important;
-  box-shadow:0 8px 30px rgba(25,83,51,.08)!important;
-  -webkit-backdrop-filter:blur(18px) saturate(150%);
-  backdrop-filter:blur(18px) saturate(150%);
-}
-#appScreen>.topbar:after{color:rgba(30,91,57,.48)!important}
-#appScreen>.topbar .brand{color:#14532d!important}
-#appScreen>.topbar .brand span{color:#b58a3b!important}
-#appScreen>.topbar .user-chip{
-  color:#24543a!important;background:rgba(35,130,76,.08)!important;
-  border:1px solid rgba(35,130,76,.15)!important;
-}
-#appScreen>.layout>.sidebar{
-  background:rgba(255,255,255,.68)!important;
-  border-right:1px solid rgba(44,110,75,.12)!important;
-  box-shadow:8px 0 28px rgba(28,83,52,.035)!important;
-  -webkit-backdrop-filter:blur(16px) saturate(145%);
-  backdrop-filter:blur(16px) saturate(145%);
-}
-#appScreen .nav-btn{
-  border-radius:13px!important;transition:background .18s ease,border-color .18s ease,transform .18s ease;
-}
-#appScreen .nav-btn.active,#appScreen .nav-btn:hover{
-  background:rgba(33,139,78,.10)!important;color:#17683c!important;
-  border-color:rgba(33,139,78,.12)!important;
-}
-#appScreen .card,#appScreen .section,
-#appScreen .trip-card,#appScreen .notice,
-#appScreen .editing-banner,
-#appScreen [class*="panel"],#appScreen [class*="modal"]{
-  border-color:rgba(48,117,75,.15)!important;
-}
-#appScreen .card,#appScreen .trip-card{
-  background:rgba(255,255,255,.76)!important;
-  border:1px solid rgba(255,255,255,.9)!important;
-  border-radius:18px!important;
-  box-shadow:0 10px 30px rgba(30,83,53,.065),inset 0 1px 0 rgba(255,255,255,.9)!important;
-  -webkit-backdrop-filter:blur(14px) saturate(145%);
-  backdrop-filter:blur(14px) saturate(145%);
-}
-#appScreen input:not([type="checkbox"]):not([type="radio"]),
-#appScreen select,#appScreen textarea{
-  border-color:rgba(54,119,78,.22)!important;
-  background:rgba(255,255,255,.82)!important;
-  border-radius:11px!important;
-}
-#appScreen input:focus,#appScreen select:focus,#appScreen textarea:focus{
-  border-color:#38a169!important;
-  box-shadow:0 0 0 3px rgba(56,161,105,.13)!important;
-}
-#appScreen button{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
-#appScreen button.primary{
-  background:linear-gradient(135deg,#167344,#23965a)!important;
-  border:1px solid rgba(20,105,61,.2)!important;
-  box-shadow:0 5px 14px rgba(22,115,68,.16)!important;
-}
-#appScreen button.secondary{
-  background:rgba(232,245,236,.9)!important;color:#23613e!important;
-  border:1px solid rgba(47,132,78,.16)!important;
-}
-#appScreen .table-wrap{
-  border:1px solid rgba(48,117,75,.12);border-radius:13px;overflow:auto;
-  background:rgba(255,255,255,.66);
-}
-#appScreen table th{background:rgba(231,244,235,.82)!important;color:#315c42!important}
-#appScreen table td{background:rgba(255,255,255,.36)}
-#appScreen .login-wrap{
-  background:
-    radial-gradient(circle at 15% 18%,rgba(114,206,151,.26),transparent 26rem),
-    radial-gradient(circle at 85% 85%,rgba(255,255,255,.16),transparent 28rem),
-    linear-gradient(135deg,#0d3525 0%,#17623d 55%,#248653 100%)!important;
-}
-#appScreen .login-card{
-  background:rgba(255,255,255,.84)!important;
-  border:1px solid rgba(255,255,255,.72)!important;
-  box-shadow:0 28px 90px rgba(5,36,19,.25),inset 0 1px 0 rgba(255,255,255,.9)!important;
-  -webkit-backdrop-filter:blur(22px) saturate(155%);
-  backdrop-filter:blur(22px) saturate(155%);
-}
-#appScreen .login-logo{
-  background:linear-gradient(135deg,#14532d,#21834c)!important;
-  border-color:rgba(255,255,255,.25)!important;
-}
-@media(max-width:650px){
-  #appScreen>.layout>.sidebar{
-    background:rgba(255,255,255,.82)!important;
-    -webkit-backdrop-filter:blur(14px);
-    backdrop-filter:blur(14px);
-  }
-}
-@media(prefers-reduced-motion:reduce){
-  #appScreen button{transition:none!important}
-}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  #appScreen .card,#appScreen .trip-card,#appScreen>.topbar,#appScreen>.layout>.sidebar{background:#fff!important}
-}
-</style>
+
 
 </body></html>';
   } catch(error) {
@@ -8922,5 +8806,122 @@ a:hover{color:var(--busnex-green-900)}
 
 
 
+<style id="busnex-glassmorphism-green-white">
+/* BUSNEX glassmorphism refresh — visual-only overrides; preserve page structure and behavior. */
+:root{
+  --bg:#f2f8f4;--card:rgba(255,255,255,.76);--text:#18352a;
+  --muted:#65796d;--line:rgba(44,110,75,.15);
+  --green:#16834b;--blue:#16734b;--navy:#123b2b;
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(ellipse at 8% 4%,rgba(91,190,132,.16),transparent 34rem),
+    radial-gradient(ellipse at 96% 20%,rgba(124,205,165,.15),transparent 32rem),
+    linear-gradient(145deg,#f7fbf8 0%,#edf6f0 55%,#f8fbf9 100%)!important;
+  color:#18352a;
+}
+#appScreen{background:transparent!important}
+#appScreen>.topbar{
+  background:rgba(255,255,255,.76)!important;
+  color:#17432e!important;
+  border:1px solid rgba(255,255,255,.85)!important;
+  border-bottom:1px solid rgba(35,112,69,.13)!important;
+  box-shadow:0 8px 30px rgba(25,83,51,.08)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  backdrop-filter:blur(18px) saturate(150%);
+}
+#appScreen>.topbar:after{color:rgba(30,91,57,.48)!important}
+#appScreen>.topbar .brand{color:#14532d!important}
+#appScreen>.topbar .brand span{color:#b58a3b!important}
+#appScreen>.topbar .user-chip{
+  color:#24543a!important;background:rgba(35,130,76,.08)!important;
+  border:1px solid rgba(35,130,76,.15)!important;
+}
+#appScreen>.layout>.sidebar{
+  background:rgba(255,255,255,.68)!important;
+  border-right:1px solid rgba(44,110,75,.12)!important;
+  box-shadow:8px 0 28px rgba(28,83,52,.035)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(145%);
+  backdrop-filter:blur(16px) saturate(145%);
+}
+#appScreen .nav-btn{
+  border-radius:13px!important;transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+#appScreen .nav-btn.active,#appScreen .nav-btn:hover{
+  background:rgba(33,139,78,.10)!important;color:#17683c!important;
+  border-color:rgba(33,139,78,.12)!important;
+}
+#appScreen .card,#appScreen .section,
+#appScreen .trip-card,#appScreen .notice,
+#appScreen .editing-banner,
+#appScreen [class*="panel"],#appScreen [class*="modal"]{
+  border-color:rgba(48,117,75,.15)!important;
+}
+#appScreen .card,#appScreen .trip-card{
+  background:rgba(255,255,255,.76)!important;
+  border:1px solid rgba(255,255,255,.9)!important;
+  border-radius:18px!important;
+  box-shadow:0 10px 30px rgba(30,83,53,.065),inset 0 1px 0 rgba(255,255,255,.9)!important;
+  -webkit-backdrop-filter:blur(14px) saturate(145%);
+  backdrop-filter:blur(14px) saturate(145%);
+}
+#appScreen input:not([type="checkbox"]):not([type="radio"]),
+#appScreen select,#appScreen textarea{
+  border-color:rgba(54,119,78,.22)!important;
+  background:rgba(255,255,255,.82)!important;
+  border-radius:11px!important;
+}
+#appScreen input:focus,#appScreen select:focus,#appScreen textarea:focus{
+  border-color:#38a169!important;
+  box-shadow:0 0 0 3px rgba(56,161,105,.13)!important;
+}
+#appScreen button{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+#appScreen button.primary{
+  background:linear-gradient(135deg,#167344,#23965a)!important;
+  border:1px solid rgba(20,105,61,.2)!important;
+  box-shadow:0 5px 14px rgba(22,115,68,.16)!important;
+}
+#appScreen button.secondary{
+  background:rgba(232,245,236,.9)!important;color:#23613e!important;
+  border:1px solid rgba(47,132,78,.16)!important;
+}
+#appScreen .table-wrap{
+  border:1px solid rgba(48,117,75,.12);border-radius:13px;overflow:auto;
+  background:rgba(255,255,255,.66);
+}
+#appScreen table th{background:rgba(231,244,235,.82)!important;color:#315c42!important}
+#appScreen table td{background:rgba(255,255,255,.36)}
+#appScreen .login-wrap{
+  background:
+    radial-gradient(circle at 15% 18%,rgba(114,206,151,.26),transparent 26rem),
+    radial-gradient(circle at 85% 85%,rgba(255,255,255,.16),transparent 28rem),
+    linear-gradient(135deg,#0d3525 0%,#17623d 55%,#248653 100%)!important;
+}
+#appScreen .login-card{
+  background:rgba(255,255,255,.84)!important;
+  border:1px solid rgba(255,255,255,.72)!important;
+  box-shadow:0 28px 90px rgba(5,36,19,.25),inset 0 1px 0 rgba(255,255,255,.9)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(155%);
+  backdrop-filter:blur(22px) saturate(155%);
+}
+#appScreen .login-logo{
+  background:linear-gradient(135deg,#14532d,#21834c)!important;
+  border-color:rgba(255,255,255,.25)!important;
+}
+@media(max-width:650px){
+  #appScreen>.layout>.sidebar{
+    background:rgba(255,255,255,.82)!important;
+    -webkit-backdrop-filter:blur(14px);
+    backdrop-filter:blur(14px);
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #appScreen button{transition:none!important}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  #appScreen .card,#appScreen .trip-card,#appScreen>.topbar,#appScreen>.layout>.sidebar{background:#fff!important}
+}
+</style>
 </body>
 </html>
