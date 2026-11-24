@@ -1735,6 +1735,29 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
 }
 </style>
 
+
+<style id="busnex-role-visibility-and-page-display-fix">
+/* Keep role-hidden navigation and pages hidden even when component styles set display. */
+#appScreen .nav-btn.hidden,
+#appScreen .sidebar .nav-btn.hidden,
+#appScreen .nav-btn[hidden],
+#appScreen .sidebar .nav-btn[hidden]{
+  display:none!important;
+}
+#appScreen .page.hidden,
+#appScreen section.page.hidden{
+  display:none!important;
+}
+#appScreen .page:not(.hidden){
+  display:block;
+}
+#appScreen .trip-builder-card,
+#appScreen #tripList,
+#appScreen #tripFormMessage{
+  visibility:visible;
+}
+</style>
+
 </head>
 
 <body>
@@ -2950,6 +2973,7 @@ async function showDashboard(profile) {
   document.querySelectorAll(".admin-only").forEach(button => button.classList.toggle("hidden",!isAdmin()));
   document.querySelectorAll(".company-manager-notice-nav").forEach(button => button.classList.toggle("hidden",currentProfile.role!=="company_manager"));
   document.querySelectorAll(".trip-manager-only").forEach(button => button.classList.toggle("hidden",!isTripManager()));
+  document.querySelectorAll(".manager-only").forEach(button => button.classList.toggle("hidden",!canCreateCounter()));
   document.querySelectorAll(".nb-counter-manager-only").forEach(button => button.classList.toggle("hidden",currentProfile.role!=="nb_sub_manager" && !isAdmin()));
 
   if (currentProfile.role === "super_admin") {
