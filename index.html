@@ -2366,7 +2366,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
               <label><input type="checkbox" name="operatorScheduleRegion" value="SB"> SB</label>
             </div></div>
             <div class="field"><label for="operatorDefaultBoardingPoint">Default Boarding Point / নির্ধারিত ওঠার স্থান *</label><select id="operatorDefaultBoardingPoint" required><option value="">আগে Region নির্বাচন করুন</option></select></div>
-            <div class="field hidden" id="customBoardingPointField"><label for="customBoardingPointInput">Custom Boarding Point-এর নাম *</label><input id="customBoardingPointInput" maxlength="160" placeholder="নিজের মতো Boarding Point লিখুন"></div><div class="small muted">Custom Point Save করলে এটি আপনার Company-র NB Schedule Boarding Point suggestion-এ যুক্ত হবে।</div>
+            <div class="field hidden" id="customBoardingPointField"><label for="customBoardingPointInput">Custom Boarding Point-এর নাম *</label><input id="customBoardingPointInput" maxlength="160" placeholder="নিজের মতো Boarding Point লিখুন"></div><div class="small muted">Custom Point Save করলে ID তৈরির সময় নির্বাচিত Schedule Region-গুলোর Boarding Point suggestion-এ যুক্ত হবে (NB / DHAKA / SB)।</div>
             <div class="field"><label for="operatorIdType">ID Type *</label><select id="operatorIdType" required><option value="OPERATOR">Operator</option><option value="AGENT">Agent</option></select></div>
             <div class="field"><label>&nbsp;</label><button id="createOperatorButton" class="primary" type="submit">Create Operator ID</button></div>
           </form>
