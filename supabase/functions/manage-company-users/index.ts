@@ -374,23 +374,25 @@ Deno.serve(async (req: Request) => {
   }
 
   if (body.default_boarding_point_custom === true) {
+    const pointRows = scheduleRegions.map((pointRegion) => ({
+      company_id: companyId,
+      region: pointRegion,
+      point_name: defaultBoardingPoint,
+      created_by: authData.user.id,
+    }));
     const { error: pointError } = await admin
       .from("company_boarding_points")
-      .upsert({
-        company_id: companyId,
-        region: "NB",
-        point_name: defaultBoardingPoint,
-        created_by: authData.user.id,
-      }, { onConflict: "company_id,region,point_name", ignoreDuplicates: true });
+      .upsert(pointRows, { onConflict: "company_id,region,point_name", ignoreDuplicates: true });
     if (pointError) {
       await admin.from("profiles").delete().eq("id", createdAuth.user.id);
       await admin.auth.admin.deleteUser(createdAuth.user.id);
-      console.error("manage-company-users custom NB boarding point save failed", {
-        company_id: companyId, code: pointError.code ?? null, message: pointError.message,
+      console.error("manage-company-users custom regional boarding point save failed", {
+        company_id: companyId, regions: scheduleRegions,
+        code: pointError.code ?? null, message: pointError.message,
       });
       return json(500, {
         success: false,
-        message: "Custom Boarding Point NB Schedule Library-তে সংরক্ষণ হয়নি। ID তৈরি করা হয়নি; আবার চেষ্টা করুন।",
+        message: "নির্বাচিত Region-এর Schedule Boarding Point Library-তে সংরক্ষণ হয়নি। ID তৈরি করা হয়নি; আবার চেষ্টা করুন।",
         stage: "custom_boarding_point_save",
         code: pointError.code ?? "UNKNOWN",
       }, origin);
