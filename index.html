@@ -2366,7 +2366,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
               <label><input type="checkbox" name="operatorScheduleRegion" value="SB"> SB</label>
             </div></div>
             <div class="field"><label for="operatorDefaultBoardingPoint">Default Boarding Point / নির্ধারিত ওঠার স্থান *</label><select id="operatorDefaultBoardingPoint" required><option value="">আগে Region নির্বাচন করুন</option></select></div>
-            <div class="field hidden" id="customBoardingPointField"><label for="customBoardingPointInput">Custom Boarding Point-এর নাম *</label><input id="customBoardingPointInput" maxlength="160" placeholder="নিজের মতো Boarding Point লিখুন"></div>
+            <div class="field hidden" id="customBoardingPointField"><label for="customBoardingPointInput">Custom Boarding Point-এর নাম *</label><input id="customBoardingPointInput" maxlength="160" placeholder="নিজের মতো Boarding Point লিখুন"></div><div class="small muted">Custom Point Save করলে এটি আপনার Company-র NB Schedule Boarding Point suggestion-এ যুক্ত হবে।</div>
             <div class="field"><label for="operatorIdType">ID Type *</label><select id="operatorIdType" required><option value="OPERATOR">Operator</option><option value="AGENT">Agent</option></select></div>
             <div class="field"><label>&nbsp;</label><button id="createOperatorButton" class="primary" type="submit">Create Operator ID</button></div>
           </form>
@@ -3906,30 +3906,44 @@ async function loadTripPointLibrary(companyId) {
   droppingList.innerHTML = "";
   if (!companyId) return;
 
-  const {data:tripRows,error:tripError} = await supabase
-    .from("trips").select("id").eq("company_id",companyId).limit(1500);
+  const region = $("tripRouteRegion")?.value || "NB";
+  const {data:routeRows,error:routeError} = await supabase
+    .from("routes").select("id").eq("company_id",companyId).eq("region",region);
+  if (routeError) {
+    console.warn("TRIP POINT LIBRARY ROUTES:",routeError.message);
+    return;
+  }
+  const routeIds = (routeRows || []).map(route=>route.id).filter(Boolean);
+  const {data:tripRows,error:tripError} = routeIds.length
+    ? await supabase.from("trips").select("id").eq("company_id",companyId).in("route_id",routeIds).limit(1500)
+    : {data:[],error:null};
   if (tripError) {
     console.warn("TRIP POINT LIBRARY:",tripError.message);
     return;
   }
   const tripIds = (tripRows || []).map(trip=>trip.id).filter(Boolean);
-  if (!tripIds.length) return;
-
-  const [boardingResult,stopResult] = await Promise.all([
-    supabase.from("trip_boarding_points")
-      .select("point_name").in("trip_id",tripIds),
-    supabase.from("trip_stops")
-      .select("stop_name,stop_type").in("trip_id",tripIds).eq("is_active",true)
+  const [boardingResult,stopResult,customResult] = await Promise.all([
+    tripIds.length
+      ? supabase.from("trip_boarding_points").select("point_name").in("trip_id",tripIds)
+      : Promise.resolve({data:[],error:null}),
+    tripIds.length
+      ? supabase.from("trip_stops").select("stop_name,stop_type").in("trip_id",tripIds).eq("is_active",true)
+      : Promise.resolve({data:[],error:null}),
+    region === "NB"
+      ? supabase.from("company_boarding_points").select("point_name").eq("company_id",companyId).eq("region","NB")
+      : Promise.resolve({data:[],error:null})
   ]);
   if (boardingResult.error) console.warn("BOARDING POINT LIBRARY:",boardingResult.error.message);
   if (stopResult.error) console.warn("DROPPING POINT LIBRARY:",stopResult.error.message);
+  if (customResult.error) console.warn("CUSTOM NB BOARDING POINT LIBRARY:",customResult.error.message);
 
   const uniqueNames = values => [...new Set(values
     .map(value=>String(value || "").trim())
     .filter(Boolean))].sort((a,b)=>a.localeCompare(b,"bn"));
   const boardingNames = uniqueNames([
     ...(boardingResult.data || []).map(point=>point.point_name),
-    ...(stopResult.data || []).filter(stop=>stop.stop_type==="boarding").map(stop=>stop.stop_name)
+    ...(stopResult.data || []).filter(stop=>stop.stop_type==="boarding").map(stop=>stop.stop_name),
+    ...(customResult.data || []).map(point=>point.point_name)
   ]);
   const droppingNames = uniqueNames(
     (stopResult.data || []).filter(stop=>stop.stop_type==="dropping").map(stop=>stop.stop_name)
@@ -4230,6 +4244,7 @@ async function loadSavedRoutes() {
 }
 
 $("tripRouteRegion").addEventListener("change",() => {
+  loadTripPointLibrary(selectedCompanyId()).catch(error=>console.warn("Trip point library refresh:",error));
   const selectedRouteId = $("tripRouteSelect").value;
   const selectedRoute = savedRouteCache.find(route=>route.id===selectedRouteId);
   if (selectedRoute && selectedRoute.region !== $("tripRouteRegion").value) {
