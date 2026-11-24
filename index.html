@@ -2919,6 +2919,7 @@ async function loadDashboardStats() {
 let maintenanceWatchTimer = null;
 
 function showMaintenanceScreen(message) {
+  $("sessionRestoreScreen").classList.add("hidden");
   $("loginScreen").classList.add("hidden");
   $("appScreen").classList.add("hidden");
   $("maintenanceNoticeMessage").textContent = message ||
