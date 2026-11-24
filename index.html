@@ -7410,6 +7410,23 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           if (!result.data || !result.data.ticket) throw new Error("Seat " + n + " এর Ticket তথ্য পাওয়া যায়নি।");
           return result.data.ticket;
         }));
+        // The ticket-details RPC may omit discount_amount and paid_price for sibling seats.
+        // Read the persisted price fields for every seat in the batch so the group receipt
+        // never falls back to the undiscounted fare for the other seats.
+        const groupPriceResult = await supabase
+          .from("tickets")
+          .select("seat_number,ticket_price,discount_amount,paid_price")
+          .eq("trip_id",trip.id)
+          .eq("status","sold")
+          .in("seat_number",allSeatNumbers);
+        if (groupPriceResult.error) throw groupPriceResult.error;
+        const groupPriceBySeat = new Map((groupPriceResult.data || []).map(item => [String(item.seat_number),item]));
+        const currentTicketPrice = groupPriceBySeat.get(String(seatNumber));
+        if (currentTicketPrice) Object.assign(ticket,currentTicketPrice);
+        groupDetails.forEach(item => {
+          const savedPrice = groupPriceBySeat.get(String(item.seat_number));
+          if (savedPrice) Object.assign(item,savedPrice);
+        });
         const groupTickets = [ticket,...groupDetails];
         const groupFare = groupTickets.reduce((sum,item) => sum + Number(item.ticket_price || 0),0);
         const groupDiscount = groupTickets.reduce((sum,item) => sum + Number(item.discount_amount || 0),0);
