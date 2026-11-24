@@ -7182,6 +7182,19 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
           if (id && id === ticket.dropping_stop_id) return details.dropping_stop_name || "—";
           return "—";
         };
+        let selectedBoardingTime = "—";
+        let reportingTime = "—";
+        if (ticket.boarding_stop_id) {
+          const boardingTimeResult = await supabase.from("trip_stops").select("scheduled_time,stop_name").eq("id",ticket.boarding_stop_id).eq("trip_id",trip.id).maybeSingle();
+          if (boardingTimeResult.error) console.warn("Ticket boarding time lookup:",boardingTimeResult.error.message);
+          else if (boardingTimeResult.data?.scheduled_time) {
+            const rawTime = String(boardingTimeResult.data.scheduled_time).slice(0,5);
+            selectedBoardingTime = formatClock12(rawTime);
+            const [hh,mm] = rawTime.split(":").map(Number);
+            const total = (hh*60+mm-20+1440)%1440;
+            reportingTime = formatClock12(String(Math.floor(total/60)).padStart(2,"0")+":"+String(total%60).padStart(2,"0"));
+          }
+        }
         const created = ticket.created_at ? formatDhakaDateTime(ticket.created_at) : "—";
         const busName = tripDetails.bus_name || "—";
         const coach = tripDetails.coach_number || "—";
@@ -7208,7 +7221,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
               <div><b>Mobile :</b> ${safe(ticket.passenger_phone)}</div><div><b>Coach :</b> [${safe(coach)}]</div>
               <div><b>Journey Date :</b> ${safe(journey)}　 <b>Departure :</b> ◷ ${safe(journey)}</div>
               <div class="bpt-priority-route"><b>Seat :</b> [${safe(seatLabel)}]　 <b>From :</b> ${safe(stopName(ticket.boarding_stop_id))}　 <b>To :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
-              <div><b>Reporting Time :</b> ◷ ${safe(journey)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}　 <b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div>
+              <div><b>Boarding Time :</b> ◷ ${safe(selectedBoardingTime)}　 <b>Reporting Time :</b> ◷ ${safe(reportingTime)}</div><div><b>Seat Fare :</b> BDT. ${safe(ticket.ticket_price)}　 <b>Discount :</b> BDT. ${safe(Number(ticket.discount_amount || 0).toFixed(2))}</div><div><b>Paid Fare :</b> BDT. ${safe(Number(ticket.paid_price ?? ticket.ticket_price ?? 0).toFixed(2))}</div>
               <div><b>Total Paid (All Seats) :</b> BDT. ${safe(groupPaid.toFixed(2))}</div>
               <div><b>Boarding :</b> ${safe(stopName(ticket.boarding_stop_id))}　 <b>Dropping :</b> ${safe(stopName(ticket.dropping_stop_id))}</div>
               <div class="bpt-copy-bottom">Issued On : ${safe(created)}　　Issued By : ${safe(sellerText)}</div>
