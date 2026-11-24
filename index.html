@@ -2970,11 +2970,11 @@ async function showDashboard(profile) {
   $("returnGlobalButton").style.display = "none";
   loadCompanyBranding();
   document.querySelectorAll(".page").forEach(page => page.classList.add("hidden"));
-  $("page-booking").classList.remove("hidden");
-  document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active",button.dataset.page === "booking"));
+  $("page-dashboard").classList.remove("hidden");
+  document.querySelectorAll(".nav-btn").forEach(button => button.classList.toggle("active",button.dataset.page === "dashboard"));
   $("appScreen").classList.remove("menu-open");
   $("menuToggle").setAttribute("aria-expanded","false");
-  document.title = "BUSNEX | Active Trips";
+  document.title = "BUSNEX | Dashboard";
   loadDashboardStats();
   loadBillingDashboardNotice();
   loadCompanyBillReminderForUser();
