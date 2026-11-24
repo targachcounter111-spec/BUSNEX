@@ -5002,7 +5002,7 @@ async function editTrip(id,copyMode=false) {
       .select(`
         id,company_id,bus_id,route_id,departure_time,arrival_time,
         ticket_price,status,supervisor,supervisor_name,supervisor_phone,coach_number,
-        routes(starting_point,ending_point,region),
+        routes(route_name,starting_point,ending_point,region),
         trip_boarding_points(point_name,boarding_time,point_order),
         trip_stops(id,stop_name,stop_type,stop_order,scheduled_time,is_active)
       `)
@@ -5038,6 +5038,7 @@ async function editTrip(id,copyMode=false) {
     $("tripTo").readOnly = false;
     $("tripFrom").value = trip.routes?.starting_point || "";
     $("tripTo").value = trip.routes?.ending_point || "";
+    $("tripRouteName").value = trip.routes?.route_name || "";
     $("coachNumber").value = trip.coach_number || "";
     $("tripDate").value = localDateValue(trip.departure_time);
     $("tripTime").value = localTimeValue(trip.departure_time);
