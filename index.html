@@ -9137,6 +9137,68 @@ body{
 </style>
 
 
+
+<style id="busnex-mobile-desktop-compat">
+/* Keep the complete PC workspace structure when the mobile desktop-fit mode is active.
+   These overrides neutralize viewport-based mobile breakpoints without changing desktop. */
+@media(max-width:650px){
+  #appScreen.bnx-desktop-view .main{min-width:0!important;width:100%!important;padding:25px!important}
+  #appScreen.bnx-desktop-view .page-head{align-items:center!important;flex-direction:row!important}
+  #appScreen.bnx-desktop-view .grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:15px!important}
+  #appScreen.bnx-desktop-view .form-row,
+  #appScreen.bnx-desktop-view #page-trips .form-row,
+  #appScreen.bnx-desktop-view #page-trips .trip-points-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important
+  }
+  #appScreen.bnx-desktop-view .trip-builder-hero{align-items:center!important;flex-direction:row!important;padding:22px 24px!important}
+  #appScreen.bnx-desktop-view .trip-builder-mark{width:58px!important;height:58px!important}
+  #appScreen.bnx-desktop-view .trip-builder-card{padding:21px!important}
+  #appScreen.bnx-desktop-view #page-trips .actions{flex-direction:row!important;flex-wrap:wrap!important}
+  #appScreen.bnx-desktop-view #page-trips .field{min-width:0!important}
+  #appScreen.bnx-desktop-view #page-trips textarea{min-height:100px}
+  #appScreen.bnx-desktop-view #page-booking .counter-search-panel{padding:18px!important}
+  #appScreen.bnx-desktop-view #page-booking .counter-filter-grid{
+    display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:12px!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .counter-extra-grid{
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .counter-control-row{
+    display:grid!important;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto!important;gap:14px!important;align-items:center!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .counter-day-controls{
+    display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .counter-day-controls>*{flex:0 0 auto!important}
+  #appScreen.bnx-desktop-view #page-booking .counter-trip-results,
+  #appScreen.bnx-desktop-view #page-booking .counter-reference-table-wrap,
+  #appScreen.bnx-desktop-view #page-booking .table-wrap{width:100%!important;max-width:none!important}
+  #appScreen.bnx-desktop-view #page-booking .counter-reference-table{width:100%!important;min-width:0!important}
+  #appScreen.bnx-desktop-view #page-booking .booking-trip-summarybar{
+    display:grid!important;grid-template-columns:minmax(130px,.8fr) minmax(180px,1.2fr) minmax(170px,1fr)!important;gap:12px!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .booking-workspace{
+    display:grid!important;grid-template-columns:minmax(310px,.82fr) minmax(390px,1.18fr)!important;
+    gap:14px!important;align-items:start!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .booking-seat-panel,
+  #appScreen.bnx-desktop-view #page-booking .booking-passenger-panel{min-width:0!important;padding:14px!important}
+  #appScreen.bnx-desktop-view #page-booking .booking-passenger-panel .form-row{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px 10px!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .booking-seat-panel .seats{
+    width:100%!important;max-width:100%!important;grid-template-columns:repeat(5,minmax(38px,1fr))!important
+  }
+  #appScreen.bnx-desktop-view #page-booking .booking-trip-toolbar{flex-direction:row!important;align-items:center!important}
+  #appScreen.bnx-desktop-view #page-booking .booking-trip-toolbar button{flex:0 0 auto!important}
+  #appScreen.bnx-desktop-view .table-wrap{width:100%!important;max-width:none!important}
+  #appScreen.bnx-desktop-view table{width:100%!important}
+}
+@media(min-width:651px) and (max-width:900px){
+  #appScreen.bnx-desktop-view .booking-workspace{grid-template-columns:minmax(310px,.82fr) minmax(390px,1.18fr)!important}
+}
+</style>
+
 <script>
 (function(){
  const app=document.getElementById('appScreen');
