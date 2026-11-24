@@ -373,6 +373,30 @@ Deno.serve(async (req: Request) => {
     }, origin);
   }
 
+  if (body.default_boarding_point_custom === true) {
+    const { error: pointError } = await admin
+      .from("company_boarding_points")
+      .upsert({
+        company_id: companyId,
+        region: "NB",
+        point_name: defaultBoardingPoint,
+        created_by: authData.user.id,
+      }, { onConflict: "company_id,region,point_name", ignoreDuplicates: true });
+    if (pointError) {
+      await admin.from("profiles").delete().eq("id", createdAuth.user.id);
+      await admin.auth.admin.deleteUser(createdAuth.user.id);
+      console.error("manage-company-users custom NB boarding point save failed", {
+        company_id: companyId, code: pointError.code ?? null, message: pointError.message,
+      });
+      return json(500, {
+        success: false,
+        message: "Custom Boarding Point NB Schedule Library-তে সংরক্ষণ হয়নি। ID তৈরি করা হয়নি; আবার চেষ্টা করুন।",
+        stage: "custom_boarding_point_save",
+        code: pointError.code ?? "UNKNOWN",
+      }, origin);
+    }
+  }
+
   const successMessage = role === "company_manager"
     ? "Manager Login ID তৈরি হয়েছে।"
     : role === "nb_sub_manager" || role === "dhaka_sub_manager"
