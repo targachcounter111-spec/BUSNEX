@@ -6696,7 +6696,8 @@ async function fetchBookingTrips(dateValue) {
       routes!inner(starting_point,ending_point,region),
       trip_stops(id,stop_name,stop_type,stop_order,scheduled_time,is_active)
     `)
-    .eq("is_active",true)
+    // Include BUS OFF trips too: they must remain visible in Ticket Booking.
+    // BUS OFF only blocks sale; it must never remove the schedule from this list.
     .eq("status","scheduled")
     .is("archived_at",null)
     .gte("departure_time",range.start)
@@ -8626,7 +8627,7 @@ async function renderBookingResults(trips,from="",to="") {
     return String(trip.status).toLowerCase()==="scheduled";
   });
   if($("bookingOrder").value==="desc")matches.reverse();
-  $("bookingResultsMeta").textContent=matches.length+"টি Active Trip";
+  $("bookingResultsMeta").textContent=matches.length+"টি Schedule";
   if(!matches.length){result.innerHTML='<div class="counter-empty-state">এই তারিখে কোনো Active Trip পাওয়া যায়নি।</div>';return;}
   const wrap=document.createElement("div");wrap.className="table-wrap counter-reference-table-wrap";const table=document.createElement("table");table.className="counter-reference-table";
   table.innerHTML='<thead><tr><th>SL</th><th>TRIP DATE & TIME</th><th>BOARDING DATE & TIME</th><th>COACH NO.</th><th>ROUTE</th><th>SUPERVISOR</th><th>SOLD SEATS</th><th>SEAT PLAN & CLASS</th><th>FARE</th><th>ACTION</th></tr></thead><tbody></tbody>';
@@ -8700,7 +8701,7 @@ async function loadBookingStopsForSelectedDate() {
     fillBookingStopOptions(trips);
     $("bookingDateCaption").textContent="Showing result for: "+new Date(date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"2-digit",year:"numeric"});
     renderBookingResults(trips,$("fromStop").value,$("toStop").value);
-    bookingMessage(trips.length?"Active Trip list আপডেট হয়েছে।":"এই তারিখে কোনো সক্রিয় Scheduled Trip পাওয়া যায়নি।");
+    bookingMessage(trips.length?"Schedule list আপডেট হয়েছে।":"এই তারিখে কোনো Scheduled Trip পাওয়া যায়নি।");
   } catch(error) {
     if (requestId !== bookingDateLoadRequest) return;
     console.error("BOOKING STOP LOAD ERROR:",error);
