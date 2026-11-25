@@ -8588,22 +8588,71 @@ function toDhakaIso(dateText,timeText){return new Date(dateText+"T"+timeText+":0
 async function quickEditBookingTrip(trip){
  if(!bookingCanManageSchedule())return;
  const date=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(trip.departure_time));
- const dep=formatDhakaTime(trip.departure_time);
  const dep24=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(trip.departure_time));
  const arr24=trip.arrival_time?new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(trip.arrival_time)):"";
- const supervisor=window.prompt("Supervisor Name",trip.supervisor_name||trip.supervisor||"");if(supervisor===null)return;
- const phone=window.prompt("Supervisor Number",trip.supervisor_phone||"");if(phone===null)return;
- const newDep=window.prompt("Departure Time (24-hour HH:MM)",dep24);if(newDep===null)return;
- if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(newDep)){alert("সময় HH:MM ফরম্যাটে দিন।");return;}
- const newArr=window.prompt("Arrival Time (24-hour HH:MM, ফাঁকা রাখা যাবে)",arr24);if(newArr===null)return;
- if(newArr&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(newArr)){alert("Arrival সময় HH:MM ফরম্যাটে দিন।");return;}
- let arrivalIso=newArr?toDhakaIso(date,newArr):null;if(arrivalIso&&new Date(arrivalIso)<=new Date(toDhakaIso(date,newDep)))arrivalIso=new Date(new Date(arrivalIso).getTime()+86400000).toISOString();
+ const overlay=document.createElement("div");
+ overlay.className="busnex-edit-schedule-overlay";
+ overlay.style.cssText="position:fixed;inset:0;z-index:10050;background:rgba(10,28,22,.58);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)";
+ const modal=document.createElement("div");
+ modal.style.cssText="width:min(560px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid #e1ebe4;border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,.25);padding:22px;color:#183d32";
+ modal.innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px">
+   <div><div style="font-size:10px;letter-spacing:1.5px;font-weight:900;color:#b1844f">BUSNEX • SCHEDULE CONTROL</div><h2 style="margin:5px 0;font-size:21px;color:#183d32">Edit Schedule</h2><div style="font-size:12px;color:#738178">${escapeHtml(trip.coach_number||"Coach")} • ${escapeHtml(date)} • ${escapeHtml(trip.from_city||trip.from||"")} ${trip.to_city||trip.to?"→ "+escapeHtml(trip.to_city||trip.to):""}</div></div>
+   <button type="button" class="secondary" data-close style="min-width:36px;padding:7px 10px">✕</button>
+  </div>
+  <div style="display:grid;gap:13px">
+   <div>
+    <label style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Saved Supervisor List</label>
+    <select data-supervisor-list style="width:100%;padding:12px;border:1px solid #d8e4dc;border-radius:11px;background:#fbfdfb;color:#24483b"><option value="">List থেকে Supervisor নির্বাচন করুন (ঐচ্ছিক)</option></select>
+    <div style="font-size:11px;color:#819087;margin-top:5px">List থেকে নিলে নাম ও নম্বর অটো বসবে, অথবা নিচে নিজে লিখতে পারবেন।</div>
+   </div>
+   <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div><label style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Supervisor Name</label><input data-supervisor-name maxlength="120" placeholder="নাম লিখুন" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8e4dc;border-radius:11px"></div>
+    <div><label style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Supervisor Number</label><input data-supervisor-phone type="tel" maxlength="20" placeholder="01XXXXXXXXX" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8e4dc;border-radius:11px"></div>
+   </div>
+   <div style="height:1px;background:#e8eee9;margin:2px 0"></div>
+   <div style="font-size:13px;font-weight:900;color:#24483b">Journey Time</div>
+   <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div><label style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Departure Time</label><input data-departure-time type="time" required style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8e4dc;border-radius:11px;background:#fff;color:#183d32"></div>
+    <div><label style="display:block;font-size:12px;font-weight:800;margin-bottom:6px">Arrival Time</label><input data-arrival-time type="time" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8e4dc;border-radius:11px;background:#fff;color:#183d32"><div style="font-size:10px;color:#819087;margin-top:4px">পরের দিন পৌঁছালে সময়টি Departure-এর চেয়ে আগে দিন</div></div>
+   </div>
+   <div data-edit-message role="status" style="display:none;padding:10px 12px;border-radius:10px;font-size:12px"></div>
+   <div style="display:flex;justify-content:flex-end;gap:9px;padding-top:5px"><button type="button" class="secondary" data-cancel>Cancel</button><button type="button" class="primary" data-save style="min-width:125px">Save Changes</button></div>
+  </div>`;
+ overlay.appendChild(modal);document.body.appendChild(overlay);
+ const $m=selector=>modal.querySelector(selector);
+ $m("[data-supervisor-name]").value=trip.supervisor_name||trip.supervisor||"";
+ $m("[data-supervisor-phone]").value=trip.supervisor_phone||"";
+ $m("[data-departure-time]").value=dep24;$m("[data-arrival-time]").value=arr24;
+ const close=()=>overlay.remove();
+ $m("[data-close]").addEventListener("click",close);$m("[data-cancel]").addEventListener("click",close);
+ overlay.addEventListener("click",event=>{if(event.target===overlay)close();});
+ const showMessage=(message,isError=false)=>{const el=$m("[data-edit-message]");el.style.display="block";el.style.background=isError?"#fff1f2":"#edf7ef";el.style.color=isError?"#991b1b":"#236044";el.textContent=message;};
+ const supervisorSelect=$m("[data-supervisor-list]");
  try{
-  const {error}=await supabase.rpc("busnex_edit_single_trip_schedule",{p_trip_id:trip.id,p_departure_time:toDhakaIso(date,newDep),p_arrival_time:arrivalIso,p_supervisor_name:supervisor,p_supervisor_phone:phone});
+  const {data,error}=await supabase.from("company_supervisors").select("id,supervisor_name,supervisor_phone").eq("company_id",trip.company_id).eq("is_active",true).order("supervisor_name",{ascending:true});
   if(error)throw error;
-  bookingMessage("শুধু এই দিনের Schedule আপডেট হয়েছে।");await loadBookingStopsForSelectedDate();
- }catch(e){alert("Schedule Edit হয়নি: "+e.message);}
+  (data||[]).forEach(item=>{const option=document.createElement("option");option.value=item.id;option.textContent=item.supervisor_name+" • "+item.supervisor_phone;option.dataset.name=item.supervisor_name;option.dataset.phone=item.supervisor_phone;supervisorSelect.appendChild(option);});
+  const current=(data||[]).find(item=>item.supervisor_name===(trip.supervisor_name||trip.supervisor||"")&&item.supervisor_phone===(trip.supervisor_phone||""));
+  if(current)supervisorSelect.value=current.id;
+ }catch(error){showMessage("Supervisor List লোড হয়নি। চাইলে নাম ও নম্বর নিজে লিখতে পারবেন।",true);}
+ supervisorSelect.addEventListener("change",()=>{const option=supervisorSelect.selectedOptions[0];if(option?.dataset.name){$m("[data-supervisor-name]").value=option.dataset.name;$m("[data-supervisor-phone]").value=option.dataset.phone||"";}});
+ $m("[data-save]").addEventListener("click",async()=>{
+  const button=$m("[data-save]"),supervisor=$m("[data-supervisor-name]").value.trim(),phone=$m("[data-supervisor-phone]").value.trim(),newDep=$m("[data-departure-time]").value,newArr=$m("[data-arrival-time]").value;
+  if(!newDep){showMessage("Departure Time নির্বাচন করুন।",true);return;}
+  if(!supervisor){showMessage("Supervisor Name লিখুন বা List থেকে নির্বাচন করুন।",true);return;}
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(newDep)|| (newArr&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(newArr))){showMessage("সঠিক সময় নির্বাচন করুন।",true);return;}
+  let arrivalIso=newArr?toDhakaIso(date,newArr):null;
+  if(arrivalIso&&new Date(arrivalIso)<=new Date(toDhakaIso(date,newDep)))arrivalIso=new Date(new Date(arrivalIso).getTime()+86400000).toISOString();
+  button.disabled=true;button.textContent="Saving…";
+  try{
+   const {error}=await supabase.rpc("busnex_edit_single_trip_schedule",{p_trip_id:trip.id,p_departure_time:toDhakaIso(date,newDep),p_arrival_time:arrivalIso,p_supervisor_name:supervisor,p_supervisor_phone:phone});
+   if(error)throw error;
+   close();bookingMessage("শুধু এই দিনের Schedule আপডেট হয়েছে।");await loadBookingStopsForSelectedDate();
+  }catch(error){showMessage("Schedule Edit হয়নি: "+error.message,true);button.disabled=false;button.textContent="Save Changes";}
+ });
 }
+
 async function quickExtendBookingTrip(trip){
  if(!bookingCanManageSchedule())return;
  const end=window.prompt("কোন তারিখ পর্যন্ত Schedule Extend করবেন? (YYYY-MM-DD)","");if(!end)return;
