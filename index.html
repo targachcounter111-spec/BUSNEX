@@ -1843,14 +1843,14 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
     <h1>কাউন্টার লগইন</h1>
     <div class="muted small">আপনার User ID ও Password দিয়ে প্রবেশ করুন</div>
 
-    <form id="loginForm">
+    <form id="loginForm" autocomplete="on">
       <div class="field">
         <label for="loginId">User ID</label>
-        <input id="loginId" autocomplete="username" placeholder="আপনার User ID লিখুন" required>
+        <input id="loginId" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="আপনার User ID লিখুন" required>
       </div>
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="Password লিখুন" required>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password লিখুন" required>
       </div>
       <div id="loginMessage" class="message"></div>
       <button id="loginButton" class="primary" type="submit" style="width:100%">লগইন করুন</button>
