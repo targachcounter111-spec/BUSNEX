@@ -8711,17 +8711,18 @@ async function quickEditBookingTrip(trip){
 
 async function quickExtendBookingTrip(trip){
  if(!bookingCanManageSchedule())return;
- const end=window.prompt("কোন তারিখ পর্যন্ত Schedule Extend করবেন? (YYYY-MM-DD)","");if(!end)return;
- if(!/^\d{4}-\d{2}-\d{2}$/.test(end)){alert("তারিখ YYYY-MM-DD ফরম্যাটে দিন।");return;}
  const pageButton=document.querySelector('[data-page="trips"]');if(pageButton)pageButton.click();
  await new Promise(resolve=>setTimeout(resolve,350));
  await loadExtendCoachOptions();
  const sel=$("extendCoachSelect");let groups=[];try{groups=JSON.parse(sel?.dataset.groups||"[]");}catch{}
  const match=groups.find(g=>g.coach===trip.coach_number&&g.busId===trip.bus_id&&g.routeId===trip.route_id&&g.companyId===trip.company_id&&localTimeValue(g.time)===localTimeValue(trip.departure_time));
  if(!match){alert("এই Coach-এর Running Schedule Extend তালিকায় পাওয়া যায়নি। Trip Management-এর Extend অংশ থেকে Coach নির্বাচন করুন।");return;}
- sel.value=match.key;$("extendEndDate").value=end;
- $("extendScheduleMessage").textContent="Ticket Booking থেকে নির্বাচিত Schedule-এর Coach প্রস্তুত। Extend বাটনে চাপ দিন।";
- $("extendScheduleButton")?.scrollIntoView({behavior:"smooth",block:"center"});
+ sel.value=match.key;
+ const dateInput=$("extendEndDate");
+ if(dateInput){dateInput.value="";const lastDate=new Date(match.time).toLocaleDateString("en-CA",{timeZone:"Asia/Dhaka"});const nextDate=new Date(lastDate+"T00:00:00Z");nextDate.setUTCDate(nextDate.getUTCDate()+1);dateInput.min=nextDate.toISOString().slice(0,10);}
+ $("extendScheduleMessage").textContent="Coach নির্বাচন করা হয়েছে। এখন ক্যালেন্ডার থেকে নতুন শেষ তারিখ বেছে নিয়ে Extend বাটনে চাপ দিন।";
+ $("scheduleExtendPanel")?.scrollIntoView({behavior:"smooth",block:"center"});
+ dateInput?.focus();
 }
 async function quickToggleBookingBus(trip,button){
  if(!bookingCanManageSchedule())return;
