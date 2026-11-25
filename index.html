@@ -8595,7 +8595,7 @@ async function quickExtendBookingTrip(trip){
  await new Promise(resolve=>setTimeout(resolve,350));
  await loadExtendCoachOptions();
  const sel=$("extendCoachSelect");let groups=[];try{groups=JSON.parse(sel?.dataset.groups||"[]");}catch{}
- const match=groups.find(g=>g.coach===trip.coach_number&&g.busId===trip.bus_id&&g.routeId===trip.route_id&&g.companyId===trip.company_id);
+ const match=groups.find(g=>g.coach===trip.coach_number&&g.busId===trip.bus_id&&g.routeId===trip.route_id&&g.companyId===trip.company_id&&localTimeValue(g.time)===localTimeValue(trip.departure_time));
  if(!match){alert("এই Coach-এর Running Schedule Extend তালিকায় পাওয়া যায়নি। Trip Management-এর Extend অংশ থেকে Coach নির্বাচন করুন।");return;}
  sel.value=match.key;$("extendEndDate").value=end;
  $("extendScheduleMessage").textContent="Ticket Booking থেকে নির্বাচিত Schedule-এর Coach প্রস্তুত। Extend বাটনে চাপ দিন।";
