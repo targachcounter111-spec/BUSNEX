@@ -8565,6 +8565,50 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
   }
 }
 
+
+function bookingCanManageSchedule(){return ["super_admin","company_manager","nb_sub_manager","dhaka_sub_manager"].includes(currentProfile?.role);}
+function toDhakaIso(dateText,timeText){return new Date(dateText+"T"+timeText+":00+06:00").toISOString();}
+async function quickEditBookingTrip(trip){
+ if(!bookingCanManageSchedule())return;
+ const date=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(trip.departure_time));
+ const dep=formatDhakaTime(trip.departure_time);
+ const dep24=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(trip.departure_time));
+ const arr24=trip.arrival_time?new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(trip.arrival_time)):"";
+ const supervisor=window.prompt("Supervisor Name",trip.supervisor_name||trip.supervisor||"");if(supervisor===null)return;
+ const phone=window.prompt("Supervisor Number",trip.supervisor_phone||"");if(phone===null)return;
+ const newDep=window.prompt("Departure Time (24-hour HH:MM)",dep24);if(newDep===null)return;
+ if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(newDep)){alert("সময় HH:MM ফরম্যাটে দিন।");return;}
+ const newArr=window.prompt("Arrival Time (24-hour HH:MM, ফাঁকা রাখা যাবে)",arr24);if(newArr===null)return;
+ if(newArr&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(newArr)){alert("Arrival সময় HH:MM ফরম্যাটে দিন।");return;}
+ let arrivalIso=newArr?toDhakaIso(date,newArr):null;if(arrivalIso&&new Date(arrivalIso)<=new Date(toDhakaIso(date,newDep)))arrivalIso=new Date(new Date(arrivalIso).getTime()+86400000).toISOString();
+ try{
+  const {error}=await supabase.rpc("busnex_edit_single_trip_schedule",{p_trip_id:trip.id,p_departure_time:toDhakaIso(date,newDep),p_arrival_time:arrivalIso,p_supervisor_name:supervisor,p_supervisor_phone:phone});
+  if(error)throw error;
+  bookingMessage("শুধু এই দিনের Schedule আপডেট হয়েছে।");await loadBookingStopsForSelectedDate();
+ }catch(e){alert("Schedule Edit হয়নি: "+e.message);}
+}
+async function quickExtendBookingTrip(trip){
+ if(!bookingCanManageSchedule())return;
+ const end=window.prompt("কোন তারিখ পর্যন্ত Schedule Extend করবেন? (YYYY-MM-DD)","");if(!end)return;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(end)){alert("তারিখ YYYY-MM-DD ফরম্যাটে দিন।");return;}
+ const pageButton=document.querySelector('[data-page="trips"]');if(pageButton)pageButton.click();
+ await new Promise(resolve=>setTimeout(resolve,350));
+ await loadExtendCoachOptions();
+ const sel=$("extendCoachSelect");let groups=[];try{groups=JSON.parse(sel?.dataset.groups||"[]");}catch{}
+ const match=groups.find(g=>g.coach===trip.coach_number&&g.busId===trip.bus_id&&g.routeId===trip.route_id&&g.companyId===trip.company_id&&localTimeValue(g.time)===localTimeValue(trip.departure_time));
+ if(!match){alert("এই Coach-এর Running Schedule Extend তালিকায় পাওয়া যায়নি। Trip Management-এর Extend অংশ থেকে Coach নির্বাচন করুন।");return;}
+ sel.value=match.key;$("extendEndDate").value=end;
+ $("extendScheduleMessage").textContent="Ticket Booking থেকে নির্বাচিত Schedule-এর Coach প্রস্তুত। Extend বাটনে চাপ দিন।";
+ $("extendScheduleButton")?.scrollIntoView({behavior:"smooth",block:"center"});
+}
+async function quickToggleBookingBus(trip,button){
+ if(!bookingCanManageSchedule())return;
+ const on=trip.is_active===false;
+ if(!confirm(on?"এই Schedule আবার BUS ON করবেন? OFF-এর কারণে Block হওয়া Seat-গুলো Available হবে।":"এই Schedule BUS OFF করবেন? Available Seat Block হবে; Sold Ticket অক্ষত থাকবে।"))return;
+ button.disabled=true;
+ try{const {data,error}=await supabase.rpc("busnex_set_trip_bus_status",{p_trip_id:trip.id,p_is_active:on});if(error)throw error;bookingMessage(on?"BUS ON হয়েছে।":"BUS OFF হয়েছে।");await loadBookingStopsForSelectedDate();}
+ catch(e){alert("Bus Status পরিবর্তন হয়নি: "+e.message);button.disabled=false;}
+}
 async function renderBookingResults(trips,from="",to="") {
   const result=$("tripSearchResult");result.innerHTML="";
   const coach=String($("bookingCoach").value||"").trim().toLowerCase(),reg=String($("bookingReg").value||"").trim().toLowerCase();
@@ -8579,7 +8623,7 @@ async function renderBookingResults(trips,from="",to="") {
     const type=String(trip.buses?.bus_type||"").toLowerCase().replace(/[\\s_-]/g,"");
     if(ac&&nonAc)return false;if(ac&&(!type.includes("ac")||type.startsWith("non")))return false;if(nonAc&&!(type.startsWith("non")&&type.includes("ac")))return false;
     const dep=new Date(trip.departure_time);if(timeFilter!=="any"&&!Number.isNaN(dep.getTime())){const h=Number(new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka",hour:"2-digit",hourCycle:"h23"}).format(dep));if(timeFilter==="morning"&&!(h>=5&&h<12))return false;if(timeFilter==="afternoon"&&!(h>=12&&h<17))return false;if(timeFilter==="evening"&&!(h>=17&&h<21))return false;if(timeFilter==="night"&&!(h>=21||h<5))return false;}
-    return trip.is_active!==false&&String(trip.status).toLowerCase()==="scheduled";
+    return String(trip.status).toLowerCase()==="scheduled";
   });
   if($("bookingOrder").value==="desc")matches.reverse();
   $("bookingResultsMeta").textContent=matches.length+"টি Active Trip";
@@ -8619,10 +8663,10 @@ async function renderBookingResults(trips,from="",to="") {
     const routeNames=[];
     [route.starting_point,...routePoints,route.ending_point].forEach(name=>{const value=String(name||"").trim();if(value&&(!routeNames.length||routeNames[routeNames.length-1].toLocaleLowerCase()!==value.toLocaleLowerCase()))routeNames.push(value);});
     const routeMarkup='<div class="counter-route-line"><span class="counter-route-dot" aria-hidden="true"></span><span class="counter-route-names">'+escapeHtml(routeNames.length?routeNames.join(" - "):"—")+'</span><span class="counter-route-dot" aria-hidden="true"></span></div>';
-    const row=document.createElement("tr");row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td class="counter-route-cell">'+routeMarkup+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>'+(countLoadError?'তথ্য লোড হয়নি':('Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold))+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">Status</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
-    const action=row.lastElementChild,open=action.querySelector(".counter-open-button"),expanded=document.createElement("tr");
+    const row=document.createElement("tr");if(trip.is_active===false){row.style.background="#fff1f2";row.style.borderLeft="4px solid #dc2626";}row.innerHTML='<td>'+(i+1)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(tm+" "+dt)+'</td><td>'+escapeHtml(trip.coach_number||bus.registration_number||"—")+'</td><td class="counter-route-cell">'+routeMarkup+'</td><td>'+escapeHtml((trip.supervisor_name||trip.supervisor||"—")+(trip.supervisor_phone?" / "+trip.supervisor_phone:""))+'</td><td>'+(countLoadError?'তথ্য লোড হয়নি':('Available - '+c.available+'<br>Reserved - '+c.reserved+'<br>Sold - '+c.sold))+'</td><td>'+escapeHtml((bus.total_seats||"—")+" Seater "+(bus.bus_type||""))+'</td><td>'+Number(trip.ticket_price||0).toLocaleString("en-BD")+'</td><td><button type="button" class="counter-challan-button">Status</button> <button type="button" class="counter-open-button">View　⌄</button></td>';
+    const action=row.lastElementChild; if(["super_admin","company_manager","nb_sub_manager","dhaka_sub_manager"].includes(currentProfile?.role)){const edit=document.createElement("button");edit.type="button";edit.className="secondary";edit.textContent="Edit Schedule";edit.style.marginRight="5px";edit.addEventListener("click",()=>quickEditBookingTrip(trip));action.insertBefore(edit,action.firstChild);const power=document.createElement("button");power.type="button";power.className=trip.is_active===false?"secondary":"danger";power.textContent=trip.is_active===false?"BUS ON":"BUS OFF";power.style.marginRight="5px";power.addEventListener("click",()=>quickToggleBookingBus(trip,power));action.insertBefore(power,action.firstChild);}if(bookingCanManageSchedule()){const extend=document.createElement("button");extend.type="button";extend.className="secondary";extend.textContent="Extend";extend.style.marginRight="5px";extend.addEventListener("click",()=>quickExtendBookingTrip(trip));action.insertBefore(extend,action.firstChild);}const open=action.querySelector(".counter-open-button"),expanded=document.createElement("tr");
     const statusButton=action.querySelector(".counter-challan-button");statusButton.addEventListener("click",()=>openCounterChallan(trip.id,statusButton));expanded.className="counter-expanded-row hidden";const td=document.createElement("td");td.colSpan=10;const workspace=document.createElement("div");workspace.className="counter-inline-workspace";td.appendChild(workspace);expanded.appendChild(td);
-    open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";try{localStorage.removeItem("busnex_booking_open_trip");}catch(e){}return;}try{localStorage.setItem("busnex_booking_open_trip",trip.id);}catch(e){}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});body.append(row,expanded);
+    open.addEventListener("click",async()=>{if(!expanded.classList.contains("hidden")){expanded.classList.add("hidden");workspace.innerHTML="";open.textContent="View　⌄";try{localStorage.removeItem("busnex_booking_open_trip");}catch(e){}return;}try{localStorage.setItem("busnex_booking_open_trip",trip.id);}catch(e){}result.querySelectorAll(".counter-expanded-row").forEach(x=>{x.classList.add("hidden");x.querySelector(".counter-inline-workspace").innerHTML="";});result.querySelectorAll(".counter-open-button").forEach(x=>x.textContent="View　⌄");expanded.classList.remove("hidden");workspace.innerHTML='<div class="counter-workspace-loading">Seat inventory লোড হচ্ছে…</div>';open.textContent="Close ×";const fmt=v=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(v));let confirmPastDate=false;if(fmt(trip.departure_time)<fmt(new Date())){confirmPastDate=window.confirm("এই Trip-এর যাত্রার তারিখ পার হয়েছে। Ticket বিক্রি করতে চান?");if(!confirmPastDate){workspace.innerHTML='<div class="notice">আগের তারিখের Trip-এ Ticket বিক্রি বন্ধ রাখা হয়েছে।</div>';return;}}try{if(trip.is_active===false){workspace.innerHTML='<div class="message error" style="background:#fff1f2;color:#991b1b;border:1px solid #fecaca;padding:14px;border-radius:10px"><strong>BUS OFF — Ticket Sale বন্ধ</strong><br>এই Schedule-এর নতুন Ticket বিক্রি বন্ধ আছে। Sold Seat ও পুরোনো Ticket অক্ষত আছে। BUS ON করলে আবার বিক্রি চালু হবে।</div>';return;}await appendBookingSeatPicker(trip,workspace,confirmPastDate);}catch(e){workspace.innerHTML='<div class="message error">Counter খোলা যায়নি: '+escapeHtml(e.message)+'</div>';}});body.append(row,expanded);
   });wrap.appendChild(table);result.appendChild(wrap);
   let lastOpenTrip="";try{lastOpenTrip=localStorage.getItem("busnex_booking_open_trip")||"";}catch(e){}
   if(lastOpenTrip){const targetIndex=matches.findIndex(t=>t.id===lastOpenTrip);if(targetIndex>=0){const targetButton=body.children[targetIndex]?.querySelector(".counter-open-button");if(targetButton)targetButton.click();}}
