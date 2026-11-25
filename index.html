@@ -3622,6 +3622,26 @@ $("loginForm").addEventListener("submit",async event => {
 
     if (!profile) throw new Error("Profile পাওয়া যায়নি।");
 
+    // Explicitly offer the successfully authenticated login to supported browser
+    // password managers (notably Chrome on Android). Never let this affect login.
+    try {
+      if (
+        window.isSecureContext &&
+        "PasswordCredential" in window &&
+        navigator.credentials &&
+        typeof navigator.credentials.store === "function"
+      ) {
+        const savedCredential = new PasswordCredential({
+          id: login_id,
+          name: profile.full_name || login_id,
+          password
+        });
+        await navigator.credentials.store(savedCredential);
+      }
+    } catch (credentialError) {
+      console.info("Browser password save was unavailable or declined:", credentialError);
+    }
+
     showDashboard(profile);
 
   } catch(error) {
