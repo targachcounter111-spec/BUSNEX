@@ -8719,7 +8719,7 @@ async function quickExtendBookingTrip(trip){
  if(!match){alert("এই Coach-এর Running Schedule Extend তালিকায় পাওয়া যায়নি। Trip Management-এর Extend অংশ থেকে Coach নির্বাচন করুন।");return;}
  sel.value=match.key;
  const dateInput=$("extendEndDate");
- if(dateInput){dateInput.value="";dateInput.min=new Date(match.time).toLocaleDateString("en-CA",{timeZone:"Asia/Dhaka"});}
+ if(dateInput){dateInput.value="";const lastDate=new Date(match.time).toLocaleDateString("en-CA",{timeZone:"Asia/Dhaka"});const nextDate=new Date(lastDate+"T00:00:00Z");nextDate.setUTCDate(nextDate.getUTCDate()+1);dateInput.min=nextDate.toISOString().slice(0,10);}
  $("extendScheduleMessage").textContent="Coach নির্বাচন করা হয়েছে। এখন ক্যালেন্ডার থেকে নতুন শেষ তারিখ বেছে নিয়ে Extend বাটনে চাপ দিন।";
  $("scheduleExtendPanel")?.scrollIntoView({behavior:"smooth",block:"center"});
  dateInput?.focus();
