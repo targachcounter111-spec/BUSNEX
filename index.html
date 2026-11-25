@@ -5458,11 +5458,33 @@ document.addEventListener("keydown",(event) => {
   $("menuToggle").setAttribute("aria-expanded","false");
 });
 
-$("topbarSearchButton").addEventListener("click",() => {
-  const value = $("topbarTicketSearch").value.trim();
-  if (!value) { $("topbarTicketSearch").focus(); return; }
-  bookingMessage("PNR/Mobile Search-এর জন্য Ticket Search সংযোগ পরবর্তী ধাপে যুক্ত করা হবে।","error");
-});
+async function busnexSearchTicket(){
+ const input=$("topbarTicketSearch"),q=input.value.trim(); if(!q){input.focus();return;}
+ if(q.length<4){bookingMessage("PNR বা মোবাইল নম্বর কমপক্ষে ৪ অক্ষর দিন।","error");return;}
+ const btn=$("topbarSearchButton");btn.disabled=true;
+ try{
+  const {data,error}=await supabase.rpc("busnex_ticket_search",{p_query:q});
+  if(error)throw error;
+  const rows=data?.tickets||[];
+  const overlay=document.createElement("div");overlay.className="busnex-ticket-overlay";
+  const modal=document.createElement("div");modal.className="busnex-ticket-modal";modal.style.cssText="max-width:760px;padding:20px;border-radius:16px";
+  const close=document.createElement("button");close.className="busnex-ticket-close";close.textContent="বন্ধ করুন";
+  close.onclick=()=>overlay.remove();
+  const title=document.createElement("h2");title.textContent="Ticket Search Results";title.style.cssText="color:#176b4b;margin:0 0 15px";
+  modal.append(title,close);
+  if(!rows.length){const empty=document.createElement("p");empty.textContent="এই PNR / Mobile Number-এর কোনো অনুমোদিত Sold টিকিট পাওয়া যায়নি।";modal.append(empty);}
+  rows.forEach(t=>{
+   const card=document.createElement("div");card.style.cssText="border:1px solid #dce8df;border-radius:12px;padding:14px;margin:10px 0;background:#f8fcf9";
+   const info=document.createElement("div");info.style.cssText="line-height:1.8;color:#234";
+   info.innerHTML="<b>PNR:</b> "+t.pnr+" &nbsp; <b>Seat:</b> "+String(t.seat_number||"")+"<br><b>Passenger:</b> "+String(t.passenger_name||"")+"<br><b>Mobile:</b> "+String(t.passenger_phone||"")+"<br><b>Coach:</b> "+String(t.coach_number||"")+"<br><b>Journey:</b> "+(t.departure_time?new Date(t.departure_time).toLocaleString():"—")+"<br><b>Route:</b> "+String(t.starting_point||"")+" → "+String(t.ending_point||"")+"<br><b>Paid:</b> BDT "+String(t.paid_price??t.ticket_price??"—");
+   card.append(info);modal.append(card);
+  });
+  overlay.append(modal);document.body.append(overlay);overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove();});
+ }catch(e){bookingMessage("Ticket Search ব্যর্থ: "+(e.message||e),"error");}
+ finally{btn.disabled=false;}
+}
+$("topbarSearchButton").addEventListener("click",busnexSearchTicket);
+$("topbarTicketSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();busnexSearchTicket();}});
 
 document.querySelectorAll(".nav-btn").forEach(button => {
   button.addEventListener("click",async() => {
