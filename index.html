@@ -3802,6 +3802,7 @@ $("supervisorLibraryList").addEventListener("click",async event=>{
 });
 
 async function prepareTripManagement() {
+  loadExtendCoachOptions().catch(()=>{});
   if (!isTripManager()) {
     tripMessage("এই বিভাগ ব্যবহারের অনুমতি নেই।","error");
     return;
