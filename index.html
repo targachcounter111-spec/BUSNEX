@@ -8577,9 +8577,9 @@ async function quickEditBookingTrip(trip){
  const supervisor=window.prompt("Supervisor Name",trip.supervisor_name||trip.supervisor||"");if(supervisor===null)return;
  const phone=window.prompt("Supervisor Number",trip.supervisor_phone||"");if(phone===null)return;
  const newDep=window.prompt("Departure Time (24-hour HH:MM)",dep24);if(newDep===null)return;
- if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(newDep)){alert("সময় HH:MM ফরম্যাটে দিন।");return;}
+ if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(newDep)){alert("সময় HH:MM ফরম্যাটে দিন।");return;}
  const newArr=window.prompt("Arrival Time (24-hour HH:MM, ফাঁকা রাখা যাবে)",arr24);if(newArr===null)return;
- if(newArr&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(newArr)){alert("Arrival সময় HH:MM ফরম্যাটে দিন।");return;}
+ if(newArr&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(newArr)){alert("Arrival সময় HH:MM ফরম্যাটে দিন।");return;}
  let arrivalIso=newArr?toDhakaIso(date,newArr):null;if(arrivalIso&&new Date(arrivalIso)<=new Date(toDhakaIso(date,newDep)))arrivalIso=new Date(new Date(arrivalIso).getTime()+86400000).toISOString();
  try{
   const {error}=await supabase.rpc("busnex_edit_single_trip_schedule",{p_trip_id:trip.id,p_departure_time:toDhakaIso(date,newDep),p_arrival_time:arrivalIso,p_supervisor_name:supervisor,p_supervisor_phone:phone});
@@ -8590,7 +8590,7 @@ async function quickEditBookingTrip(trip){
 async function quickExtendBookingTrip(trip){
  if(!bookingCanManageSchedule())return;
  const end=window.prompt("কোন তারিখ পর্যন্ত Schedule Extend করবেন? (YYYY-MM-DD)","");if(!end)return;
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(end)){alert("তারিখ YYYY-MM-DD ফরম্যাটে দিন।");return;}
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(end)){alert("তারিখ YYYY-MM-DD ফরম্যাটে দিন।");return;}
  const pageButton=document.querySelector('[data-page="trips"]');if(pageButton)pageButton.click();
  await new Promise(resolve=>setTimeout(resolve,350));
  await loadExtendCoachOptions();
