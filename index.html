@@ -7409,13 +7409,39 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
             .busnex-ticket-actions .primary{background:#159447!important;color:#fff!important}
             .busnex-ticket-actions .secondary{position:static!important;background:#fff!important;border:1px solid #cbd5e1!important;color:#334155!important}
           }
+          /* Mobile ticket preview: counter copy is the first full-screen panel; swipe left to reveal the other copies. */
+          .bnx-mobile-ticket-preview{align-items:stretch!important;justify-content:stretch!important;padding:0!important;background:rgba(8,24,17,.62)!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-modal{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:100vw!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;margin:0!important;padding:54px 0 calc(74px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;overflow:hidden!important;background:#f7faf7!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-modal-head{position:absolute!important;z-index:5!important;top:8px!important;left:12px!important;right:12px!important;height:36px!important;margin:0!important;padding:0!important;border:0!important;display:flex!important;align-items:center!important;justify-content:space-between!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-modal-head h2{font-size:14px!important;padding:0!important;border:0!important;background:transparent!important;color:#24533b!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-close{position:absolute!important;top:0!important;right:0!important;width:36px!important;height:36px!important;min-width:36px!important;padding:0!important;border:0!important;border-radius:10px!important;background:#dc3b3b!important;color:#fff!important;font-size:24px!important;line-height:34px!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-modal-body{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;padding:0 12px!important}
+          .bnx-mobile-ticket-preview .busnex-premium-ticket{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:0!important;height:100%!important;margin:0!important;padding:12px 10px!important;border:1px solid #dce8df!important;border-radius:14px!important;background:#fff!important;color:#1f2937!important;box-shadow:0 5px 18px rgba(22,72,43,.08)!important;overflow:hidden!important}
+          .bnx-mobile-ticket-preview .bpt-status-line{flex:0 0 auto!important;height:auto!important;line-height:1.35!important;margin:0 0 7px!important;padding:2px 0 8px!important;border-bottom:1px solid #e7eee8!important;font-size:12px!important;font-weight:800!important;color:#176b46!important;text-align:center!important}
+          .bnx-mobile-ticket-preview .bpt-status-line:after{content:"Counter Copy  •  বাকি অংশ দেখতে বামে সোয়াইপ করুন";display:block;margin-top:5px;color:#718477;font-size:10px;font-weight:600}
+          .bnx-mobile-ticket-preview .bpt-three-copy{display:flex!important;flex:1 1 auto!important;width:100%!important;min-width:0!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory!important;scroll-behavior:smooth!important;overscroll-behavior-x:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-x pan-y!important;gap:0!important;align-items:stretch!important}
+          .bnx-mobile-ticket-preview .bpt-copy{display:block!important;box-sizing:border-box!important;flex:0 0 100%!important;width:100%!important;min-width:100%!important;max-width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;scroll-snap-align:start!important;padding:12px 11px!important;border:0!important;border-right:1px solid #e5ece6!important;background:#fff!important;color:#24362b!important;font-size:13px!important;line-height:1.65!important;text-align:left!important;overflow-wrap:anywhere!important}
+          .bnx-mobile-ticket-preview .bpt-copy-label{display:block!important;margin:0 0 12px!important;padding:0 0 8px!important;border-bottom:2px solid #dcebe0!important;color:#176b46!important;font-size:13px!important;font-weight:900!important;text-align:left!important;letter-spacing:.6px!important}
+          .bnx-mobile-ticket-preview .bpt-copy b,.bnx-mobile-ticket-preview .bpt-copy strong{color:#174b36!important}
+          .bnx-mobile-ticket-preview .bpt-copy-center{border-left:0!important;border-right:1px solid #e5ece6!important;padding:12px 11px!important;font-size:13px!important}
+          .bnx-mobile-ticket-preview .bpt-copy-side{font-size:13px!important;line-height:1.7!important;padding:12px 11px!important}
+          .bnx-mobile-ticket-preview .bpt-mobile-layout{display:none!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-actions{position:absolute!important;z-index:6!important;left:12px!important;right:12px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin:0!important;padding:9px!important;border:1px solid #e1eae2!important;border-radius:13px!important;background:rgba(255,255,255,.97)!important;box-shadow:0 5px 18px rgba(20,65,39,.12)!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-actions button{flex:1 1 auto!important;min-width:0!important;min-height:42px!important;padding:9px 12px!important;border-radius:9px!important;font-size:13px!important;font-weight:800!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-actions .primary{background:#16834b!important;color:#fff!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-actions .secondary{position:static!important;background:#f5f8f5!important;border:1px solid #d8e4da!important;color:#315b40!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-actions .danger{background:#fff0ed!important;border:1px solid #f1d1c9!important;color:#a53e32!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-actions .busnex-cancel-seat-selection{order:3!important;flex:1 1 100%!important;max-height:18dvh!important;overflow:auto!important;margin:0!important;padding:8px!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-actions .secondary:last-child{display:none!important}
+          @media(max-height:560px){.bnx-mobile-ticket-preview .busnex-ticket-modal{padding-top:48px!important;padding-bottom:68px!important}.bnx-mobile-ticket-preview .bpt-copy{padding:7px!important;font-size:12px!important}.bnx-mobile-ticket-preview .busnex-ticket-actions button{min-height:36px!important}}
           @keyframes busnexTicketPop{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
         `;
         document.head.appendChild(style);
       }
 
       const overlay = document.createElement("div");
-      overlay.className = "busnex-ticket-overlay";
+      const isMobileTicketDevice = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches && Math.min(screen.width,screen.height) <= 1024);
+      overlay.className = "busnex-ticket-overlay" + (isMobileTicketDevice ? " bnx-mobile-ticket-preview" : "");
       const modal = document.createElement("div");
       modal.className = "busnex-ticket-modal";
       const head = document.createElement("div");
@@ -7427,6 +7453,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
       close.type = "button";
       close.textContent = "×";
       const body = document.createElement("div");
+      body.className = "busnex-ticket-modal-body";
       body.textContent = "Seat " + seatNumber + " এর Ticket তথ্য লোড হচ্ছে...";
       head.append(heading,close);
       modal.append(head,body);
