@@ -8349,33 +8349,20 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate) {
             tip.style.left = left + "px";
             tip.style.top = top + "px";
             try {
-              const {data:quickTicket,error:quickError} = await supabase
-                .from("tickets")
-                .select("id,seat_number,passenger_name,passenger_phone,ticket_price,created_at")
-                .eq("trip_id",trip.id)
-                .eq("seat_number",seat.seat_number)
-                .eq("status","sold")
-                .maybeSingle();
+              const {data:ticketDetails,error:quickError} = await supabase.rpc(
+                "busnex_get_ticket_details",{p_trip_id:trip.id,p_seat_number:seat.seat_number}
+              );
               if (quickError) throw quickError;
-              let sellerText = "বিক্রেতার তথ্য নেই";
-              if (quickTicket) {
-                const {data:sellerRows,error:sellerError} = await supabase.rpc(
-                  "busnex_get_ticket_seller",
-                  {p_ticket_id:quickTicket.id}
-                );
-                if (sellerError) throw sellerError;
-                const seller = Array.isArray(sellerRows) ? sellerRows[0] : sellerRows;
-                if (seller) sellerText = (seller.seller_name || "নাম নেই") +
-                  (seller.counter_name ? " (" + seller.counter_name + ")" : "");
-              }
+              const quickTicket=ticketDetails?.ticket;
+              const seller=ticketDetails?.seller;
+              const sellerText=seller ? (seller.seller_name||"নাম নেই")+
+                (seller.counter_name ? " ("+seller.counter_name+")" : "") : "বিক্রেতার তথ্য নেই";
               if (hoverTooltip === tip && tip.isConnected) {
-                const when = quickTicket?.created_at
-                  ? formatDhakaDateTime(quickTicket.created_at,{year:"2-digit"})
-                  : "সময় পাওয়া যায়নি";
-                tip.textContent = quickTicket
-                  ? "Booked by " + sellerText + " on " + when +
-                    " For: " + quickTicket.passenger_name + " (" + quickTicket.passenger_phone + ")"
-                  : "Seat " + seat.seat_number + " — Ticket তথ্য পাওয়া যায়নি";
+                const when=quickTicket?.created_at
+                  ? formatDhakaDateTime(quickTicket.created_at,{year:"2-digit"}) : "সময় পাওয়া যায়নি";
+                tip.textContent=quickTicket
+                  ? "Booked by "+sellerText+" on "+when+" For: "+quickTicket.passenger_name+" ("+quickTicket.passenger_phone+")"
+                  : "Seat "+seat.seat_number+" — Ticket তথ্য পাওয়া যায়নি";
               }
             } catch(error) {
               if (hoverTooltip === tip && tip.isConnected) tip.textContent = "Ticket তথ্য লোড হয়নি";
