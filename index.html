@@ -3642,6 +3642,15 @@ $("loginForm").addEventListener("submit",async event => {
       console.info("Browser password save was unavailable or declined:", credentialError);
     }
 
+    // iOS Chrome uses WebKit's native Password AutoFill heuristics rather than
+    // the Chromium PasswordCredential API. Keep the successful login form mounted
+    // briefly after the async authentication completes so iOS can inspect the
+    // submitted username/current-password pair before the app switches screens.
+    const isIOSBrowser = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    if (isIOSBrowser) {
+      await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+
     showDashboard(profile);
 
   } catch(error) {
