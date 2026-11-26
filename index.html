@@ -2413,6 +2413,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
             <div class="field"><label for="newOperatorName">Operator-এর নাম *</label><input id="newOperatorName" maxlength="120" required placeholder="পূর্ণ নাম"></div>
             <div class="field"><label for="newOperatorLogin">Operator Login ID *</label><input id="newOperatorLogin" maxlength="40" required autocomplete="off" placeholder="যেমন: BNGAZIPURA28"></div>
             <div class="field"><label for="newOperatorPassword">Password * (কমপক্ষে ৮ অক্ষর)</label><input id="newOperatorPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></div>
+            <div class="field"><label for="newOperatorMobile">Counter Mobile Number *</label><input id="newOperatorMobile" type="tel" inputmode="tel" maxlength="16" required placeholder="01XXXXXXXXX"></div>
             <div class="field"><label for="operatorRegion">Counter / Boarding Region *</label><select id="operatorRegion" required><option value="ALL">All</option><option value="NB">North Bengal (NB)</option><option value="SB">South Bengal (SB)</option><option value="DHAKA">Dhaka</option></select></div>
             <div class="field"><label>Schedule দেখার Region * (এক বা একাধিক নির্বাচন করুন)</label><div class="actions" id="operatorScheduleRegions">
               <label><input type="checkbox" name="operatorScheduleRegion" value="NB"> NB</label>
@@ -2487,6 +2488,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
     <div class="page-head"><div><h2>Account Settings</h2><p class="muted small">নিজের নাম ও Password নিরাপদে পরিবর্তন করুন।</p></div><button id="closeAccountModal" class="secondary" type="button">বন্ধ করুন ✕</button></div>
     <form id="ownAccountForm" class="form-row">
       <div class="field"><label for="accountFullName">আপনার নাম</label><input id="accountFullName" maxlength="120" autocomplete="name" placeholder="নতুন নাম"></div>
+      <div class="field"><label for="accountMobileNumber">আপনার Mobile Number</label><input id="accountMobileNumber" type="tel" inputmode="tel" maxlength="16" placeholder="01XXXXXXXXX"></div>
       <div class="field"><label for="accountNewPassword">নতুন Password (কমপক্ষে ৮ অক্ষর)</label><input id="accountNewPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></div>
       <div class="field"><label for="accountConfirmPassword">নতুন Password আবার লিখুন</label><input id="accountConfirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="একই Password আবার লিখুন"></div>
       <div class="field"><label>&nbsp;</label><button id="saveOwnAccount" class="primary" type="submit">নিজের তথ্য সংরক্ষণ</button></div>
@@ -5107,6 +5109,8 @@ async function invokeAccountUpdate(body) {
 $("myAccountButton").addEventListener("click", async () => {
   $("accountModal").classList.remove("hidden");
   $("accountFullName").value = currentProfile?.full_name || "";
+  $("accountMobileNumber").value = currentProfile?.mobile_number || "";
+  $("accountMobileNumber").disabled = !!currentProfile?.mobile_number;
   $("accountNewPassword").value = "";
   $("accountConfirmPassword").value = "";
   accountMessage("ownAccountMessage", "");
@@ -5121,13 +5125,21 @@ $("ownAccountForm").addEventListener("submit", async event => {
   event.preventDefault();
   const full_name = $("accountFullName").value.trim();
   const password = $("accountNewPassword").value;
+  const mobile_number = $("accountMobileNumber").value.trim();
   const confirmPassword = $("accountConfirmPassword").value;
-  if (!full_name && !password) return accountMessage("ownAccountMessage", "নতুন নাম অথবা Password দিন।", "error");
+  if (!full_name && !password && !mobile_number) return accountMessage("ownAccountMessage", "নতুন নাম, Mobile Number অথবা Password দিন।", "error");
   if (password && password.length < 8) return accountMessage("ownAccountMessage", "Password কমপক্ষে ৮ অক্ষরের হতে হবে।", "error");
   if (password !== confirmPassword) return accountMessage("ownAccountMessage", "দুইটি Password এক হয়নি।", "error");
   const button = $("saveOwnAccount");
   button.disabled = true;
   try {
+    if (mobile_number && !currentProfile?.mobile_number) {
+      const {data:mobileResult,error:mobileError}=await supabase.rpc("busnex_set_own_mobile_number",{p_mobile_number:mobile_number});
+      if(mobileError)throw mobileError;
+      currentProfile.mobile_number=mobileResult?.mobile_number||mobile_number;
+      $("accountMobileNumber").value=currentProfile.mobile_number;
+      $("accountMobileNumber").disabled=true;
+    }
     const data = await invokeAccountUpdate({action:"update_own_account",full_name,password});
     if (full_name) {
       currentProfile.full_name = full_name;
@@ -6263,6 +6275,7 @@ $("createOperatorForm").addEventListener("submit", async event => {
   const full_name = $("newOperatorName").value.trim();
   const login_id = $("newOperatorLogin").value.trim().toUpperCase();
   const password = $("newOperatorPassword").value;
+  const mobile_number = $("newOperatorMobile").value.trim();
   const region = $("operatorRegion").value;
   const id_type = $("operatorIdType").value;
   const schedule_regions = [...document.querySelectorAll('input[name="operatorScheduleRegion"]:checked')].map(input => input.value);
@@ -6272,7 +6285,7 @@ $("createOperatorForm").addEventListener("submit", async event => {
     : $("operatorDefaultBoardingPoint").value;
   const button = $("createOperatorButton");
   const message = $("operatorCreateMessage");
-  if (!company_id || !counter_id || !full_name || !login_id || !default_boarding_point || !schedule_regions.length || password.length < 8) {
+  if (!company_id || !counter_id || !full_name || !login_id || !mobile_number || !default_boarding_point || !schedule_regions.length || password.length < 8) {
     message.textContent = "Company, Counter, নাম, Login ID, Default Boarding Point, কমপক্ষে একটি Schedule Region এবং ৮ অক্ষরের Password দিন।";
     message.className = "message error";
     return;
@@ -6282,13 +6295,14 @@ $("createOperatorForm").addEventListener("submit", async event => {
   message.className = "message";
   try {
     const {data,error} = await supabase.functions.invoke("manage-company-users", {
-      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type,schedule_regions,default_boarding_point,default_boarding_point_custom:customBoardingPoint}
+      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type,schedule_regions,default_boarding_point,default_boarding_point_custom:customBoardingPoint,mobile_number}
     });
     if (error) throw new Error(data?.message || error.message || "Backend request failed");
     if (!data?.success) throw new Error(data?.message || "Operator ID তৈরি হয়নি।");
     $("newOperatorName").value = "";
     $("newOperatorLogin").value = "";
     $("newOperatorPassword").value = "";
+    $("newOperatorMobile").value = "";
     $("operatorDefaultBoardingPoint").value = "";
     document.querySelectorAll('input[name="operatorScheduleRegion"]').forEach(input => { input.checked = false; });
     $("customBoardingPointInput").value = "";
