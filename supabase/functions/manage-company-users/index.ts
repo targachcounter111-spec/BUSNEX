@@ -22,6 +22,16 @@ const json = (status: number, body: Record<string, unknown>, origin: string | nu
 const normalizeLoginId = (value: unknown) =>
   typeof value === "string" ? value.trim().toUpperCase() : "";
 
+const normalizeMobileNumber = (value: unknown) => {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  const bengaliDigits = "০১২৩৪৫৬৭৮৯";
+  return String(value)
+    .trim()
+    .replace(/[০-৯]/g, digit => String(bengaliDigits.indexOf(digit)))
+    .replace(/[\\s()-]/g, "")
+    .replace(/[^0-9+]/g, "");
+};
+
 function getSecret(primary: string, legacy: string): string {
   const raw = Deno.env.get(primary) ?? Deno.env.get(legacy) ?? "";
   if (!raw) return "";
@@ -348,7 +358,7 @@ Deno.serve(async (req: Request) => {
     return json(400, { success: false, message: createAuthError?.message ?? "Auth user তৈরি করা যায়নি।" }, origin);
   }
 
-  const operatorMobile = action === "create_operator" ? String(body.mobile_number || "").replace(/[^0-9+]/g, "") : null;
+  const operatorMobile = action === "create_operator" ? normalizeMobileNumber(body.mobile_number) : null;
   if (action === "create_operator" && (!operatorMobile || !/^\+?[0-9]{10,15}$/.test(operatorMobile))) {
     await admin.auth.admin.deleteUser(createdAuth.user.id);
     return json(400, { success: false, message: "Counter-এর সঠিক Mobile Number দিন।" }, origin);
