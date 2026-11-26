@@ -3258,8 +3258,13 @@ async function loadGlobalCompanyHub() {
       trialBadge.style.cssText=trialActive?"background:#dcfce7;color:#166534;font-weight:900;padding:6px 12px;border-radius:20px":"background:#f1f5f9;color:#475569;font-weight:900;padding:6px 12px;border-radius:20px";
       const trialDates=document.createElement("small");trialDates.style.cssText="color:#475569;text-align:center;line-height:1.5";
       trialDates.textContent=company.trial_started_at&&company.trial_ends_at?"শুরু: "+new Date(company.trial_started_at).toLocaleDateString("en-GB")+" • শেষ: "+new Date(company.trial_ends_at).toLocaleDateString("en-GB"):"এই Company-এর Trial সেট করা হয়নি";
-      const trialButton=document.createElement("button");trialButton.type="button";trialButton.className="secondary";trialButton.textContent=trialActive?"Free Trial Extend / Reset":"৩০ দিনের Free Trial দিন";trialButton.addEventListener("click",()=>setCompanyFreeTrial(company));
-      card.append(mark,title,desc,state,trialBadge,trialDates,trialButton,open,edit,toggle);return card;
+      const trialSales=document.createElement("div");trialSales.style.cssText="width:100%;margin:4px 0 2px;padding:12px 14px;border:1px solid #dbeafe;background:linear-gradient(135deg,#f0fdf4,#eff6ff);border-radius:14px;text-align:center;color:#166534;font-size:13px;font-weight:800";trialSales.textContent="Trial-এ বিক্রি: হিসাব হচ্ছে...";
+      const trialActions=document.createElement("div");trialActions.style.cssText="display:flex;gap:8px;width:100%;flex-wrap:wrap;justify-content:center";
+      const trialButton=document.createElement("button");trialButton.type="button";trialButton.className="secondary";trialButton.textContent=trialActive?"মেয়াদ বাড়ান / Reset":"Free Trial চালু করুন";trialButton.addEventListener("click",()=>setCompanyFreeTrial(company,true));
+      const trialOffButton=document.createElement("button");trialOffButton.type="button";trialOffButton.className="secondary";trialOffButton.textContent="Trial OFF করুন";trialOffButton.disabled=!company.trial_enabled;trialOffButton.style.cssText="color:#b91c1c;border-color:#fecaca";trialOffButton.addEventListener("click",()=>setCompanyFreeTrial(company,false));
+      trialActions.append(trialButton,trialOffButton);
+      card.append(mark,title,desc,state,trialBadge,trialDates,trialSales,trialActions,open,edit,toggle);
+      loadCompanyTrialReport(company,trialSales);return card;
     };
     const shamolWrap = $("shamolCompanyCard");
     shamolWrap.innerHTML = "";
@@ -3278,28 +3283,51 @@ async function loadGlobalCompanyHub() {
 }
 
 
-async function setCompanyFreeTrial(company) {
-  if (currentProfile?.role !== "super_admin" || !company?.id) return;
-  const entered=window.prompt("এই Company-কে কত দিনের Free Trial দিতে চান? (১–৩৬৫ দিন)", "30");
-  if (entered===null) return;
-  const days=Number(entered);
-  if (!Number.isInteger(days) || days<1 || days>365) {
-    window.alert("Trial ১ থেকে ৩৬৫ দিনের পূর্ণসংখ্যা হতে হবে।");
-    return;
+async function loadCompanyTrialReport(company,target) {
+  if(currentProfile?.role!=="super_admin"||!company?.id||!target)return;
+  try {
+    const {data,error}=await supabase.rpc("busnex_get_company_trial_report",{p_company_id:company.id});
+    if(error)throw error;
+    const current=Number(data?.seats_sold_in_current_period||0);
+    const all=Number(data?.seats_sold_all_trial_periods||0);
+    target.textContent="এই Trial-এ বিক্রি: "+current.toLocaleString("en-BD")+" সিট • সব Trial মিলিয়ে: "+all.toLocaleString("en-BD")+" সিট";
+    target.title="শুধু সফলভাবে SOLD হওয়া টিকিট গণনা করা হয়েছে";
+  } catch(error) {
+    target.textContent="Trial বিক্রির হিসাব লোড হয়নি";
+    target.title=error.message;
   }
-  if (!window.confirm(company.name+"-কে এখন থেকে "+days+" দিনের Free Trial দিতে চান?")) return;
+}
+
+async function setCompanyFreeTrial(company,enable=true) {
+  if (currentProfile?.role !== "super_admin" || !company?.id) return;
+  let days=30;
+  if(enable) {
+    const entered=window.prompt("এই Company-কে কত দিনের Free Trial দিতে চান? (১–৩৬৫ দিন)","30");
+    if(entered===null)return;
+    days=Number(entered);
+    if(!Number.isInteger(days)||days<1||days>365) {
+      window.alert("Trial ১ থেকে ৩৬৫ দিনের পূর্ণসংখ্যা হতে হবে।");return;
+    }
+    if(!window.confirm(company.name+"-কে এখন থেকে "+days+" দিনের Free Trial চালু/Reset করতে চান?"))return;
+  } else {
+    if(!window.confirm(company.name+"-এর Free Trial বন্ধ করতে চান? এরপর নতুন Ticket Sale-এ নিয়মিত Billing কার্যকর হবে।"))return;
+  }
   const message=$("companyHubMessage");
-  message.textContent="Free Trial সেট হচ্ছে...";
+  message.textContent=enable?"Free Trial চালু হচ্ছে...":"Free Trial বন্ধ হচ্ছে...";
   message.className="message section";
   try {
-    const {data,error}=await supabase.rpc("busnex_set_company_free_trial",{p_company_id:company.id,p_days:days});
-    if(error) throw error;
-    if(!data?.success) throw new Error("Trial সেট নিশ্চিত করা যায়নি।");
+    const {data,error}=await supabase.rpc("busnex_manage_company_free_trial",{
+      p_company_id:company.id,p_enabled:enable,p_days:days
+    });
+    if(error)throw error;
+    if(!data?.success)throw new Error("Trial পরিবর্তন নিশ্চিত করা যায়নি।");
     await loadGlobalCompanyHub();
-    message.textContent=company.name+"-এর "+days+" দিনের Free Trial চালু হয়েছে।";
+    message.textContent=enable
+      ?company.name+"-এর "+days+" দিনের Free Trial চালু হয়েছে।"
+      :company.name+"-এর Free Trial বন্ধ হয়েছে।";
     message.className="message section ok";
   } catch(error) {
-    message.textContent="Free Trial সেট হয়নি: "+error.message;
+    message.textContent="Free Trial পরিবর্তন হয়নি: "+error.message;
     message.className="message section error";
   }
 }
