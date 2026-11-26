@@ -348,6 +348,12 @@ Deno.serve(async (req: Request) => {
     return json(400, { success: false, message: createAuthError?.message ?? "Auth user তৈরি করা যায়নি।" }, origin);
   }
 
+  const operatorMobile = action === "create_operator" ? String(body.mobile_number || "").replace(/[^0-9+]/g, "") : null;
+  if (action === "create_operator" && (!operatorMobile || !/^\+?[0-9]{10,15}$/.test(operatorMobile))) {
+    await admin.auth.admin.deleteUser(createdAuth.user.id);
+    return json(400, { success: false, message: "Counter-এর সঠিক Mobile Number দিন।" }, origin);
+  }
+
   const profileRow = {
     id: createdAuth.user.id,
     company_id: companyId,
@@ -359,6 +365,7 @@ Deno.serve(async (req: Request) => {
     id_type: idType,
     schedule_regions: scheduleRegions,
     default_boarding_point: defaultBoardingPoint,
+    mobile_number: operatorMobile,
     is_active: true,
   };
 

@@ -2413,6 +2413,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
             <div class="field"><label for="newOperatorName">Operator-এর নাম *</label><input id="newOperatorName" maxlength="120" required placeholder="পূর্ণ নাম"></div>
             <div class="field"><label for="newOperatorLogin">Operator Login ID *</label><input id="newOperatorLogin" maxlength="40" required autocomplete="off" placeholder="যেমন: BNGAZIPURA28"></div>
             <div class="field"><label for="newOperatorPassword">Password * (কমপক্ষে ৮ অক্ষর)</label><input id="newOperatorPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></div>
+            <div class="field"><label for="newOperatorMobile">Counter Mobile Number *</label><input id="newOperatorMobile" type="tel" inputmode="tel" maxlength="16" required placeholder="01XXXXXXXXX"></div>
             <div class="field"><label for="operatorRegion">Counter / Boarding Region *</label><select id="operatorRegion" required><option value="ALL">All</option><option value="NB">North Bengal (NB)</option><option value="SB">South Bengal (SB)</option><option value="DHAKA">Dhaka</option></select></div>
             <div class="field"><label>Schedule দেখার Region * (এক বা একাধিক নির্বাচন করুন)</label><div class="actions" id="operatorScheduleRegions">
               <label><input type="checkbox" name="operatorScheduleRegion" value="NB"> NB</label>
@@ -2487,6 +2488,7 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
     <div class="page-head"><div><h2>Account Settings</h2><p class="muted small">নিজের নাম ও Password নিরাপদে পরিবর্তন করুন।</p></div><button id="closeAccountModal" class="secondary" type="button">বন্ধ করুন ✕</button></div>
     <form id="ownAccountForm" class="form-row">
       <div class="field"><label for="accountFullName">আপনার নাম</label><input id="accountFullName" maxlength="120" autocomplete="name" placeholder="নতুন নাম"></div>
+      <div class="field"><label for="accountMobileNumber">আপনার Mobile Number</label><input id="accountMobileNumber" type="tel" inputmode="tel" maxlength="16" placeholder="01XXXXXXXXX"></div>
       <div class="field"><label for="accountNewPassword">নতুন Password (কমপক্ষে ৮ অক্ষর)</label><input id="accountNewPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></div>
       <div class="field"><label for="accountConfirmPassword">নতুন Password আবার লিখুন</label><input id="accountConfirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="একই Password আবার লিখুন"></div>
       <div class="field"><label>&nbsp;</label><button id="saveOwnAccount" class="primary" type="submit">নিজের তথ্য সংরক্ষণ</button></div>
@@ -3611,7 +3613,7 @@ $("loginForm").addEventListener("submit",async event => {
       if (userData?.user) {
         const {data:profileData,error:profileError} = await supabase
           .from("profiles")
-          .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active")
+          .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active,mobile_number")
           .eq("id",userData.user.id)
           .maybeSingle();
 
@@ -5069,7 +5071,7 @@ async function loadManagedAccounts() {
   $("managedAccountsMessage").textContent = "Account তালিকা লোড হচ্ছে...";
   try {
     let query = supabase.from("profiles")
-      .select("id,login_id,full_name,role,id_type,region,schedule_regions,company_id")
+      .select("id,login_id,full_name,role,id_type,region,schedule_regions,company_id,mobile_number")
       .neq("id", currentProfile.id)
       .order("full_name");
     if (currentProfile.role === "company_manager") {
@@ -5078,8 +5080,8 @@ async function loadManagedAccounts() {
     const {data,error} = await query;
     if (error) throw error;
     const rows = data || [];
-    $("managedAccountsList").innerHTML = rows.length ? '<table><thead><tr><th>নাম</th><th>Login ID</th><th>Role</th><th>নতুন নাম</th><th>নতুন Password</th><th>Action</th></tr></thead><tbody>' +
-      rows.map(user => '<tr><td>' + escapeHtml(user.full_name || "—") + '</td><td><strong>' + escapeHtml(user.login_id || "—") + '</strong>' + (user.role === "counter_operator" ? '<br><small class="status-badge">' + escapeHtml(((user.schedule_regions || (user.region ? [user.region] : [])).join(" + ") || "REGION NOT SET") + " " + String(user.id_type || "OPERATOR").toUpperCase()) + '</small>' : '') + '</td><td>' + escapeHtml(user.role === "company_manager" ? "Manager" : (user.id_type === "AGENT" ? "Agent" : user.role === "counter_operator" ? "Operator" : user.role)) + '</td><td><input class="managed-new-name" data-id="' + escapeHtml(user.id) + '" maxlength="120" placeholder="নাম পরিবর্তন (ঐচ্ছিক)"></td><td><input class="managed-new-password" data-id="' + escapeHtml(user.id) + '" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></td><td><button class="primary save-managed-account" data-id="' + escapeHtml(user.id) + '" type="button">Save</button></td></tr>').join("") +
+    $("managedAccountsList").innerHTML = rows.length ? '<table><thead><tr><th>নাম</th><th>Login ID</th><th>Role</th><th>Mobile Number</th><th>নতুন নাম</th><th>নতুন Password</th><th>Action</th></tr></thead><tbody>' +
+      rows.map(user => '<tr><td>' + escapeHtml(user.full_name || "—") + '</td><td><strong>' + escapeHtml(user.login_id || "—") + '</strong>' + (user.role === "counter_operator" ? '<br><small class="status-badge">' + escapeHtml(((user.schedule_regions || (user.region ? [user.region] : [])).join(" + ") || "REGION NOT SET") + " " + String(user.id_type || "OPERATOR").toUpperCase()) + '</small>' : '') + '</td><td>' + escapeHtml(user.role === "company_manager" ? "Manager" : (user.id_type === "AGENT" ? "Agent" : user.role === "counter_operator" ? "Operator" : user.role)) + '</td><td><input class="managed-new-mobile" data-id="' + escapeHtml(user.id) + '" type="tel" inputmode="tel" maxlength="16" value="' + escapeHtml(user.mobile_number || "") + '" placeholder="01XXXXXXXXX"></td><td><input class="managed-new-name" data-id="' + escapeHtml(user.id) + '" maxlength="120" placeholder="নাম পরিবর্তন (ঐচ্ছিক)"></td><td><input class="managed-new-password" data-id="' + escapeHtml(user.id) + '" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></td><td><button class="primary save-managed-account" data-id="' + escapeHtml(user.id) + '" type="button">Save</button></td></tr>').join("") +
       '</tbody></table>' : '<div class="empty">পরিচালনার জন্য কোনো Account পাওয়া যায়নি।</div>';
     $("managedAccountsMessage").textContent = rows.length + "টি Account পাওয়া গেছে।";
     $("managedAccountsMessage").className = "message ok";
@@ -5107,6 +5109,8 @@ async function invokeAccountUpdate(body) {
 $("myAccountButton").addEventListener("click", async () => {
   $("accountModal").classList.remove("hidden");
   $("accountFullName").value = currentProfile?.full_name || "";
+  $("accountMobileNumber").value = currentProfile?.mobile_number || "";
+  $("accountMobileNumber").disabled = !!currentProfile?.mobile_number;
   $("accountNewPassword").value = "";
   $("accountConfirmPassword").value = "";
   accountMessage("ownAccountMessage", "");
@@ -5121,13 +5125,21 @@ $("ownAccountForm").addEventListener("submit", async event => {
   event.preventDefault();
   const full_name = $("accountFullName").value.trim();
   const password = $("accountNewPassword").value;
+  const mobile_number = $("accountMobileNumber").value.trim();
   const confirmPassword = $("accountConfirmPassword").value;
-  if (!full_name && !password) return accountMessage("ownAccountMessage", "নতুন নাম অথবা Password দিন।", "error");
+  if (!full_name && !password && !mobile_number) return accountMessage("ownAccountMessage", "নতুন নাম, Mobile Number অথবা Password দিন।", "error");
   if (password && password.length < 8) return accountMessage("ownAccountMessage", "Password কমপক্ষে ৮ অক্ষরের হতে হবে।", "error");
   if (password !== confirmPassword) return accountMessage("ownAccountMessage", "দুইটি Password এক হয়নি।", "error");
   const button = $("saveOwnAccount");
   button.disabled = true;
   try {
+    if (mobile_number && !currentProfile?.mobile_number) {
+      const {data:mobileResult,error:mobileError}=await supabase.rpc("busnex_set_own_mobile_number",{p_mobile_number:mobile_number});
+      if(mobileError)throw mobileError;
+      currentProfile.mobile_number=mobileResult?.mobile_number||mobile_number;
+      $("accountMobileNumber").value=currentProfile.mobile_number;
+      $("accountMobileNumber").disabled=true;
+    }
     const data = await invokeAccountUpdate({action:"update_own_account",full_name,password});
     if (full_name) {
       currentProfile.full_name = full_name;
@@ -5150,12 +5162,16 @@ $("managedAccountsList").addEventListener("click", async event => {
   const id = button.dataset.id;
   const full_name = $("managedAccountsList").querySelector('.managed-new-name[data-id="' + CSS.escape(id) + '"]')?.value.trim() || "";
   const password = $("managedAccountsList").querySelector('.managed-new-password[data-id="' + CSS.escape(id) + '"]')?.value || "";
-  if (!full_name && !password) return accountMessage("managedAccountsMessage", "নতুন নাম অথবা Password লিখুন।", "error");
+  const mobileInput = $("managedAccountsList").querySelector('.managed-new-mobile[data-id="' + CSS.escape(id) + '"]');
+  const mobile_number = mobileInput?.value.trim() || "";
+  const existingMobile = mobileInput?.defaultValue || "";
+  if (!full_name && !password && mobile_number===existingMobile) return accountMessage("managedAccountsMessage", "নতুন নাম, Password অথবা Mobile Number পরিবর্তন করুন।", "error");
   if (password && password.length < 8) return accountMessage("managedAccountsMessage", "নতুন Password কমপক্ষে ৮ অক্ষরের হতে হবে।", "error");
   if (!confirm("নির্বাচিত Account-এর তথ্য পরিবর্তন করবেন?")) return;
   button.disabled = true;
   try {
     const data = await invokeAccountUpdate({action:"admin_reset_user_credentials",profile_id:id,full_name,password});
+    if(mobile_number && mobile_number!==existingMobile){const {error}=await supabase.rpc("busnex_manager_set_profile_mobile",{p_profile_id:id,p_mobile_number:mobile_number});if(error)throw error;}
     accountMessage("managedAccountsMessage", data.message || "Account আপডেট হয়েছে।", "ok");
     await loadManagedAccounts();
   } catch(error) {
@@ -6263,6 +6279,7 @@ $("createOperatorForm").addEventListener("submit", async event => {
   const full_name = $("newOperatorName").value.trim();
   const login_id = $("newOperatorLogin").value.trim().toUpperCase();
   const password = $("newOperatorPassword").value;
+  const mobile_number = $("newOperatorMobile").value.trim();
   const region = $("operatorRegion").value;
   const id_type = $("operatorIdType").value;
   const schedule_regions = [...document.querySelectorAll('input[name="operatorScheduleRegion"]:checked')].map(input => input.value);
@@ -6272,7 +6289,7 @@ $("createOperatorForm").addEventListener("submit", async event => {
     : $("operatorDefaultBoardingPoint").value;
   const button = $("createOperatorButton");
   const message = $("operatorCreateMessage");
-  if (!company_id || !counter_id || !full_name || !login_id || !default_boarding_point || !schedule_regions.length || password.length < 8) {
+  if (!company_id || !counter_id || !full_name || !login_id || !mobile_number || !default_boarding_point || !schedule_regions.length || password.length < 8) {
     message.textContent = "Company, Counter, নাম, Login ID, Default Boarding Point, কমপক্ষে একটি Schedule Region এবং ৮ অক্ষরের Password দিন।";
     message.className = "message error";
     return;
@@ -6282,13 +6299,14 @@ $("createOperatorForm").addEventListener("submit", async event => {
   message.className = "message";
   try {
     const {data,error} = await supabase.functions.invoke("manage-company-users", {
-      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type,schedule_regions,default_boarding_point,default_boarding_point_custom:customBoardingPoint}
+      body: {action:"create_operator",company_id,counter_id,full_name,login_id,password,region,id_type,schedule_regions,default_boarding_point,default_boarding_point_custom:customBoardingPoint,mobile_number}
     });
     if (error) throw new Error(data?.message || error.message || "Backend request failed");
     if (!data?.success) throw new Error(data?.message || "Operator ID তৈরি হয়নি।");
     $("newOperatorName").value = "";
     $("newOperatorLogin").value = "";
     $("newOperatorPassword").value = "";
+    $("newOperatorMobile").value = "";
     $("operatorDefaultBoardingPoint").value = "";
     document.querySelectorAll('input[name="operatorScheduleRegion"]').forEach(input => { input.checked = false; });
     $("customBoardingPointInput").value = "";
@@ -6440,7 +6458,8 @@ async function loadTripSheet(tripId) {
         const name=seller?.seller_name||"তথ্য পাওয়া যায়নি";
         const role=seller?.seller_role||seller?.role||"";
         const counter=seller?.counter_name||"";
-        return [ticket.id,[name,role,counter].filter(Boolean).join(" · ")];
+        const mobile=seller?.counter_mobile_number||"";
+        return [ticket.id,[name,role,counter,mobile ? "Mobile: "+mobile : "Mobile: —"].filter(Boolean).join(" · ")];
       }catch(error){
         console.warn("TRIP SHEET SELLER LOOKUP:",ticket.id,error);
         return [ticket.id,"বিক্রেতার তথ্য পাওয়া যায়নি"];
@@ -7624,7 +7643,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
         const tripDetails = details.trip || {};
         const sellerText = (seller.seller_name || "নাম নেই") +
           " (" + (seller.seller_role || "Role নেই") + ")" +
-          (seller.counter_name ? " | Counter: " + seller.counter_name : "");
+          (seller.counter_name ? " | Counter: " + seller.counter_name : "") +
+          (seller.counter_mobile_number ? " | Mobile: " + seller.counter_mobile_number : "");
 
         const stopName = id => {
           if (id && id === ticket.boarding_stop_id) return details.boarding_stop_name || "—";
@@ -8533,7 +8553,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
               const quickTicket=ticketDetails?.ticket;
               const seller=ticketDetails?.seller;
               const sellerText=seller ? (seller.seller_name||"নাম নেই")+
-                (seller.counter_name ? " ("+seller.counter_name+")" : "") : "বিক্রেতার তথ্য নেই";
+                (seller.counter_name ? " ("+seller.counter_name+")" : "") +
+                (seller.counter_mobile_number ? " · Mobile: "+seller.counter_mobile_number : "") : "বিক্রেতার তথ্য নেই";
               if (hoverTooltip === tip && tip.isConnected) {
                 const when=quickTicket?.created_at
                   ? formatDhakaDateTime(quickTicket.created_at,{year:"2-digit"}) : "সময় পাওয়া যায়নি";
