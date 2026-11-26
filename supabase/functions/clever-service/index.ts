@@ -170,9 +170,14 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!profile) {
-      return send({
-        error: "Login ID or password is incorrect",
-      }, 401);
+      return send({ error: "Login ID or password is incorrect" }, 401);
+    }
+    if (profile.role !== "super_admin") {
+      stage = "CHECK_COMPANY_STATUS";
+      if (!profile.company_id) return send({error:"এই Account-এর সঙ্গে কোনো Company যুক্ত নেই।",stage},403);
+      const {data:company,error:companyError}=await admin.from("companies").select("is_active").eq("id",profile.company_id).maybeSingle();
+      if(companyError){console.error("COMPANY_STATUS_ERROR:",companyError.message);return send({error:"Company status যাচাই করা যায়নি।",stage},500);}
+      if(!company||company.is_active===false)return send({error:"এই কোম্পানিটি বর্তমানে বন্ধ রয়েছে। অনুগ্রহ করে কোম্পানির কর্তৃপক্ষের সঙ্গে যোগাযোগ করুন।",stage},403);
     }
 
     // New database column: existing accounts default to true.
