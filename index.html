@@ -5641,29 +5641,61 @@ document.addEventListener("keydown",(event) => {
 });
 
 async function busnexSearchTicket(){
- const input=$("topbarTicketSearch"),q=input.value.trim(); if(!q){input.focus();return;}
- if(q.length<4){bookingMessage("PNR বা মোবাইল নম্বর কমপক্ষে ৪ অক্ষর দিন।","error");return;}
- const btn=$("topbarSearchButton");btn.disabled=true;
+ const input=$("topbarTicketSearch"),btn=$("topbarSearchButton");
+ const q=String(input?.value||"").trim();
+ if(!q){input?.focus();return;}
+ const normalized=q.replace(/^\\s*PNR[\\s:#-]*/i,"").replace(/[^a-z0-9]/gi,"");
+ if(normalized.length<4){
+  input.setCustomValidity("PNR বা মোবাইল নম্বর কমপক্ষে ৪ অক্ষর/ডিজিট দিন।");
+  input.reportValidity();input.setCustomValidity("");input.focus();return;
+ }
+ let style=document.getElementById("busnex-global-ticket-search-style");
+ if(!style){
+  style=document.createElement("style");style.id="busnex-global-ticket-search-style";
+  style.textContent=".busnex-global-search-overlay{position:fixed;inset:0;z-index:100500;background:rgba(12,35,23,.48);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:14px}.busnex-global-search-modal{width:min(760px,96vw);max-height:88vh;overflow:auto;background:#fff;border:1px solid #dceade;border-radius:18px;padding:20px;box-shadow:0 24px 70px rgba(12,50,28,.24);color:#18352a}.busnex-global-search-head{display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:-20px;background:#fff;padding:2px 0 13px;border-bottom:1px solid #e5eee6}.busnex-global-search-head h2{margin:0;color:#176b46;font-size:19px}.busnex-global-search-close{background:#edf6ef;color:#205b39;padding:9px 13px}.busnex-global-search-result{padding:13px 0}.busnex-global-search-card{border:1px solid #dceade;border-radius:12px;padding:13px;margin:10px 0;background:#f8fcf9;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 14px}.busnex-global-search-field{min-width:0;overflow-wrap:anywhere}.busnex-global-search-field small{display:block;color:#718477;font-size:11px;margin-bottom:3px}.busnex-global-search-field b{color:#203d2b;font-size:13px}.busnex-global-search-state{padding:24px 12px;text-align:center;color:#64796b;line-height:1.7}@media(max-width:560px){.busnex-global-search-modal{padding:15px;border-radius:15px}.busnex-global-search-card{grid-template-columns:1fr 1fr;gap:9px}.busnex-global-search-head h2{font-size:16px}}";
+  document.head.appendChild(style);
+ }
+ const overlay=document.createElement("div");overlay.className="busnex-global-search-overlay";
+ const modal=document.createElement("section");modal.className="busnex-global-search-modal";modal.setAttribute("role","dialog");modal.setAttribute("aria-modal","true");modal.setAttribute("aria-label","Ticket Search Results");
+ const head=document.createElement("div");head.className="busnex-global-search-head";
+ const title=document.createElement("h2");title.textContent="Ticket Search Results";
+ const close=document.createElement("button");close.type="button";close.className="busnex-global-search-close";close.textContent="বন্ধ করুন";close.addEventListener("click",()=>overlay.remove());
+ head.append(title,close);
+ const result=document.createElement("div");result.className="busnex-global-search-result";
+ const state=document.createElement("div");state.className="busnex-global-search-state";state.textContent="টিকিট খোঁজা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন…";
+ result.append(state);modal.append(head,result);overlay.append(modal);document.body.append(overlay);
+ overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove();});
+ const onEscape=e=>{if(e.key==="Escape"&&overlay.isConnected){overlay.remove();document.removeEventListener("keydown",onEscape);}};
+ document.addEventListener("keydown",onEscape);
+ btn.disabled=true;btn.setAttribute("aria-busy","true");
  try{
   const {data,error}=await supabase.rpc("busnex_ticket_search",{p_query:q});
   if(error)throw error;
-  const rows=data?.tickets||[];
-  const overlay=document.createElement("div");overlay.className="busnex-ticket-overlay";
-  const modal=document.createElement("div");modal.className="busnex-ticket-modal";modal.style.cssText="max-width:760px;padding:20px;border-radius:16px";
-  const close=document.createElement("button");close.className="busnex-ticket-close";close.textContent="বন্ধ করুন";
-  close.onclick=()=>overlay.remove();
-  const title=document.createElement("h2");title.textContent="Ticket Search Results";title.style.cssText="color:#176b4b;margin:0 0 15px";
-  modal.append(title,close);
-  if(!rows.length){const empty=document.createElement("p");empty.textContent="এই PNR / Mobile Number-এর কোনো অনুমোদিত Sold টিকিট পাওয়া যায়নি।";modal.append(empty);}
-  rows.forEach(t=>{
-   const card=document.createElement("div");card.style.cssText="border:1px solid #dce8df;border-radius:12px;padding:14px;margin:10px 0;background:#f8fcf9";
-   const info=document.createElement("div");info.style.cssText="line-height:1.8;color:#234";
-   info.innerHTML="<b>PNR:</b> "+t.pnr+" &nbsp; <b>Seat:</b> "+String(t.seat_number||"")+"<br><b>Passenger:</b> "+String(t.passenger_name||"")+"<br><b>Mobile:</b> "+String(t.passenger_phone||"")+"<br><b>Coach:</b> "+String(t.coach_number||"")+"<br><b>Journey:</b> "+(t.departure_time?new Date(t.departure_time).toLocaleString():"—")+"<br><b>Route:</b> "+String(t.starting_point||"")+" → "+String(t.ending_point||"")+"<br><b>Paid:</b> BDT "+String(t.paid_price??t.ticket_price??"—");
-   card.append(info);modal.append(card);
-  });
-  overlay.append(modal);document.body.append(overlay);overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.remove();});
- }catch(e){bookingMessage("Ticket Search ব্যর্থ: "+(e.message||e),"error");}
- finally{btn.disabled=false;}
+  const rows=Array.isArray(data?.tickets)?data.tickets:[];
+  result.replaceChildren();
+  if(!rows.length){
+   const empty=document.createElement("div");empty.className="busnex-global-search-state";
+   empty.textContent="এই PNR / মোবাইল নম্বরের কোনো অনুমোদিত বিক্রিত টিকিট পাওয়া যায়নি। নম্বরটি আবার মিলিয়ে দেখুন।";
+   result.append(empty);
+  }else{
+   const count=document.createElement("div");count.className="busnex-global-search-state";count.textContent=rows.length+"টি টিকিট পাওয়া গেছে";result.append(count);
+   const fields=[["PNR",t=>t.pnr],["Seat",t=>t.seat_number],["Passenger",t=>t.passenger_name],["Mobile",t=>t.passenger_phone],["Coach",t=>t.coach_number],["Journey",t=>t.departure_time?new Date(t.departure_time).toLocaleString("en-GB",{timeZone:"Asia/Dhaka"}):"—"],["Route",t=>String(t.starting_point||"—")+" → "+String(t.ending_point||"—")],["Paid",t=>"BDT "+String(t.paid_price??t.ticket_price??"—")]];
+   rows.forEach(t=>{
+    const card=document.createElement("article");card.className="busnex-global-search-card";
+    fields.forEach(([label,getValue])=>{
+     const cell=document.createElement("div");cell.className="busnex-global-search-field";
+     const small=document.createElement("small");small.textContent=label;
+     const value=document.createElement("b");value.textContent=String(getValue(t)??"—");
+     cell.append(small,value);card.append(cell);
+    });
+    result.append(card);
+   });
+  }
+ }catch(e){
+  result.replaceChildren();const errorState=document.createElement("div");errorState.className="busnex-global-search-state";errorState.textContent="টিকিট সার্চ করা যায়নি: "+String(e?.message||e||"অজানা সমস্যা");result.append(errorState);
+ }finally{
+  btn.disabled=false;btn.removeAttribute("aria-busy");
+ }
 }
 $("topbarSearchButton").addEventListener("click",busnexSearchTicket);
 $("topbarTicketSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();busnexSearchTicket();}});
@@ -9731,9 +9763,17 @@ body{
   min-width:0!important;flex:initial!important;
 }
 #appScreen>.topbar .topbar-company{display:none!important}
-#appScreen>.topbar .brand{color:#176b46!important;font-weight:950!important}
-#appScreen>.topbar .brand:after{color:#176b46!important}
-#appScreen>.topbar .brand span{color:#21884f!important}
+/* Restore the BUSNEX two-tone wordmark; never synthesize a second text logo. */
+#appScreen>.topbar .brand{
+  display:inline-flex!important;align-items:center!important;
+  width:auto!important;height:auto!important;flex:0 0 auto!important;
+  white-space:nowrap!important;visibility:visible!important;opacity:1!important;
+  font-family:Inter,"Segoe UI",Arial,sans-serif!important;
+  font-size:25px!important;font-weight:950!important;letter-spacing:1.35px!important;
+  line-height:1!important;color:#176b46!important;text-shadow:none!important;
+}
+#appScreen>.topbar .brand:after{content:none!important;display:none!important}
+#appScreen>.topbar .brand span{display:inline!important;color:#b58a3b!important;font-weight:950!important}
 #appScreen>.topbar .topbar-search{
   display:flex!important;grid-column:auto!important;order:initial!important;
   width:100%!important;max-width:none!important;min-width:0!important;
