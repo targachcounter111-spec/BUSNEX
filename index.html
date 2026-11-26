@@ -3215,7 +3215,7 @@ async function loadGlobalCompanyHub() {
   const message = $("companyHubMessage");
   message.textContent = "Company তালিকা লোড হচ্ছে...";
   try {
-    const {data,error} = await supabase.from("companies").select("id,name,is_active").order("name");
+    const {data,error} = await supabase.from("companies").select("id,name,is_active,trial_enabled,trial_started_at,trial_ends_at").order("name");
     if (error) throw error;
     companies = data || [];
     fillBillReminderCompanyOptions();
@@ -3253,7 +3253,13 @@ async function loadGlobalCompanyHub() {
       const open=document.createElement("button");open.type="button";open.className="primary";open.textContent="Open Workspace";open.disabled=company.is_active===false;open.addEventListener("click",()=>openCompanyWorkspace(company));
       const edit=document.createElement("button");edit.type="button";edit.className="secondary";edit.textContent="✏️ Company Name Edit";edit.addEventListener("click",()=>editCompanyName(company));
       const toggle=document.createElement("button");toggle.type="button";toggle.className=company.is_active===false?"primary":"secondary";toggle.textContent=company.is_active===false?"Company ON করুন":"Company OFF করুন";toggle.addEventListener("click",()=>changeCompanyActiveStatus(company));
-      card.append(mark,title,desc,state,open,edit,toggle);return card;
+      const trialActive=company.trial_enabled===true && company.trial_started_at && company.trial_ends_at && new Date(company.trial_ends_at)>new Date();
+      const trialBadge=document.createElement("span");trialBadge.className="status-badge";trialBadge.textContent=trialActive?"FREE TRIAL ACTIVE":(company.trial_enabled?"TRIAL EXPIRED":"NO FREE TRIAL");
+      trialBadge.style.cssText=trialActive?"background:#dcfce7;color:#166534;font-weight:900;padding:6px 12px;border-radius:20px":"background:#f1f5f9;color:#475569;font-weight:900;padding:6px 12px;border-radius:20px";
+      const trialDates=document.createElement("small");trialDates.style.cssText="color:#475569;text-align:center;line-height:1.5";
+      trialDates.textContent=company.trial_started_at&&company.trial_ends_at?"শুরু: "+new Date(company.trial_started_at).toLocaleDateString("en-GB")+" • শেষ: "+new Date(company.trial_ends_at).toLocaleDateString("en-GB"):"এই Company-এর Trial সেট করা হয়নি";
+      const trialButton=document.createElement("button");trialButton.type="button";trialButton.className="secondary";trialButton.textContent=trialActive?"Free Trial Extend / Reset":"৩০ দিনের Free Trial দিন";trialButton.addEventListener("click",()=>setCompanyFreeTrial(company));
+      card.append(mark,title,desc,state,trialBadge,trialDates,trialButton,open,edit,toggle);return card;
     };
     const shamolWrap = $("shamolCompanyCard");
     shamolWrap.innerHTML = "";
@@ -3268,6 +3274,33 @@ async function loadGlobalCompanyHub() {
   } catch(error) {
     message.textContent = "Company লোড হয়নি: " + error.message;
     message.className = "message section error";
+  }
+}
+
+
+async function setCompanyFreeTrial(company) {
+  if (currentProfile?.role !== "super_admin" || !company?.id) return;
+  const entered=window.prompt("এই Company-কে কত দিনের Free Trial দিতে চান? (১–৩৬৫ দিন)", "30");
+  if (entered===null) return;
+  const days=Number(entered);
+  if (!Number.isInteger(days) || days<1 || days>365) {
+    window.alert("Trial ১ থেকে ৩৬৫ দিনের পূর্ণসংখ্যা হতে হবে।");
+    return;
+  }
+  if (!window.confirm(company.name+"-কে এখন থেকে "+days+" দিনের Free Trial দিতে চান?")) return;
+  const message=$("companyHubMessage");
+  message.textContent="Free Trial সেট হচ্ছে...";
+  message.className="message section";
+  try {
+    const {data,error}=await supabase.rpc("busnex_set_company_free_trial",{p_company_id:company.id,p_days:days});
+    if(error) throw error;
+    if(!data?.success) throw new Error("Trial সেট নিশ্চিত করা যায়নি।");
+    await loadGlobalCompanyHub();
+    message.textContent=company.name+"-এর "+days+" দিনের Free Trial চালু হয়েছে।";
+    message.className="message section ok";
+  } catch(error) {
+    message.textContent="Free Trial সেট হয়নি: "+error.message;
+    message.className="message section error";
   }
 }
 
@@ -3464,6 +3497,9 @@ $("addCompanyForm").addEventListener("submit",async event => {
   try {
     const {data,error} = await supabase.from("companies").insert({name}).select("id,name").single();
     if (error) throw error;
+    const {data:trialData,error:trialError}=await supabase.rpc("busnex_set_company_free_trial",{p_company_id:data.id,p_days:30});
+    if(trialError) throw new Error("Company তৈরি হয়েছে, কিন্তু ৩০ দিনের Free Trial চালু হয়নি: "+trialError.message);
+    if(!trialData?.success) throw new Error("Company তৈরি হয়েছে, কিন্তু Free Trial চালু নিশ্চিত হয়নি।");
     $("newCompanyName").value = "";
     await loadGlobalCompanyHub();
     $("managerCompanySelect").value = data.id;
