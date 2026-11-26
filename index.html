@@ -6454,7 +6454,8 @@ async function loadTripSheet(tripId) {
         const name=seller?.seller_name||"তথ্য পাওয়া যায়নি";
         const role=seller?.seller_role||seller?.role||"";
         const counter=seller?.counter_name||"";
-        return [ticket.id,[name,role,counter].filter(Boolean).join(" · ")];
+        const mobile=seller?.counter_mobile_number||"";
+        return [ticket.id,[name,role,counter,mobile ? "Mobile: "+mobile : "Mobile: —"].filter(Boolean).join(" · ")];
       }catch(error){
         console.warn("TRIP SHEET SELLER LOOKUP:",ticket.id,error);
         return [ticket.id,"বিক্রেতার তথ্য পাওয়া যায়নি"];
@@ -7638,7 +7639,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
         const tripDetails = details.trip || {};
         const sellerText = (seller.seller_name || "নাম নেই") +
           " (" + (seller.seller_role || "Role নেই") + ")" +
-          (seller.counter_name ? " | Counter: " + seller.counter_name : "");
+          (seller.counter_name ? " | Counter: " + seller.counter_name : "") +
+          (seller.counter_mobile_number ? " | Mobile: " + seller.counter_mobile_number : "");
 
         const stopName = id => {
           if (id && id === ticket.boarding_stop_id) return details.boarding_stop_name || "—";
@@ -8547,7 +8549,8 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
               const quickTicket=ticketDetails?.ticket;
               const seller=ticketDetails?.seller;
               const sellerText=seller ? (seller.seller_name||"নাম নেই")+
-                (seller.counter_name ? " ("+seller.counter_name+")" : "") : "বিক্রেতার তথ্য নেই";
+                (seller.counter_name ? " ("+seller.counter_name+")" : "") +
+                (seller.counter_mobile_number ? " · Mobile: "+seller.counter_mobile_number : "") : "বিক্রেতার তথ্য নেই";
               if (hoverTooltip === tip && tip.isConnected) {
                 const when=quickTicket?.created_at
                   ? formatDhakaDateTime(quickTicket.created_at,{year:"2-digit"}) : "সময় পাওয়া যায়নি";
