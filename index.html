@@ -2494,6 +2494,14 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
       <div class="field"><label>&nbsp;</label><button id="saveOwnAccount" class="primary" type="submit">নিজের তথ্য সংরক্ষণ</button></div>
     </form>
     <div id="ownAccountMessage" class="message" aria-live="polite"></div>
+    <div id="companyControlPinPanel" class="section hidden" style="margin-top:20px;border:1px solid #cfe5d4;background:#f6fbf7">
+      <h2>🔐 Company ON/OFF Control PIN</h2><p class="muted small">Company চালু বা বন্ধ করার আলাদা PIN/Password সেট করুন। কমপক্ষে ৬ অক্ষর।</p>
+      <form id="companyControlPinForm" class="form-row">
+        <div class="field"><label for="companyControlPin">নতুন PIN / Password</label><input id="companyControlPin" type="password" minlength="6" maxlength="64" autocomplete="new-password"></div>
+        <div class="field"><label for="companyControlPinConfirm">আবার লিখুন</label><input id="companyControlPinConfirm" type="password" minlength="6" maxlength="64" autocomplete="new-password"></div>
+        <div class="field"><label>&nbsp;</label><button id="saveCompanyControlPin" class="primary" type="submit">PIN সংরক্ষণ করুন</button></div>
+      </form><div id="companyControlPinMessage" class="message" aria-live="polite"></div>
+    </div>
     <div id="managedAccountsPanel" class="section hidden">
       <h2>অন্যদের Account পরিচালনা</h2>
       <p id="managedAccountsHint" class="muted small"></p>
@@ -2928,6 +2936,10 @@ async function loadDashboardStats() {
 
 let maintenanceWatchTimer = null;
 
+function showCompanyOffScreen() {
+  showMaintenanceScreen("এই কোম্পানিটি বর্তমানে বন্ধ রয়েছে। অনুগ্রহ করে কোম্পানির কর্তৃপক্ষের সঙ্গে যোগাযোগ করুন।");
+  document.title="BUSNEX | Company Off";
+}
 function showMaintenanceScreen(message) {
   $("sessionRestoreScreen").classList.add("hidden");
   $("loginScreen").classList.add("hidden");
@@ -3012,6 +3024,12 @@ async function showDashboard(profile) {
   activeCompanyName = "";
 
   if (currentProfile.role !== "super_admin") {
+    try{
+      const {data:access,error:accessError}=await supabase.rpc("busnex_get_my_company_access_status");
+      if(accessError||!Array.isArray(access)||!access.length||access[0].is_active!==true){
+        await supabase.auth.signOut();showCompanyOffScreen();return;
+      }
+    }catch(error){console.error("COMPANY ACCESS CHECK:",error);showCompanyOffScreen();return;}
     try {
       const {data:maintenance,error:maintenanceError} = await supabase
         .from("busnex_maintenance_settings")
@@ -3151,7 +3169,7 @@ async function loadGlobalCompanyHub() {
   const message = $("companyHubMessage");
   message.textContent = "Company তালিকা লোড হচ্ছে...";
   try {
-    const {data,error} = await supabase.from("companies").select("id,name").order("name");
+    const {data,error} = await supabase.from("companies").select("id,name,is_active").order("name");
     if (error) throw error;
     companies = data || [];
     fillBillReminderCompanyOptions();
@@ -3179,19 +3197,16 @@ async function loadGlobalCompanyHub() {
     const shamol = companies.filter(c => /shamol/i.test(c.name));
     const others = companies.filter(c => !/shamol/i.test(c.name));
     const makeCard = (company,isPrimary) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "company-hub-card" + (isPrimary ? " primary-company" : "");
-      const mark = document.createElement("span");
-      mark.className = "company-logo-mark";
-      mark.textContent = isPrimary ? "S" : String(company.name || "C").trim().charAt(0).toUpperCase();
-      const title = document.createElement("h3");
-      title.textContent = company.name;
-      const desc = document.createElement("p");
-      desc.textContent = isPrimary ? "SHAMOL TRAVELS • Main Company Workspace" : "Company Workspace • Manage trips, counters and billing";
-      card.append(mark,title,desc);
-      card.addEventListener("click",() => openCompanyWorkspace(company));
-      return card;
+      const card=document.createElement("div");card.className="company-hub-card"+(isPrimary?" primary-company":"");
+      card.style.cssText="display:flex;flex-direction:column;align-items:center;gap:9px;padding:20px;cursor:default";
+      const mark=document.createElement("span");mark.className="company-logo-mark";mark.textContent=isPrimary?"S":String(company.name||"C").trim().charAt(0).toUpperCase();
+      const title=document.createElement("h3");title.textContent=company.name;
+      const desc=document.createElement("p");desc.textContent=isPrimary?"SHAMOL TRAVELS • Main Company Workspace":"Company Workspace • Manage trips, counters and billing";
+      const state=document.createElement("span");state.className="status-badge";state.textContent=company.is_active===false?"COMPANY OFF":"COMPANY ON";
+      state.style.cssText=company.is_active===false?"background:#fee2e2;color:#991b1b;font-weight:900;padding:6px 12px;border-radius:20px":"background:#dcfce7;color:#166534;font-weight:900;padding:6px 12px;border-radius:20px";
+      const open=document.createElement("button");open.type="button";open.className="primary";open.textContent="Open Workspace";open.disabled=company.is_active===false;open.addEventListener("click",()=>openCompanyWorkspace(company));
+      const toggle=document.createElement("button");toggle.type="button";toggle.className=company.is_active===false?"primary":"secondary";toggle.textContent=company.is_active===false?"Company ON করুন":"Company OFF করুন";toggle.addEventListener("click",()=>changeCompanyActiveStatus(company));
+      card.append(mark,title,desc,state,open,toggle);return card;
     };
     const shamolWrap = $("shamolCompanyCard");
     shamolWrap.innerHTML = "";
@@ -5114,8 +5129,37 @@ $("myAccountButton").addEventListener("click", async () => {
   $("accountNewPassword").value = "";
   $("accountConfirmPassword").value = "";
   accountMessage("ownAccountMessage", "");
+  const pinPanel=$("companyControlPinPanel");
+  if(pinPanel){
+    pinPanel.classList.toggle("hidden",currentProfile?.role!=="super_admin");
+    if(currentProfile?.role==="super_admin"){
+      $("companyControlPin").value="";$("companyControlPinConfirm").value="";
+      try{const {data,error}=await supabase.rpc("busnex_get_company_control_pin_status");if(error)throw error;
+        accountMessage("companyControlPinMessage",data===true?"Company Control PIN আগে থেকেই সেট করা আছে। নতুন PIN দিলে পরিবর্তন হবে।":"এখনো Company Control PIN সেট করা হয়নি।","ok");
+      }catch(error){accountMessage("companyControlPinMessage","PIN Status যাচাই হয়নি: "+error.message,"error");}
+    }
+  }
   await loadManagedAccounts();
 });
+$("companyControlPinForm").addEventListener("submit",async event=>{
+  event.preventDefault();if(currentProfile?.role!=="super_admin")return;
+  const pin=$("companyControlPin").value,confirmPin=$("companyControlPinConfirm").value;
+  if(pin.length<6||pin.length>64)return accountMessage("companyControlPinMessage","PIN/Password কমপক্ষে ৬ এবং সর্বোচ্চ ৬৪ অক্ষরের হতে হবে।","error");
+  if(pin!==confirmPin)return accountMessage("companyControlPinMessage","দুইটি PIN/Password এক হয়নি।","error");
+  const button=$("saveCompanyControlPin");button.disabled=true;
+  try{const {data,error}=await supabase.rpc("busnex_set_company_control_pin",{p_pin:pin});if(error)throw error;if(!data?.success)throw new Error(data?.message||"PIN সংরক্ষণ হয়নি।");
+    $("companyControlPin").value="";$("companyControlPinConfirm").value="";accountMessage("companyControlPinMessage","Company Control PIN নিরাপদভাবে সংরক্ষণ হয়েছে।","ok");
+  }catch(error){accountMessage("companyControlPinMessage","PIN সংরক্ষণ হয়নি: "+error.message,"error");}finally{button.disabled=false;}
+});
+async function changeCompanyActiveStatus(company){
+  if(currentProfile?.role!=="super_admin"||!company?.id)return;
+  const on=company.is_active===false,action=on?"ON":"OFF";
+  const pin=window.prompt(company.name+" "+action+" করতে Company Control PIN/Password লিখুন:");
+  if(pin===null)return;if(!pin)return alert("Company Control PIN/Password দিতে হবে।");
+  try{const {data,error}=await supabase.rpc("busnex_set_company_active_status",{p_company_id:company.id,p_is_active:on,p_pin:pin});if(error)throw error;if(!data?.success)throw new Error(data?.message||"Company Status পরিবর্তন হয়নি।");
+    alert(company.name+" সফলভাবে "+action+" করা হয়েছে।");await loadGlobalCompanyHub();
+  }catch(error){alert("Company Status পরিবর্তন হয়নি: "+error.message);}
+}
 $("closeAccountModal").addEventListener("click", () => $("accountModal").classList.add("hidden"));
 $("accountModal").addEventListener("click", event => {
   if (event.target === $("accountModal")) $("accountModal").classList.add("hidden");
