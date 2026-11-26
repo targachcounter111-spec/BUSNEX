@@ -61,14 +61,16 @@ BEGIN
       'created_at', t.created_at,
       'trip_id', tr.id,
       'coach_number', tr.coach_number,
-      'bus_name', tr.bus_name,
+      'bus_name', b.bus_name,
       'departure_time', tr.departure_time,
-      'starting_point', tr.starting_point,
-      'ending_point', tr.ending_point,
+      'starting_point', r.starting_point,
+      'ending_point', r.ending_point,
       'status', t.status
     ) AS ticket
     FROM public.tickets t
     JOIN public.trips tr ON tr.id = t.trip_id
+    LEFT JOIN public.buses b ON b.id = tr.bus_id
+    LEFT JOIN public.routes r ON r.id = tr.route_id
     CROSS JOIN LATERAL (
       SELECT regexp_replace(coalesce(t.passenger_phone, ''), '[^0-9]', '', 'g') AS phone_digits
     ) phone
