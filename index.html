@@ -3613,7 +3613,7 @@ $("loginForm").addEventListener("submit",async event => {
       if (userData?.user) {
         const {data:profileData,error:profileError} = await supabase
           .from("profiles")
-          .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active")
+          .select("id,login_id,full_name,role,company_id,counter_id,default_boarding_point,region,schedule_regions,is_active,mobile_number")
           .eq("id",userData.user.id)
           .maybeSingle();
 
