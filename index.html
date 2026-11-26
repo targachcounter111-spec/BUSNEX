@@ -2483,6 +2483,22 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
   </div>
 </div>
 
+<div id="companyControlVerifyModal" class="hidden" style="position:fixed;inset:0;z-index:11000;background:rgba(10,35,22,.62);padding:18px;display:flex;align-items:center;justify-content:center">
+  <div style="width:min(100%,440px);background:#fff;border:1px solid #d8e9dc;border-radius:20px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.22)">
+    <div style="width:48px;height:48px;border-radius:15px;background:#eaf7ed;color:#176b46;display:grid;place-items:center;font-size:23px;margin-bottom:14px">🔐</div>
+    <h2 id="companyControlVerifyTitle" style="margin:0 0 7px;color:#14532d">Company Control</h2>
+    <p id="companyControlVerifyText" class="muted small">নিরাপত্তার জন্য আপনার Company Control PIN দিন।</p>
+    <form id="companyControlVerifyForm">
+      <div class="field"><label for="companyControlVerifyPin">Company Control PIN / Password</label><input id="companyControlVerifyPin" type="password" minlength="6" maxlength="64" autocomplete="current-password" required></div>
+      <div id="companyControlVerifyMessage" class="message" aria-live="polite"></div>
+      <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:14px">
+        <button id="cancelCompanyControlVerify" class="secondary" type="button">Cancel</button>
+        <button id="confirmCompanyControlVerify" class="primary" type="submit">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="accountModal" class="hidden" style="position:fixed;inset:0;z-index:10000;background:rgba(22,12,40,.58);padding:18px;overflow:auto">
   <div style="max-width:900px;margin:30px auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.25)">
     <div class="page-head"><div><h2>Account Settings</h2><p class="muted small">নিজের নাম ও Password নিরাপদে পরিবর্তন করুন।</p></div><button id="closeAccountModal" class="secondary" type="button">বন্ধ করুন ✕</button></div>
@@ -5155,15 +5171,45 @@ $("companyControlPinForm").addEventListener("submit",async event=>{
     $("companyControlPin").value="";$("companyControlPinConfirm").value="";accountMessage("companyControlPinMessage","Company Control PIN নিরাপদভাবে সংরক্ষণ হয়েছে।","ok");
   }catch(error){accountMessage("companyControlPinMessage","PIN সংরক্ষণ হয়নি: "+error.message,"error");}finally{button.disabled=false;}
 });
+let pendingCompanyControlAction=null;
 async function changeCompanyActiveStatus(company){
   if(currentProfile?.role!=="super_admin"||!company?.id)return;
   const on=company.is_active===false,action=on?"ON":"OFF";
-  const pin=window.prompt(company.name+" "+action+" করতে Company Control PIN/Password লিখুন:");
-  if(pin===null)return;if(!pin)return alert("Company Control PIN/Password দিতে হবে।");
-  try{const {data,error}=await supabase.rpc("busnex_set_company_active_status",{p_company_id:company.id,p_is_active:on,p_pin:pin});if(error)throw error;if(!data?.success)throw new Error(data?.message||"Company Status পরিবর্তন হয়নি।");
-    alert(company.name+" সফলভাবে "+action+" করা হয়েছে।");await loadGlobalCompanyHub();
-  }catch(error){alert("Company Status পরিবর্তন হয়নি: "+error.message);}
+  pendingCompanyControlAction={company,isActive:on};
+  $("companyControlVerifyTitle").textContent="Company "+action+" Confirmation";
+  $("companyControlVerifyText").textContent=company.name+" "+action+" করতে Company Control PIN/Password দিন।";
+  $("companyControlVerifyPin").value="";
+  $("companyControlVerifyMessage").textContent="";
+  $("companyControlVerifyMessage").className="message";
+  $("companyControlVerifyModal").classList.remove("hidden");
+  $("companyControlVerifyPin").focus();
 }
+$("cancelCompanyControlVerify").addEventListener("click",()=>{
+  pendingCompanyControlAction=null;$("companyControlVerifyModal").classList.add("hidden");
+});
+$("companyControlVerifyForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(currentProfile?.role!=="super_admin"||!pendingCompanyControlAction)return;
+  const pin=$("companyControlVerifyPin").value;
+  if(!pin)return;
+  const button=$("confirmCompanyControlVerify");button.disabled=true;
+  $("companyControlVerifyMessage").textContent="Company Status পরিবর্তন হচ্ছে...";
+  $("companyControlVerifyMessage").className="message";
+  try{
+    const {company,isActive}=pendingCompanyControlAction;
+    const {data,error}=await supabase.rpc("busnex_set_company_active_status",{p_company_id:company.id,p_is_active:isActive,p_pin:pin});
+    if(error)throw error;
+    if(!data?.success)throw new Error(data?.message||"Company Status পরিবর্তন হয়নি।");
+    $("companyControlVerifyMessage").textContent=company.name+" সফলভাবে "+(isActive?"ON":"OFF")+" করা হয়েছে।";
+    $("companyControlVerifyMessage").className="message ok";
+    pendingCompanyControlAction=null;
+    await loadGlobalCompanyHub();
+    setTimeout(()=>{$("companyControlVerifyModal").classList.add("hidden");},700);
+  }catch(error){
+    $("companyControlVerifyMessage").textContent="পরিবর্তন হয়নি: "+error.message;
+    $("companyControlVerifyMessage").className="message error";
+  }finally{button.disabled=false;}
+});
 $("closeAccountModal").addEventListener("click", () => $("accountModal").classList.add("hidden"));
 $("accountModal").addEventListener("click", event => {
   if (event.target === $("accountModal")) $("accountModal").classList.add("hidden");
