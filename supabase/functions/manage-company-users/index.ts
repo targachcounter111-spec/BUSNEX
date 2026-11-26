@@ -349,7 +349,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const operatorMobile = action === "create_operator" ? String(body.mobile_number || "").replace(/[^0-9+]/g, "") : null;
-  if (action === "create_operator" && (!operatorMobile || !/^\\+?[0-9]{10,15}$/.test(operatorMobile))) {
+  if (action === "create_operator" && (!operatorMobile || !/^\+?[0-9]{10,15}$/.test(operatorMobile))) {
     await admin.auth.admin.deleteUser(createdAuth.user.id);
     return json(400, { success: false, message: "Counter-এর সঠিক Mobile Number দিন।" }, origin);
   }
