@@ -5071,7 +5071,7 @@ async function loadManagedAccounts() {
   $("managedAccountsMessage").textContent = "Account তালিকা লোড হচ্ছে...";
   try {
     let query = supabase.from("profiles")
-      .select("id,login_id,full_name,role,id_type,region,schedule_regions,company_id")
+      .select("id,login_id,full_name,role,id_type,region,schedule_regions,company_id,mobile_number")
       .neq("id", currentProfile.id)
       .order("full_name");
     if (currentProfile.role === "company_manager") {
@@ -5080,8 +5080,8 @@ async function loadManagedAccounts() {
     const {data,error} = await query;
     if (error) throw error;
     const rows = data || [];
-    $("managedAccountsList").innerHTML = rows.length ? '<table><thead><tr><th>নাম</th><th>Login ID</th><th>Role</th><th>নতুন নাম</th><th>নতুন Password</th><th>Action</th></tr></thead><tbody>' +
-      rows.map(user => '<tr><td>' + escapeHtml(user.full_name || "—") + '</td><td><strong>' + escapeHtml(user.login_id || "—") + '</strong>' + (user.role === "counter_operator" ? '<br><small class="status-badge">' + escapeHtml(((user.schedule_regions || (user.region ? [user.region] : [])).join(" + ") || "REGION NOT SET") + " " + String(user.id_type || "OPERATOR").toUpperCase()) + '</small>' : '') + '</td><td>' + escapeHtml(user.role === "company_manager" ? "Manager" : (user.id_type === "AGENT" ? "Agent" : user.role === "counter_operator" ? "Operator" : user.role)) + '</td><td><input class="managed-new-name" data-id="' + escapeHtml(user.id) + '" maxlength="120" placeholder="নাম পরিবর্তন (ঐচ্ছিক)"></td><td><input class="managed-new-password" data-id="' + escapeHtml(user.id) + '" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></td><td><button class="primary save-managed-account" data-id="' + escapeHtml(user.id) + '" type="button">Save</button></td></tr>').join("") +
+    $("managedAccountsList").innerHTML = rows.length ? '<table><thead><tr><th>নাম</th><th>Login ID</th><th>Role</th><th>Mobile Number</th><th>নতুন নাম</th><th>নতুন Password</th><th>Action</th></tr></thead><tbody>' +
+      rows.map(user => '<tr><td>' + escapeHtml(user.full_name || "—") + '</td><td><strong>' + escapeHtml(user.login_id || "—") + '</strong>' + (user.role === "counter_operator" ? '<br><small class="status-badge">' + escapeHtml(((user.schedule_regions || (user.region ? [user.region] : [])).join(" + ") || "REGION NOT SET") + " " + String(user.id_type || "OPERATOR").toUpperCase()) + '</small>' : '') + '</td><td>' + escapeHtml(user.role === "company_manager" ? "Manager" : (user.id_type === "AGENT" ? "Agent" : user.role === "counter_operator" ? "Operator" : user.role)) + '</td><td><input class="managed-new-mobile" data-id="' + escapeHtml(user.id) + '" type="tel" inputmode="tel" maxlength="16" value="' + escapeHtml(user.mobile_number || "") + '" placeholder="01XXXXXXXXX"></td><td><input class="managed-new-name" data-id="' + escapeHtml(user.id) + '" maxlength="120" placeholder="নাম পরিবর্তন (ঐচ্ছিক)"></td><td><input class="managed-new-password" data-id="' + escapeHtml(user.id) + '" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="নতুন Password"></td><td><button class="primary save-managed-account" data-id="' + escapeHtml(user.id) + '" type="button">Save</button></td></tr>').join("") +
       '</tbody></table>' : '<div class="empty">পরিচালনার জন্য কোনো Account পাওয়া যায়নি।</div>';
     $("managedAccountsMessage").textContent = rows.length + "টি Account পাওয়া গেছে।";
     $("managedAccountsMessage").className = "message ok";
@@ -5162,12 +5162,16 @@ $("managedAccountsList").addEventListener("click", async event => {
   const id = button.dataset.id;
   const full_name = $("managedAccountsList").querySelector('.managed-new-name[data-id="' + CSS.escape(id) + '"]')?.value.trim() || "";
   const password = $("managedAccountsList").querySelector('.managed-new-password[data-id="' + CSS.escape(id) + '"]')?.value || "";
-  if (!full_name && !password) return accountMessage("managedAccountsMessage", "নতুন নাম অথবা Password লিখুন।", "error");
+  const mobileInput = $("managedAccountsList").querySelector('.managed-new-mobile[data-id="' + CSS.escape(id) + '"]');
+  const mobile_number = mobileInput?.value.trim() || "";
+  const existingMobile = mobileInput?.defaultValue || "";
+  if (!full_name && !password && mobile_number===existingMobile) return accountMessage("managedAccountsMessage", "নতুন নাম, Password অথবা Mobile Number পরিবর্তন করুন।", "error");
   if (password && password.length < 8) return accountMessage("managedAccountsMessage", "নতুন Password কমপক্ষে ৮ অক্ষরের হতে হবে।", "error");
   if (!confirm("নির্বাচিত Account-এর তথ্য পরিবর্তন করবেন?")) return;
   button.disabled = true;
   try {
     const data = await invokeAccountUpdate({action:"admin_reset_user_credentials",profile_id:id,full_name,password});
+    if(mobile_number && mobile_number!==existingMobile){const {error}=await supabase.rpc("busnex_manager_set_profile_mobile",{p_profile_id:id,p_mobile_number:mobile_number});if(error)throw error;}
     accountMessage("managedAccountsMessage", data.message || "Account আপডেট হয়েছে।", "ok");
     await loadManagedAccounts();
   } catch(error) {
