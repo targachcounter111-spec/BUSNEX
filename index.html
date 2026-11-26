@@ -9708,5 +9708,97 @@ body{
 
 
 
+
+<style id="busnex-header-final-cascade-v2">
+/* Final header layout: this block intentionally comes after legacy theme overrides. */
+#appScreen>.topbar{
+  display:grid!important;
+  grid-template-columns:minmax(190px,1fr) minmax(230px, min(38vw,460px)) auto!important;
+  align-items:center!important;
+  gap:clamp(12px,2vw,26px)!important;
+  height:auto!important;min-height:76px!important;
+  padding:10px clamp(14px,2.5vw,34px)!important;
+  background:rgba(255,255,255,.88)!important;
+  color:#14532d!important;
+  border:0!important;border-bottom:1px solid rgba(21,128,61,.14)!important;
+  box-shadow:0 8px 28px rgba(20,83,45,.10)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(155%)!important;
+  backdrop-filter:blur(18px) saturate(155%)!important;
+}
+#appScreen>.topbar:after{display:none!important;content:none!important}
+#appScreen>.topbar .topbar-left{
+  display:flex!important;align-items:center!important;gap:14px!important;
+  min-width:0!important;flex:initial!important;
+}
+#appScreen>.topbar .topbar-company{display:none!important}
+#appScreen>.topbar .brand{color:#176b46!important;font-weight:950!important}
+#appScreen>.topbar .brand:after{color:#176b46!important}
+#appScreen>.topbar .brand span{color:#21884f!important}
+#appScreen>.topbar .topbar-search{
+  display:flex!important;grid-column:auto!important;order:initial!important;
+  width:100%!important;max-width:none!important;min-width:0!important;
+  height:46px!important;align-items:center!important;
+  padding:5px 7px 5px 15px!important;
+  border:1px solid rgba(21,128,61,.22)!important;border-radius:18px!important;
+  background:rgba(255,255,255,.78)!important;
+  box-shadow:inset 0 1px 3px rgba(15,60,35,.04),0 3px 12px rgba(20,83,45,.05)!important;
+  -webkit-backdrop-filter:blur(12px)!important;backdrop-filter:blur(12px)!important;
+}
+#appScreen>.topbar .topbar-search input{
+  display:block!important;width:100%!important;min-width:0!important;height:34px!important;
+  padding:4px 8px!important;border:0!important;outline:0!important;box-shadow:none!important;
+  background:transparent!important;color:#163b25!important;font-size:14px!important;
+}
+#appScreen>.topbar .topbar-search input::placeholder{color:#718477!important}
+#appScreen>.topbar .topbar-search button{
+  display:grid!important;place-items:center!important;flex:0 0 36px!important;
+  width:36px!important;height:36px!important;padding:0!important;
+  border:0!important;border-radius:13px!important;
+  background:linear-gradient(135deg,#15803d,#22a45a)!important;color:#fff!important;
+}
+#appScreen>.topbar .top-actions{
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  gap:10px!important;min-width:0!important;flex-wrap:nowrap!important;
+}
+#appScreen>.topbar .topbar-profile{color:#14532d!important}
+#appScreen>.topbar .topbar-profile small{color:#647c6c!important}
+#appScreen>.topbar .top-actions .secondary,
+#appScreen>.topbar #myAccountButton,
+#appScreen>.topbar #logoutButton{
+  border:1px solid rgba(21,128,61,.18)!important;
+  background:rgba(255,255,255,.82)!important;color:#14532d!important;border-radius:12px!important;
+}
+@media(max-width:1100px){
+ #appScreen>.topbar{
+   grid-template-columns:minmax(150px,1fr) minmax(210px,40vw) auto!important;
+   gap:10px!important;padding:9px 14px!important;
+ }
+ #appScreen>.topbar .topbar-search{display:flex!important}
+ #appScreen>.topbar .topbar-profile b{max-width:120px!important}
+}
+@media(max-width:700px){
+ #appScreen>.topbar{
+   grid-template-columns:minmax(0,1fr) auto!important;
+   grid-template-rows:auto auto!important;
+   min-height:0!important;height:auto!important;padding:9px 12px!important;
+   gap:8px 10px!important;
+ }
+ #appScreen>.topbar .topbar-left{grid-column:1!important;grid-row:1!important;gap:10px!important}
+ #appScreen>.topbar .topbar-search{
+   grid-column:1/-1!important;grid-row:2!important;order:initial!important;
+   width:100%!important;height:42px!important;border-radius:14px!important;
+ }
+ #appScreen>.topbar .topbar-search input{height:30px!important;font-size:13px!important}
+ #appScreen>.topbar .topbar-search button{width:32px!important;height:32px!important;flex-basis:32px!important}
+ #appScreen>.topbar .top-actions{
+   grid-column:2!important;grid-row:1!important;gap:5px!important;
+ }
+ #appScreen>.topbar .topbar-profile b,
+ #appScreen>.topbar .topbar-profile small{display:none!important}
+ #appScreen>.topbar .profile-avatar{width:32px!important;height:32px!important}
+ #appScreen>.topbar #logoutButton{font-size:10px!important;padding:7px 8px!important}
+}
+</style>
+
 </body>
 </html>
