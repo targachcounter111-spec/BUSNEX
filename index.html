@@ -3251,8 +3251,9 @@ async function loadGlobalCompanyHub() {
       const state=document.createElement("span");state.className="status-badge";state.textContent=company.is_active===false?"COMPANY OFF":"COMPANY ON";
       state.style.cssText=company.is_active===false?"background:#fee2e2;color:#991b1b;font-weight:900;padding:6px 12px;border-radius:20px":"background:#dcfce7;color:#166534;font-weight:900;padding:6px 12px;border-radius:20px";
       const open=document.createElement("button");open.type="button";open.className="primary";open.textContent="Open Workspace";open.disabled=company.is_active===false;open.addEventListener("click",()=>openCompanyWorkspace(company));
+      const edit=document.createElement("button");edit.type="button";edit.className="secondary";edit.textContent="✏️ Company Name Edit";edit.addEventListener("click",()=>editCompanyName(company));
       const toggle=document.createElement("button");toggle.type="button";toggle.className=company.is_active===false?"primary":"secondary";toggle.textContent=company.is_active===false?"Company ON করুন":"Company OFF করুন";toggle.addEventListener("click",()=>changeCompanyActiveStatus(company));
-      card.append(mark,title,desc,state,open,toggle);return card;
+      card.append(mark,title,desc,state,open,edit,toggle);return card;
     };
     const shamolWrap = $("shamolCompanyCard");
     shamolWrap.innerHTML = "";
@@ -3267,6 +3268,45 @@ async function loadGlobalCompanyHub() {
   } catch(error) {
     message.textContent = "Company লোড হয়নি: " + error.message;
     message.className = "message section error";
+  }
+}
+
+async function editCompanyName(company) {
+  if (currentProfile?.role !== "super_admin" || !company?.id) return;
+  const entered = window.prompt("নতুন Company Name লিখুন:", company.name || "");
+  if (entered === null) return;
+  const name = entered.trim();
+  if (!name) {
+    window.alert("Company Name খালি রাখা যাবে না।");
+    return;
+  }
+  if (name.length > 120) {
+    window.alert("Company Name সর্বোচ্চ ১২০ অক্ষরের হতে পারবে।");
+    return;
+  }
+  if (name === company.name) return;
+  if (!window.confirm('"' + company.name + '" নামটি "' + name + '" করতে চান?')) return;
+  const buttons = [...document.querySelectorAll("#shamolCompanyCard button, #otherCompanyCards button")];
+  buttons.forEach(button => button.disabled = true);
+  const message = $("companyHubMessage");
+  message.textContent = "Company Name পরিবর্তন হচ্ছে...";
+  message.className = "message section";
+  try {
+    const { data, error } = await supabase
+      .from("companies")
+      .update({ name })
+      .eq("id", company.id)
+      .select("id,name")
+      .single();
+    if (error) throw error;
+    await loadGlobalCompanyHub();
+    $("companyHubMessage").textContent = "Company Name সফলভাবে পরিবর্তন হয়েছে: " + data.name;
+    $("companyHubMessage").className = "message section ok";
+  } catch (error) {
+    message.textContent = "Company Name পরিবর্তন হয়নি: " + error.message;
+    message.className = "message section error";
+  } finally {
+    buttons.forEach(button => button.disabled = false);
   }
 }
 
