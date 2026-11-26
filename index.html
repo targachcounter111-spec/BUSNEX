@@ -1627,7 +1627,8 @@ html,body{background:var(--bnx-paper)!important;color:#1d3325!important}
 <style id="busnex-reference-dashboard-exact-layout">
 #appScreen>.topbar{height:78px!important;display:grid!important;grid-template-columns:minmax(270px,1fr) minmax(240px,320px) minmax(300px,1fr)!important;gap:18px!important;padding:0 28px!important;background:#fff!important;border-bottom:1px solid #d9eadf!important;box-shadow:0 2px 12px rgba(22,83,51,.06)!important}
 #appScreen>.topbar .topbar-left{gap:17px!important}#appScreen>.topbar .menu-toggle{width:44px!important;height:44px!important;border-radius:13px!important;background:#eff8f1!important;color:#176b46!important;border:1px solid #e1efe4!important;font-size:23px!important}
-#appScreen>.topbar .brand{font-size:29px!important;font-weight:950!important;letter-spacing:-1px!important;color:#176b46!important}#appScreen>.topbar .brand span{color:#21884f!important}#appScreen>.topbar .topbar-company{display:none!important}
+#appScreen>.topbar .brand{font-size:29px!important;font-weight:950!important;letter-spacing:-1px!important;color:#176b46!important}#appScreen>.topbar .brand span{color:#21884f!important}#appScreen>.topbar #topbarCompany,
+#appScreen>.topbar .topbar-company{display:none!important;visibility:hidden!important;width:0!important;max-width:0!important;overflow:hidden!important}
 #appScreen>.topbar .topbar-search{height:48px!important;border-radius:28px!important;border:1px solid #dce5e8!important;background:#fff!important;padding:4px 9px 4px 16px!important}
 #appScreen>.topbar .topbar-search input{font-size:14px!important;color:#34465b!important}#appScreen>.topbar .topbar-search button{border-radius:22px!important;background:#edf6ef!important;color:#176b46!important}
 #appScreen>.topbar .topbar-profile b{color:#174d34!important;font-size:14px!important}#appScreen>.topbar .topbar-profile small{color:#27824c!important;font-size:12px!important}#appScreen>.topbar .profile-avatar{width:42px!important;height:42px!important;background:#176b46!important;color:#fff!important;border:0!important}
@@ -9745,7 +9746,7 @@ body{
 /* Final header layout: this block intentionally comes after legacy theme overrides. */
 #appScreen>.topbar{
   display:grid!important;
-  grid-template-columns:minmax(190px,1fr) minmax(230px, min(38vw,460px)) auto!important;
+  grid-template-columns:max-content minmax(260px,min(36vw,460px)) minmax(0,1fr)!important;
   align-items:center!important;
   gap:clamp(12px,2vw,26px)!important;
   height:auto!important;min-height:76px!important;
@@ -9810,7 +9811,7 @@ body{
 }
 @media(max-width:1100px){
  #appScreen>.topbar{
-   grid-template-columns:minmax(150px,1fr) minmax(210px,40vw) auto!important;
+   grid-template-columns:max-content minmax(210px,min(38vw,420px)) minmax(0,1fr)!important;
    gap:10px!important;padding:9px 14px!important;
  }
  #appScreen>.topbar .topbar-search{display:flex!important}
