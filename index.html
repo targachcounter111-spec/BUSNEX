@@ -3054,6 +3054,10 @@ async function showDashboard(profile) {
     maintenanceWatchTimer = setInterval(async() => {
       if (!currentProfile || currentProfile.role === "super_admin") return;
       try {
+        const {data:companyAccess,error:companyAccessError}=await supabase.rpc("busnex_get_my_company_access_status");
+        if(companyAccessError||!Array.isArray(companyAccess)||!companyAccess.length||companyAccess[0].is_active!==true){
+          await supabase.auth.signOut();showCompanyOffScreen();return;
+        }
         const {data,error} = await supabase
           .from("busnex_maintenance_settings")
           .select("maintenance_enabled,maintenance_message")
@@ -9062,6 +9066,12 @@ if (!isPasswordSetupLink) {
       if (!userData?.user) {
         showLogin();
         return;
+      }
+
+      const {data:companyAccess,error:companyAccessError}=await supabase.rpc("busnex_get_my_company_access_status");
+      if(companyAccessError){console.error("SESSION COMPANY CHECK:",companyAccessError);await supabase.auth.signOut();showCompanyOffScreen();return;}
+      if(!Array.isArray(companyAccess)||!companyAccess.length||companyAccess[0].is_active!==true){
+        await supabase.auth.signOut();showCompanyOffScreen();return;
       }
 
       const {data:profile,error:profileError} = await supabase
