@@ -7484,6 +7484,12 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
           .bnx-mobile-ticket-preview .busnex-ticket-actions .danger{background:#fff0ed!important;border:1px solid #f1d1c9!important;color:#a53e32!important}
           .bnx-mobile-ticket-preview .busnex-ticket-actions .busnex-cancel-seat-selection{order:3!important;flex:1 1 100%!important;max-height:18dvh!important;overflow:auto!important;margin:0!important;padding:8px!important}
           .bnx-mobile-ticket-preview .busnex-ticket-actions .secondary:last-child{display:none!important}
+          /* Admin/manager mobile previews: keep cancellation controls below the ticket, never over it. */
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel{height:96dvh!important;max-height:96dvh!important;padding:48px 10px 8px!important;overflow:hidden!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel .busnex-ticket-modal-body{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel .busnex-ticket-actions{position:static!important;inset:auto!important;z-index:2!important;flex:0 0 auto!important;width:auto!important;max-height:30dvh!important;overflow-y:auto!important;overflow-x:hidden!important;margin:8px 0 0!important;padding:8px!important;border:1px solid #e1eae2!important;border-radius:12px!important;background:#fff!important;box-shadow:0 3px 12px rgba(20,65,39,.10)!important}
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel .busnex-cancel-seat-selection{max-height:16dvh!important;overflow:auto!important;margin:0 0 6px!important;padding:8px!important}
+
           @media(max-height:560px){.bnx-mobile-ticket-preview .busnex-ticket-modal{padding-top:48px!important;padding-bottom:68px!important}.bnx-mobile-ticket-preview .bpt-copy{padding:7px!important;font-size:12px!important}.bnx-mobile-ticket-preview .busnex-ticket-actions button{min-height:36px!important}}
           /* Final cascade override to match the supplied ticket-popup reference. */
           .bnx-mobile-ticket-preview{align-items:center!important;justify-content:center!important;padding:12px!important;background:rgba(8,24,17,.62)!important}
@@ -7807,6 +7813,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
           const {data:cancelPermission,error:cancelPermissionError}=await supabase.rpc("busnex_can_cancel_tickets");
           if(cancelPermissionError) throw cancelPermissionError;
           mayCancelTicket=cancelPermission===true;
+          if(mayCancelTicket) modal.classList.add("bnx-ticket-can-cancel");
         } catch(permissionError) {
           console.warn("Ticket cancellation permission check unavailable:",permissionError);
         }
