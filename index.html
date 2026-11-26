@@ -7691,6 +7691,7 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
           <section class="bpt-mobile-layout" aria-label="Mobile ticket details">
             <div class="bpt-mobile-row"><span class="bpt-mobile-label">Name</span><span class="bpt-mobile-value">${safe(ticket.passenger_name)}</span></div>
             <div class="bpt-mobile-row"><span class="bpt-mobile-label">Mobile</span><span class="bpt-mobile-value">${safe(ticket.passenger_phone)}</span></div>
+            <div class="bpt-mobile-row bpt-mobile-seller-row"><span class="bpt-mobile-label">বিক্রি করেছেন / Counter</span><span class="bpt-mobile-value">${safe(sellerText)}</span></div>
             <div class="bpt-mobile-row"><span class="bpt-mobile-label">Coach</span><span class="bpt-mobile-value">${safe(coach)}</span></div>
             <div class="bpt-mobile-row"><span class="bpt-mobile-label">Seats</span><span class="bpt-mobile-value">${safe(seatLabel)}</span></div>
             <div class="bpt-mobile-row"><span class="bpt-mobile-label">Date</span><span class="bpt-mobile-value">${safe(journey)}</span></div>
@@ -7831,76 +7832,111 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
             console.warn("Could not load cancellation seat gender colours:",genderLoadError);
           }
 
-          const selectedCancelTicketIds = new Set();
-          if(groupTickets.length===1 && groupTickets[0].id) selectedCancelTicketIds.add(groupTickets[0].id);
+          const cancelButton = document.createElement("button");
+          cancelButton.type = "button";
+          cancelButton.className = "danger";
+          cancelButton.textContent = "✖ Cancel";
+          cancelButton.addEventListener("click",()=>{
+            const selectedCancelTicketIds = new Set();
+            if(groupTickets.length===1 && groupTickets[0].id) selectedCancelTicketIds.add(groupTickets[0].id);
 
-          if(groupTickets.length>1) {
-            const selectionPanel=document.createElement("section");
-            selectionPanel.className="busnex-cancel-seat-selection";
-            selectionPanel.style.cssText="width:100%;box-sizing:border-box;margin:14px 0;padding:14px;border:1px solid #ded8f5;border-radius:12px;background:#faf9ff;";
-            const selectionTitle=document.createElement("strong");
-            selectionTitle.textContent="কোন কোন Seat Cancel করবেন?";
-            selectionTitle.style.cssText="display:block;margin-bottom:5px;color:#33236f;font-size:15px;";
-            const selectionHint=document.createElement("div");
-            selectionHint.textContent="যে Seat বাতিল করতে চান, শুধু সেগুলোতে টিক দিন। শুরুতে কোনো Seat নির্বাচন করা নেই।";
-            selectionHint.style.cssText="font-size:12px;color:#666;margin-bottom:10px;";
+            const cancelOverlay=document.createElement("div");
+            cancelOverlay.className="busnex-cancel-dialog-overlay";
+            cancelOverlay.style.cssText="position:fixed;inset:0;z-index:1000000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.62);";
+            const cancelDialog=document.createElement("section");
+            cancelDialog.setAttribute("role","dialog");
+            cancelDialog.setAttribute("aria-modal","true");
+            cancelDialog.setAttribute("aria-label","কোন Seat Cancel করবেন");
+            cancelDialog.style.cssText="width:min(100%,460px);max-height:min(82dvh,680px);display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.28);";
+            const dialogHead=document.createElement("div");
+            dialogHead.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid #e5e7eb;background:#fff;";
+            const dialogTitle=document.createElement("strong");
+            dialogTitle.textContent="কোন কোন Seat Cancel করবেন?";
+            dialogTitle.style.cssText="font-size:16px;color:#173b2b;";
+            const dialogClose=document.createElement("button");
+            dialogClose.type="button";
+            dialogClose.textContent="×";
+            dialogClose.setAttribute("aria-label","বন্ধ করুন");
+            dialogClose.style.cssText="width:34px;height:34px;min-width:34px;padding:0;border-radius:9px;background:#f1f5f9;color:#334155;font-size:24px;";
+            const dialogContent=document.createElement("div");
+            dialogContent.style.cssText="padding:16px 18px;overflow:auto;overscroll-behavior:contain;";
+            const dialogHint=document.createElement("p");
+            dialogHint.textContent="যে Seat বাতিল করতে চান, শুধু সেই Seat-গুলো নির্বাচন করুন।";
+            dialogHint.style.cssText="margin:0 0 13px;color:#64748b;font-size:13px;line-height:1.5;";
             const selectionList=document.createElement("div");
-            selectionList.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;";
+            selectionList.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px;";
             const selectionCount=document.createElement("div");
-            selectionCount.textContent="নির্বাচিত Seat: ০";
-            selectionCount.style.cssText="margin-top:10px;font-weight:700;color:#4b328f;font-size:13px;";
+            selectionCount.textContent="নির্বাচিত Seat: "+selectedCancelTicketIds.size;
+            selectionCount.style.cssText="margin-top:14px;padding:10px 12px;border-radius:9px;background:#f1f7f2;color:#245b3d;font-size:13px;font-weight:800;";
+            const dialogActions=document.createElement("div");
+            dialogActions.style.cssText="display:flex;gap:9px;padding:13px 18px;border-top:1px solid #e5e7eb;background:#fff;";
+            const dialogCancel=document.createElement("button");
+            dialogCancel.type="button";
+            dialogCancel.className="secondary";
+            dialogCancel.textContent="বন্ধ করুন";
+            dialogCancel.style.cssText="flex:1;background:#f1f5f9;color:#334155;";
+            const confirmCancel=document.createElement("button");
+            confirmCancel.type="button";
+            confirmCancel.className="danger";
+            confirmCancel.textContent="নির্বাচিত Seat Cancel";
+            confirmCancel.disabled=selectedCancelTicketIds.size===0;
+            confirmCancel.style.cssText="flex:1;background:#b91c1c;color:#fff;";
             groupTickets.forEach(item=>{
               const seatLabel=document.createElement("label");
               const gender=String(item.passenger_gender||"").trim().toLowerCase();
               const isMale=["male","m","পুরুষ","ছেলে"].includes(gender);
               const isFemale=["female","f","মহিলা","নারী","মেয়ে","মেয়ে"].includes(gender);
               const seatColour=isMale?"#dc3545":isFemale?"#e83e8c":"#596579";
-              seatLabel.style.cssText="display:flex;align-items:center;gap:9px;padding:11px 12px;border:2px solid "+seatColour+";border-radius:9px;background:"+seatColour+";color:#fff;cursor:pointer;font-size:13px;font-weight:700;min-height:44px;box-sizing:border-box;box-shadow:inset 0 0 0 1px #ffffff22;";
+              seatLabel.style.cssText="display:flex;align-items:center;gap:9px;padding:12px 10px;border:2px solid "+seatColour+";border-radius:10px;background:"+seatColour+";color:#fff;cursor:pointer;font-size:13px;font-weight:800;min-height:48px;box-sizing:border-box;";
               const checkbox=document.createElement("input");
               checkbox.type="checkbox";
               checkbox.value=String(item.id||"");
-              checkbox.style.cssText="width:18px;height:18px;accent-color:#fff;flex:0 0 auto;cursor:pointer;";
+              checkbox.checked=selectedCancelTicketIds.has(item.id);
+              checkbox.style.cssText="width:19px;height:19px;accent-color:#fff;flex:0 0 auto;cursor:pointer;";
               const seatText=document.createElement("span");
-              seatText.textContent="Seat "+String(item.seat_number||"—")+" · "+(isMale?"Male":isFemale?"Female":"Other")+" · ৳"+Number(item.ticket_price||0).toFixed(2);
+              seatText.textContent="Seat "+String(item.seat_number||"—")+" · "+(isMale?"Male":isFemale?"Female":"Other")+" · ৳"+Number(item.paid_price??item.ticket_price??0).toFixed(2);
               seatLabel.append(checkbox,seatText);
               checkbox.addEventListener("change",()=>{
                 if(checkbox.checked && item.id) selectedCancelTicketIds.add(item.id);
                 else selectedCancelTicketIds.delete(item.id);
                 selectionCount.textContent="নির্বাচিত Seat: "+selectedCancelTicketIds.size;
-                cancel.disabled=selectedCancelTicketIds.size===0;
+                confirmCancel.disabled=selectedCancelTicketIds.size===0;
               });
               selectionList.appendChild(seatLabel);
             });
-            selectionPanel.append(selectionTitle,selectionHint,selectionList,selectionCount);
-            actions.appendChild(selectionPanel);
-          }
-
-          const cancel=document.createElement("button");
-          cancel.type="button";
-          cancel.className="danger";
-          cancel.textContent="✖ Cancel Selected Seat"+(groupTickets.length>1?"(s)":"");
-          cancel.disabled=selectedCancelTicketIds.size===0;
-          cancel.addEventListener("click",async()=>{
-            const ids=[...selectedCancelTicketIds];
-            if(!ids.length) { alert("Cancel করার জন্য অন্তত একটি Seat নির্বাচন করুন।"); return; }
-            if(!confirm("নির্বাচিত "+ids.length+"টি Seat-এর Ticket Cancel করবেন? শুধু নির্বাচিত Seat-গুলোই Available হবে।")) return;
-            cancel.disabled=true;
-            cancel.textContent="Cancel হচ্ছে...";
-            try {
-              const {data:cancelled,error:cancelError}=await supabase.rpc("busnex_cancel_tickets",{p_ticket_ids:ids});
-              if(cancelError) throw cancelError;
-              if(cancelled!==true) throw new Error("Database Ticket Cancel নিশ্চিত করেনি।");
-              alert("নির্বাচিত "+ids.length+"টি Ticket সফলভাবে Cancel হয়েছে। শুধু ওই Seat-গুলো Available করা হয়েছে।");
-              closeModal();
-              window.location.reload();
-            } catch(cancelError) {
-              console.error("BUSNEX TICKET CANCEL ERROR:",cancelError);
-              alert("Ticket Cancel হয়নি: "+(cancelError.message||"অজানা সমস্যা"));
-              cancel.disabled=selectedCancelTicketIds.size===0;
-              cancel.textContent="✖ Cancel Selected Seat"+(groupTickets.length>1?"(s)":"");
-            }
+            const closeCancelDialog=()=>cancelOverlay.remove();
+            dialogClose.addEventListener("click",closeCancelDialog);
+            dialogCancel.addEventListener("click",closeCancelDialog);
+            cancelOverlay.addEventListener("click",event=>{if(event.target===cancelOverlay)closeCancelDialog();});
+            confirmCancel.addEventListener("click",async()=>{
+              const ids=[...selectedCancelTicketIds];
+              if(!ids.length)return;
+              if(!confirm("নির্বাচিত "+ids.length+"টি Seat-এর Ticket Cancel করবেন? শুধু নির্বাচিত Seat-গুলোই Available হবে।"))return;
+              confirmCancel.disabled=true;
+              confirmCancel.textContent="Cancel হচ্ছে...";
+              try{
+                const {data:cancelled,error:cancelError}=await supabase.rpc("busnex_cancel_tickets",{p_ticket_ids:ids});
+                if(cancelError)throw cancelError;
+                if(cancelled!==true)throw new Error("Database Ticket Cancel নিশ্চিত করেনি।");
+                closeCancelDialog();
+                alert("নির্বাচিত "+ids.length+"টি Ticket সফলভাবে Cancel হয়েছে। শুধু ওই Seat-গুলো Available করা হয়েছে।");
+                closeModal();
+                window.location.reload();
+              }catch(cancelError){
+                console.error("BUSNEX TICKET CANCEL ERROR:",cancelError);
+                alert("Ticket Cancel হয়নি: "+(cancelError.message||"অজানা সমস্যা"));
+                confirmCancel.disabled=selectedCancelTicketIds.size===0;
+                confirmCancel.textContent="নির্বাচিত Seat Cancel";
+              }
+            });
+            dialogHead.append(dialogTitle,dialogClose);
+            dialogContent.append(dialogHint,selectionList,selectionCount);
+            dialogActions.append(dialogCancel,confirmCancel);
+            cancelDialog.append(dialogHead,dialogContent,dialogActions);
+            cancelOverlay.appendChild(cancelDialog);
+            document.body.appendChild(cancelOverlay);
           });
-          actions.appendChild(cancel);
+          actions.appendChild(cancelButton);
         }
         const closeFooter = document.createElement("button");
         closeFooter.type = "button";
