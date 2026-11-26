@@ -5644,7 +5644,7 @@ async function busnexSearchTicket(){
  const input=$("topbarTicketSearch"),btn=$("topbarSearchButton");
  const q=String(input?.value||"").trim();
  if(!q){input?.focus();return;}
- const normalized=q.replace(/^\\s*PNR[\\s:#-]*/i,"").replace(/[^a-z0-9]/gi,"");
+ const normalized=q.replace(/^\s*PNR[\s:#-]*/i,"").replace(/[^a-z0-9]/gi,"");
  if(normalized.length<4){
   input.setCustomValidity("PNR বা মোবাইল নম্বর কমপক্ষে ৪ অক্ষর/ডিজিট দিন।");
   input.reportValidity();input.setCustomValidity("");input.focus();return;
