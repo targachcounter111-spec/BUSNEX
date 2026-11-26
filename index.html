@@ -5185,7 +5185,9 @@ async function changeCompanyActiveStatus(company){
   $("companyControlVerifyPin").focus();
 }
 $("cancelCompanyControlVerify").addEventListener("click",()=>{
-  pendingCompanyControlAction=null;$("companyControlVerifyModal").classList.add("hidden");
+  pendingCompanyControlAction=null;
+  $("companyControlVerifyModal").classList.add("hidden");
+  if($("billingResetCompany"))$("billingResetCompany").disabled=!$("billingCompanySelect").value;
 });
 $("companyControlVerifyForm").addEventListener("submit",async event=>{
   event.preventDefault();
@@ -5193,21 +5195,37 @@ $("companyControlVerifyForm").addEventListener("submit",async event=>{
   const pin=$("companyControlVerifyPin").value;
   if(!pin)return;
   const button=$("confirmCompanyControlVerify");button.disabled=true;
-  $("companyControlVerifyMessage").textContent="Company Status পরিবর্তন হচ্ছে...";
+  const action=pendingCompanyControlAction;
+  $("companyControlVerifyMessage").textContent=action.type==="billing_reset"?"Billing History নিরাপদে Reset হচ্ছে...":"Company Status পরিবর্তন হচ্ছে...";
   $("companyControlVerifyMessage").className="message";
   try{
-    const {company,isActive}=pendingCompanyControlAction;
-    const {data,error}=await supabase.rpc("busnex_set_company_active_status",{p_company_id:company.id,p_is_active:isActive,p_pin:pin});
-    if(error)throw error;
-    if(!data?.success)throw new Error(data?.message||"Company Status পরিবর্তন হয়নি।");
-    $("companyControlVerifyMessage").textContent=company.name+" সফলভাবে "+(isActive?"ON":"OFF")+" করা হয়েছে।";
-    $("companyControlVerifyMessage").className="message ok";
-    pendingCompanyControlAction=null;
-    await loadGlobalCompanyHub();
-    setTimeout(()=>{$("companyControlVerifyModal").classList.add("hidden");},700);
+    if(action.type==="billing_reset"){
+      $("billingResetCompany").disabled=true;
+      const {data,error}=await supabase.rpc("busnex_reset_company_billing",{p_company_id:action.companyId,p_pin:pin});
+      if(error)throw error;
+      if(!data?.success)throw new Error(data?.message||"Billing Reset হয়নি।");
+      $("billingResetMessage").textContent=(data?.company_name||action.companyName)+" — Billing Reset সম্পন্ন। পুরোনো Ledger: "+Number(data?.ledger_rows_deleted||0)+", Invoice: "+Number(data?.invoice_rows_deleted||0)+", Payment: "+Number(data?.payment_rows_deleted||0)+"টি। পুরোনো হিসাব Audit Snapshot-এ সংরক্ষিত আছে।";
+      $("billingResetMessage").className="message ok";
+      pendingCompanyControlAction=null;
+      await loadBillingPage();
+      $("companyControlVerifyMessage").textContent="Billing History Reset সফল হয়েছে।";
+      $("companyControlVerifyMessage").className="message ok";
+      setTimeout(()=>{$("companyControlVerifyModal").classList.add("hidden");},700);
+    }else{
+      const {company,isActive}=action;
+      const {data,error}=await supabase.rpc("busnex_set_company_active_status",{p_company_id:company.id,p_is_active:isActive,p_pin:pin});
+      if(error)throw error;
+      if(!data?.success)throw new Error(data?.message||"Company Status পরিবর্তন হয়নি।");
+      $("companyControlVerifyMessage").textContent=company.name+" সফলভাবে "+(isActive?"ON":"OFF")+" করা হয়েছে।";
+      $("companyControlVerifyMessage").className="message ok";
+      pendingCompanyControlAction=null;
+      await loadGlobalCompanyHub();
+      setTimeout(()=>{$("companyControlVerifyModal").classList.add("hidden");},700);
+    }
   }catch(error){
-    $("companyControlVerifyMessage").textContent="পরিবর্তন হয়নি: "+error.message;
+    $("companyControlVerifyMessage").textContent="কাজটি সম্পন্ন হয়নি: "+error.message;
     $("companyControlVerifyMessage").className="message error";
+    if(action.type==="billing_reset")$("billingResetCompany").disabled=!$("billingCompanySelect").value;
   }finally{button.disabled=false;}
 });
 $("closeAccountModal").addEventListener("click", () => $("accountModal").classList.add("hidden"));
@@ -6214,25 +6232,16 @@ $("billingResetCompany").addEventListener("click", async () => {
     message.className = "message";
     return;
   }
-  const button = $("billingResetCompany");
-  button.disabled = true;
-  message.textContent = "নির্বাচিত Company-এর Billing Reset হচ্ছে...";
-  message.className = "message";
-  try {
-    const {data,error} = await supabase.rpc("busnex_reset_company_billing",{p_company_id:companyId});
-    if (error) throw error;
-    message.textContent = (data?.company_name || companyName) + " — Billing Reset সম্পন্ন। " +
-      "পুরোনো Ledger: " + Number(data?.ledger_rows_deleted || 0) + ", Invoice: " +
-      Number(data?.invoice_rows_deleted || 0) + ", Payment: " + Number(data?.payment_rows_deleted || 0) +
-      "টি। পুরোনো হিসাব Audit Snapshot-এ সংরক্ষিত আছে।";
-    message.className = "message ok";
-    await loadBillingPage();
-  } catch(error) {
-    message.textContent = "Billing Reset হয়নি: " + error.message;
-    message.className = "message error";
-  } finally {
-    button.disabled = !$("billingCompanySelect").value;
-  }
+  pendingCompanyControlAction={type:"billing_reset",companyId,companyName};
+  $("companyControlVerifyTitle").textContent="Billing History Delete Confirmation";
+  $("companyControlVerifyText").textContent=companyName+" Company-এর পুরোনো Billing History Reset করতে আপনার Company Control PIN/Password দিন। ভুল PIN হলে কোনো হিসাব Delete হবে না।";
+  $("companyControlVerifyPin").value="";
+  $("companyControlVerifyMessage").textContent="";
+  $("companyControlVerifyMessage").className="message";
+  $("companyControlVerifyModal").classList.remove("hidden");
+  $("companyControlVerifyPin").focus();
+  message.textContent="Billing Reset করার আগে Company Control PIN/Password প্রয়োজন।";
+  message.className="message";
 });
 
 $("grantTicketCancelPermission").addEventListener("click",async()=>{
