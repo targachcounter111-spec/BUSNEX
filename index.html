@@ -7514,6 +7514,25 @@ async function appendBookingSeatPicker(trip,card,confirmPastDate,readOnly = fals
           .bnx-mobile-ticket-preview .bpt-mobile-value{display:block!important;min-width:0!important;text-align:right!important;font-weight:700!important;color:#111827!important;overflow-wrap:anywhere!important;word-break:break-word!important;white-space:normal!important}
           .bnx-mobile-ticket-preview .bpt-mobile-row.total{margin-top:4px!important;padding-top:10px!important;border-top:1px solid #dbe7de!important;font-weight:800!important}
           .bnx-mobile-ticket-preview .bpt-mobile-footer{display:block!important;margin-top:10px!important;padding:8px!important;text-align:center!important;font-size:11px!important;font-weight:700!important;color:#14532d!important;background:#effaf2!important;border:1px solid #b7dfc2!important}
+          /* Admin/manager cancel preview: size the modal to its content instead of stretching the ticket body to the viewport. */
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel{
+            display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;
+            box-sizing:border-box!important;width:min(96vw,560px)!important;max-width:96vw!important;
+            height:auto!important;min-height:0!important;max-height:92dvh!important;
+            margin:auto!important;padding:48px 10px 10px!important;overflow-y:auto!important;overflow-x:hidden!important;
+          }
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel .busnex-ticket-modal-body{
+            display:block!important;flex:0 1 auto!important;flex-grow:0!important;flex-shrink:1!important;flex-basis:auto!important;
+            width:100%!important;min-height:0!important;max-height:54dvh!important;overflow-y:auto!important;overflow-x:hidden!important;
+          }
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel .busnex-premium-ticket{
+            display:block!important;flex:0 0 auto!important;width:100%!important;height:auto!important;min-height:0!important;
+            max-height:none!important;overflow:visible!important;
+          }
+          .bnx-mobile-ticket-preview .busnex-ticket-modal.bnx-ticket-can-cancel .busnex-ticket-actions{
+            position:static!important;flex:0 0 auto!important;width:100%!important;max-height:30dvh!important;
+            overflow-y:auto!important;overflow-x:hidden!important;margin:8px 0 0!important;
+          }
           @keyframes busnexTicketPop{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
         `;
         document.head.appendChild(style);
