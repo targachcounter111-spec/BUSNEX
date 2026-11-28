@@ -3706,6 +3706,7 @@ if (isPasswordSetupLink) {
 }
 
 supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") stopBusnexIdleLogoutTimer();
   if (isPasswordSetupLink && session && ["SIGNED_IN", "INITIAL_SESSION", "PASSWORD_RECOVERY"].includes(event)) {
     showPasswordSetup("নতুন Password লিখে সংরক্ষণ করুন।");
   }
