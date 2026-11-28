@@ -3060,6 +3060,7 @@ async function showDashboard(profile) {
   const previousBillOverlay = document.getElementById("busnexBillReminderOverlay");
   if (previousBillOverlay) previousBillOverlay.hidden = true;
   currentProfile = profile || {};
+  startBusnexIdleLogoutTimer();
   const noticeManagerPanel=$("companyNoticeManagerPanel");
   if(noticeManagerPanel)noticeManagerPanel.classList.toggle("hidden",currentProfile.role!=="company_manager");
   activeCompanyId = null;
@@ -3590,7 +3591,70 @@ $("returnGlobalButton").addEventListener("click",() => {
   loadGlobalCompanyHub();
 });
 
+const BUSNEX_IDLE_LOGOUT_MS = 3 * 60 * 60 * 1000;
+let busnexIdleLogoutTimer = null;
+let busnexIdleLogoutActive = false;
+let busnexIdleLogoutInProgress = false;
+let busnexIdleLastBroadcastAt = 0;
+const busnexIdleChannel = typeof BroadcastChannel !== "undefined"
+  ? new BroadcastChannel("busnex-idle-session")
+  : null;
+
+function stopBusnexIdleLogoutTimer() {
+  busnexIdleLogoutActive = false;
+  if (busnexIdleLogoutTimer) clearTimeout(busnexIdleLogoutTimer);
+  busnexIdleLogoutTimer = null;
+}
+
+function resetBusnexIdleLogoutTimer(broadcast = true) {
+  if (!busnexIdleLogoutActive || busnexIdleLogoutInProgress || !currentProfile) return;
+  if (busnexIdleLogoutTimer) clearTimeout(busnexIdleLogoutTimer);
+  busnexIdleLogoutTimer = setTimeout(async () => {
+    if (!busnexIdleLogoutActive || !currentProfile || busnexIdleLogoutInProgress) return;
+    busnexIdleLogoutInProgress = true;
+    stopBusnexIdleLogoutTimer();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("BUSNEX idle logout:", error);
+    }
+    billReminderShownForSession = false;
+    if (billReminderTimer) { clearTimeout(billReminderTimer); billReminderTimer = null; }
+    const billOverlay = document.getElementById("busnexBillReminderOverlay");
+    if (billOverlay) billOverlay.hidden = true;
+    if (maintenanceWatchTimer) clearInterval(maintenanceWatchTimer);
+    maintenanceWatchTimer = null;
+    $("maintenanceScreen").classList.add("hidden");
+    showLogin();
+    showMessage("নিরাপত্তার জন্য একটানা ৩ ঘণ্টা কোনো কাজ না করায় আপনাকে Logout করা হয়েছে। আবার ID ও Password দিয়ে Login করুন।", "ok");
+    busnexIdleLogoutInProgress = false;
+  }, BUSNEX_IDLE_LOGOUT_MS);
+
+  if (broadcast && busnexIdleChannel && Date.now() - busnexIdleLastBroadcastAt >= 5000) {
+    busnexIdleLastBroadcastAt = Date.now();
+    busnexIdleChannel.postMessage({ type: "activity" });
+  }
+}
+
+function startBusnexIdleLogoutTimer() {
+  stopBusnexIdleLogoutTimer();
+  busnexIdleLogoutInProgress = false;
+  busnexIdleLogoutActive = true;
+  resetBusnexIdleLogoutTimer(false);
+}
+
+if (busnexIdleChannel) {
+  busnexIdleChannel.addEventListener("message", event => {
+    if (event.data?.type === "activity") resetBusnexIdleLogoutTimer(false);
+  });
+}
+
+["pointerdown", "keydown", "mousemove", "touchstart", "scroll", "wheel", "input", "change"].forEach(eventName => {
+  window.addEventListener(eventName, () => resetBusnexIdleLogoutTimer(), { passive: true, capture: true });
+});
+
 function showLogin() {
+  stopBusnexIdleLogoutTimer();
   $("appScreen").classList.add("hidden");
   $("sessionRestoreScreen").classList.add("hidden");
   $("loginScreen").classList.remove("hidden");
@@ -3642,6 +3706,7 @@ if (isPasswordSetupLink) {
 }
 
 supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") stopBusnexIdleLogoutTimer();
   if (isPasswordSetupLink && session && ["SIGNED_IN", "INITIAL_SESSION", "PASSWORD_RECOVERY"].includes(event)) {
     showPasswordSetup("নতুন Password লিখে সংরক্ষণ করুন।");
   }
@@ -3841,6 +3906,7 @@ $("loginForm").addEventListener("submit",async event => {
 });
 
 $("logoutButton").addEventListener("click",async() => {
+  stopBusnexIdleLogoutTimer();
   await supabase.auth.signOut();
   billReminderShownForSession = false;
   if (billReminderTimer) { clearTimeout(billReminderTimer); billReminderTimer = null; }
