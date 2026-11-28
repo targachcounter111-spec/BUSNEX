@@ -3051,7 +3051,6 @@ async function toggleMaintenanceMode() {
 }
 
 async function showDashboard(profile) {
-  startBusnexIdleLogoutTimer();
   // A fresh successful login/session restore must trigger the reminder again.
   billReminderShownForSession = false;
   if (billReminderTimer) {
@@ -3061,6 +3060,7 @@ async function showDashboard(profile) {
   const previousBillOverlay = document.getElementById("busnexBillReminderOverlay");
   if (previousBillOverlay) previousBillOverlay.hidden = true;
   currentProfile = profile || {};
+  startBusnexIdleLogoutTimer();
   const noticeManagerPanel=$("companyNoticeManagerPanel");
   if(noticeManagerPanel)noticeManagerPanel.classList.toggle("hidden",currentProfile.role!=="company_manager");
   activeCompanyId = null;
